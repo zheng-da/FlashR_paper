@@ -1,0 +1,57 @@
+Linear algebra is the core of solving many scientific tasks and machine learning
+tasks. With linear algebra, we represent real-world tasks with matrices
+and the algorithms are expressed as a set of matrix operations. We can even
+formulate some of graph analysis tasks with matrix operations and solve them
+efficiently in the matrix form \cite{linear_algebra}.
+
+Many linear algebra tasks boil down to a small number of basic matrix operations
+such as matrix multiplication and matrix addition. Having a small
+set of operations greatly simplifies the implementations for these tasks.
+As such, we only need to focus on the implementations and optimizations
+on these basic operations and the optimizations can benefit a large range of
+applications.
+
+When we generalize these basic matrix operations, we can even express many more
+algorithms in the matrix form. For example, many graph algorithms such as
+PageRank \cite{pagerank} and connected component detection can be formulated
+as generalized sparse matrix multiplication \cite{Mattson13, pegasus}. We can
+also use the generalized matrix operations to implement many data mining
+algorithms such as KMeans \cite{kmeans}.
+
+Although many simple graph algorithms can be implemented in many general-purpose
+graph processing framework such as \cite{PowerGraph, FlashGraph}, these frameworks
+are less efficient in certain applications because their generality prevents
+them from incorporating many optimizations specific to these applications.
+For example, sparse matrix vector multiplication (SpMV) can also be implemented in
+the general graph processing framework but the implementations cannot compete
+with the dedicated highly optimized SpMV implementations in many scientific
+libraries \cite{trilinos, petsc}. Many graph algorithms with the same data access
+pattern as SpMV, e.g., PageRank \cite{pagerank}, label propagation \cite{label_prop}
+and belief propagation \cite{Yedidia03}, will be less efficient when they are
+implemented in the general-purpose graph processing frameworks.
+
+Like graph analysis \cite{FlashGraph}, some matrix operations
+such as sparse matrix multiplication generate irregular data access and, thus,
+they suffer from the same challenges as graph analysis. Dense matrix operations,
+on the other hand, typically exhibit very sequential data access patterns but
+may still require large amount of data movement for computation.
+
+FlashMatrix is a SSD-based data analysis framework with a general programming
+interface in the form of vectors and matrices. It is a generalization of
+FlashEigen shown in Chapter \cite{sec:fe}, which implements a set of SSD-based
+matrix operations for eigensolvers. Like FlashEigen, FlashMatrix stores large
+vectors and matrices on SSDs and streams to memory for computation. As such,
+FlashMatrix is optimized for the applications mainly with sequential I/O access.
+In contrast to FlashEigen, FlashMatrix provides a small set
+of generalized vector and matrix operations. The current implementation has
+four generalized operators: inner product, apply, reduce and groupby,
+and each operator accepts user-defined functions. With these generalized
+matrix operations, we implement a large set of basic matrix operations that
+exist in matrix-oriented programming frameworks such as R and Matlab. These
+generalized matrix operations give us the flexibility of expressing many more
+applications in FlashMatrix.
+To minimize the overhead of invoking user-defined functions, we require
+vectorized user-defined functions (VUDF). As such, the implementation of
+some applications in FlashMatrix is able to achieve performance comparable
+to specialized operators.
+FlashMatrix is designed as the backend to support matrix operations in R.
