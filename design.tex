@@ -1,14 +1,20 @@
 \section{Design}
 
 FlashMatrix is a general-purpose data analysis framework that provides
-matrix-oriented programming interface. It provides a set of generalized
-vector and matrix operations and supports vector and matrix operations in R.
-FlashMatrix supports multiple R data containers and stores these data containers
-on SSDs to scale to very large data sets. Like most of R functions,
-the operations in FlashMatrix do not change data in the input data containers
-and each operation generates a new data container.
+matrix-oriented programming interface. The architecture of FlashMatrix
+is shown in Figure \ref{fig:arch}. It provides a very small set of
+generalized vector and matrix operators and implements a large number of
+vector and matrix operators in R with the generalized operators. The generalized
+operators can be executed on each of the data containers supported by
+FlashMatrix. The optimizer in FlashMatrix merges multiple operators to
+reduce I/O access and achieve better parallelization.
 
-\subsection{Architecture}
+FlashMatrix stores large data containers on SSDs through SAFS \cite{safs},
+a user-space filesystem for a large SSD array, to fully utilize high I/O
+throughput of the SSDs. For most of the operations, FlashMatrix accesses
+data in a data container sequentially to maximize I/O throughput of SSDs.
+FlashMatrix keeps some of the large data containers in memory to effectively
+utilize memory in a large-RAM machine.
 
 \begin{figure}
 \centering
@@ -16,40 +22,95 @@ and each operation generates a new data container.
 \vspace{-5pt}
 \caption{The architecture of FlashMatrix.}
 \vspace{-5pt}
-\label{arch}
+\label{fig:arch}
 \end{figure}
 
 \subsection{Data containers}
-FlashMatrix supports multiple R data containers. It has two types of basic
-data containers: \textit{vector} and \textit{matrix}. In addition, it also
-supports two types of more advanced data containers: \textit{vector of vectors}
-and \textit{data frame}, constructed from \textit{vector}.
+FlashMatrix supports two basic types of R data containers: \textit{vector}
+and \textit{matrix}.
+By default, FlashMatrix stores vectors in memory and matrices on SSDs with
+an assumption that a matrix requires much larger storage space.
+%In addition, it also
+%supports two types of more advanced data containers: \textit{vector of vectors}
+%and \textit{data frame}, constructed from \textit{vector}.
 % We need to support sparse vector, set and map.
-
-\begin{itemize}
-	\item  A \textit{vector} is a one-dimensional array and each element has
-	the same type.
-	\item A \textit{matrix} is a two-dimensional array and each element has
-	the same type. FlashMatrix supports both row-major and column-major
-	matrices. The layout of a matrix is generally determined by a FlashMatrix
-	operation but can also be determined by users. FlashMatrix supports both
-	dense matrices and sparse matrices.
-	\item A \textit{vector of vectors} is a more restricted variant of R
-	\textit{list} and requires each vector has the same element type. A row-major
-	matrix can be viewed as a special \textit{vector of vectors} with each
-	vector of the same length.
-	\item A \textit{data frame} is a collection of vectors and each vector can
-	have arbitrary element types. All vectors in a data frame has the same length.
-	A column-major matrix can be viewed as a data frame with each vector of
-	the same element type.
-\end{itemize}
+FlashMatrix supports both dense matrices and sparse matrices.
+%	\item A \textit{vector of vectors} is a more restricted variant of R
+%	\textit{list} and requires each vector has the same element type. A row-major
+%	matrix can be viewed as a special \textit{vector of vectors} with each
+%	vector of the same length.
+%	\item A \textit{data frame} is a collection of vectors and each vector can
+%	have arbitrary element types. All vectors in a data frame has the same length.
+%	A column-major matrix can be viewed as a data frame with each vector of
+%	the same element type.
 
 Each type of data containers has two variants: local containers and global
 containers. A global container stores data on SSDs and supports varieties of
 generalized computation operators in Section \ref{sec:generalized}. A local
 container is created by a generalized computation operator in a thread and
-is exposed to VUDF. To increase data locality, the data in a local container
-is stored in memory local to the processor where the thread runs.
+is exposed to a vectorized user-defined function (VUDF). In a machine with
+non-uniform memory architecture (NUMA), the data in a local container is stored
+in local memory to increase data locality.
+
+To achieve better performance, FlashMatrix optimizes matrices of different
+shapes differently. The current implementation of FlashMatrix specifically
+optimizes matrix operations on two types of matrices: square sparse matrices
+and tall-and-skinny (TAS) dense matrices.
+
+%\begin{figure}
+%	\centering
+%	\includegraphics[scale=0.3]{./sparse_mat.pdf}
+%	\vspace{-5pt}
+%	\caption{The format of a sparse matrix.}
+%	\vspace{-5pt}
+%	\label{fig:sparse_mat}
+%\end{figure}
+
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.5]{./tile_format.pdf}
+	\vspace{-5pt}
+	\caption{The format of a tile in a sparse matrix.}
+	\vspace{-5pt}
+	\label{fig:tile}
+\end{figure}
+
+Sparse matrices are commonly used to represent sparse graphs, whose edge 
+attributes are stored as non-zero entries in a sparse matrix. A commonly
+used operation on a sparse matrix for graph analysis is sparse matrix
+multiplication, so we design the sparse matrix format to specifically
+optimize efficient sparse matrix multiplication. We split a sparse matrix
+into small tiles for cache blocking. The size of a tile is $32K \times 32K$
+at maximum and is usually
+smaller, so that we can use two bytes to represent a row index or a column
+index. Inside a tile, we combine SCSR (Super Compressed Row Storage) and
+COO (coordinate format) to store non-zero entries to achieve more compact
+data format and more efficient sparse matrix multiplication (Figure
+\ref{fig:tile}). For a binary sparse matrix, non-zero values in a tile
+do not need to be stored. For an asymmetric sparse matrix, we store both
+the sparse matrix and the transpose of the matrix physically on SSDs.
+
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.5]{./dense_matrix.pdf}
+	\vspace{-5pt}
+	\caption{The format of a dense matrix.}
+	\vspace{-5pt}
+	\label{fig:tas_mat}
+\end{figure}
+
+Tall-and-skinny (TAS) dense matrices commonly exist in many data mining
+algorithms at a large scale. As suggested by their name, these matrices have
+one of the dimensions much larger than the other dimension (Figure
+\ref{fig:tas_mat}). For example, we use these dense matrices to store a large
+set of data points with a small number of features. FlashMatrix supports both
+row-major and column-major matrices to avoid physical data copy for some matrix
+operations such as matrix transpose. The layout of a matrix is generally
+determined by a FlashMatrix operation but can also be determined by users. 
+For parallelization and efficient data access, these dense matrices are
+partitioned horizontally and all elements in a partition are stored in a piece
+of contiguous memory. As such, a column in a column-major TAS matrix is not
+stored contiguously.
 
 %\subsection{Basic operations} \label{sec:basic}
 %create a data container
@@ -67,7 +128,9 @@ To enhance the flexibility and simplify the implementation, FlashMatrix only
 provides a small set of generalized operators on vectors and matrices.
 The current implementation has four generalized operators: \textit{inner product},
 \textit{apply}, \textit{aggregation} and \textit{groupby}. Each operator
-accepts user-defined functions (UDF).
+accepts user-defined functions (UDF). Like most of R functions, these operators
+do not change data in the input data containers and each operation generates
+a new data container.
 
 \textit{Inner product} is a generalized matrix multiplication. It replaces
 multiplication and addition in matrix multiplication with two user-defined
@@ -89,11 +152,11 @@ We can use it to implement unary operations such as negation, square root
 or type casting of individual elements in a vector or a matrix. The second
 form of \textit{apply}, denoted with \textit{mapply2}, is a generalized
 element-wise binary operation whose UDF takes an element from each vector
-or matrix and outputs a single value. We use it to implement
-many binary matrix operations such as matrix addition and subtraction.
-The third form of \textit{apply} is a generalized row-wise or column-wise
-operation whose UDF takes a row or a column at time and outputs a vector of
-elements.
+or matrix and outputs a single value. We use it to implement many binary
+matrix operations such as matrix addition and subtraction. The third form of
+\textit{apply}, denoted by \textit{apply\_mat}, is a generalized row-wise or
+column-wise operation whose UDF takes a row or a column at time and outputs
+a vector of elements.
 
 \textit{Aggregation} takes multiple elements and outputs a single element.
 It has two forms on matrices. The first form, denoted by \textit{agg\_arr}
@@ -106,6 +169,12 @@ Row sum and column sum are special cases of the second form.
 values and invokes UDF on the elements associated with the same categorical
 value. \textit{Groupby} also works on a matrix if we view a matrix as a vector
 of vectors.
+
+The function of some of the operators overlaps. For example, \textit{apply\_mat}
+is a generalized form of \textit{agg\_mat}, but \textit{agg\_mat} can be
+implemented more efficiently. Therefore, FlashMatrix provides both operators.
+
+%TODO applying the operators to a sparse matrix.
 
 \subsection{Vectorized user-defined function}
 UDF potentially introduces significant computation overhead. Traditionally,
@@ -165,59 +234,13 @@ For easier parallelization, generalized operators assume that VUDF is stateless.
 Therefore, the generalized operators carry the mutable state of the computation.
 However, VUDF can carry immutable values to simplify some implementations.
 
-\subsection{Programming interface}
-\begin{figure}[t]
-%\begin{lstlisting}
-\begin{minted}[mathescape,
-		fontsize=\scriptsize,
-		frame=single,
-]{r}
-
-inner_prod <- function(mat1, mat2, op1, op2)
-op1 <- function(e1, e2)
-op2 <- function(e1, e2)
-
-sapply <- function(mat, op)
-op <- function(e)
-
-mapply2 <- function(mat1, mat2, op)
-op <- function(e1, e2)
-
-apply <- function(mat, margin, op)
-
-aggregate <- function(mat, op)
-
-
-\end{minted}
-%\end{lstlisting}
-\vspace{-5pt}
-\caption{The programming interface of FlashMatrix.}
-\label{interface}
-\end{figure}
-
 \subsection{Memory management}
-Garbage collection of vectors and matrices.
 
-% TODO we can always give each data container a memory buffer of the fixed
-% size to cache data.
+% TODO A more dynamic caching. We need to dynamically determine when and
+% which part of data should be cached.
 
-\subsubsection{Lazy evaluation} \label{sec:lazy_eval}
-Lazy evaluation avoids materializing every dense matrix to reduce the amount
-of data read and written to SSDs.
-To enable lazy evaluation, we define a special matrix to represent the output
-of a matrix operation. Such a matrix does not store the data of
-an operation result. Instead, it stores the computation and a reference to
-the input matrices. We refer to these special matrices as \textit{virtual matrices}.
-
-With \textit{virtual matrices}, we construct a directed acyclic graph (DAG)
-at runtime to represent computation constructed in FlashMatrix. In the DAG, we
-store all scalar variables and small matrices as part of computation. Inside
-this DAG, we do not need to perform any computation other than the last one.
-
-All matrices in FlashMatrix are immutable so that \textit{virtual matrices}
-can generate the same result every time when they are materialized.
-A dense matrix is garbage collected only when there are not any references to
-the matrix.
+Having a per-thread buffer to store data read from SSDs or materialized from
+a virtual matrix.
 
 When materializing a large matrix in memory, we need to allocate large pieces
 of memory for the matrix. Linux uses \textit{mmap} to allocate large memory
@@ -226,43 +249,84 @@ the memory is touched for the first time. As such, it is expensive to allocate
 large memory in Linux. As such, we maintain memory buffers with physical pages
 populated in advance.
 
-A \textit{virtual matrix} may contain a sequence of operations, so materializing
-it may trigger matrix materialization recursively. We discard the materialized
-partition of an intermediate matrix, once it is no longer needed, to avoid
-writing data of an intermediate matrix to SSDs.
-We partition a \textit{virtual matrix} horizontally in the same fashion as
-the external-memory matrices and materialize each partation independantly. 
-To increase CPU cache hits, we use a much smaller partition size than
-the external-memory matrix. As such, the output of the previous operation is
-still in the CPU cache when it is fed to the next operation.
-
 Because VUDF runs on an array of elements, we need to allocate a temporary
 memory buffer to store the intermediate computation results.
 VUDF requires data always in CPU cache.
 
-Once data in a row interval is loaded to memory, we further partition it to
-smaller row intervals so that data
-in the sub-row interval fits in CPU cache. \dz{TODO: The size of the sub row
-interval should also adapt to the matrix width.} This optimization significantly
-increase CPU cache hits in a sequence of dense matrix operations constructed in
-the lazy evaluation (Section \ref{sec:lazy_eval}).
+\subsection{Lazy evaluation} \label{sec:lazy_eval}
+Lazy evaluation avoids materializing every data container to reduce I/O.
+With lazy evaluation, an operator outputs a special matrix to represent
+the operation result and this special matrix does not store the actual data of
+the operation result. Instead, it stores the computation and a reference to
+the input matrices. We refer to these special matrices as
+\textit{virtual matrices}.
+
+The current implementation of FlashMatrix applies lazy evaluation to multiple
+generalized operators on certain data containers. Lazy evaluation can be easily
+applied to \textit{sapply} and \textit{mapply}. It is applied to \textit{apply\_mat}
+and \textit{agg\_mat} when these two operators runs on rows of a TAS matrix.
+It is also applied to \textit{inner product} when \textit{inner product} runs
+on a TAS matrix and a small matrix. In general, lazy evaluation is currently
+only applied to operators that output large data containers to reduce the amount
+of data written to SSDs.
+
+By default, FlashMatrix materializes a \textit{virtual matrix} as late as
+possible to increase saved I/O, especially writes. However, this strategy
+may have the cost of increasing computation or even increase the number of
+reads. As such, we allow users to explicitly force FlashMatrix to materialize
+a \textit{virtual matrix} when necessary.
+
+% TODO users can choose whether FlashMatrix should keep the materialized result.
+% For apply, we can usually materialize its result on the fly since this operation
+% is usually cheap. But we might want to keep the result of inner product.
+
+% TODO lazy evaluation on sparse matrix multiplication.
+
+%With \textit{virtual matrices}, we construct a directed acyclic graph (DAG)
+%at runtime to represent computation constructed in FlashMatrix. In the DAG, we
+%store all scalar variables and small matrices as part of computation. Inside
+%this DAG, we do not need to perform any computation other than the last one.
+
+To enable lazy evaluation, all matrices in FlashMatrix are immutable.
+As such, \textit{virtual matrices} can generate the same result every time
+they are materialized. A dense matrix is garbage collected only when
+there are not any references to the matrix.
+
+A \textit{virtual matrix} may contain a sequence of operations, so materializing
+it may trigger matrix materialization recursively. We discard the materialized
+partition of an intermediate matrix, once it is no longer needed, to avoid
+writing data of an intermediate matrix to SSDs. For a \textit{virtual matrix}
+that represents a TAS matrix, we partition it horizontally in the same fashion
+as a actual TAS matrix and materialize each partation independantly. To increase
+CPU cache hits, we use a much smaller partition size than
+the external-memory matrix. As such, the output of the previous operation is
+still in the CPU cache when it is fed to the next operation.
 
 % TODO unnamed data containers should be always virtualized data containers.
 
-\subsection{Special virtual matrices}
+\subsection{Integration with R}
 
-A virtual matrix with a constant value.
+FlashMatrix provides an R extension called FlashR to seamlessly integrate with
+R and power R for large-scale data mining. FlashR provides wrapper functions
+for each of the generalized operators
+in FlashMatrix. In addition, we implement many commonly used R functions with
+the generalized operators to provide R users a familiar programming environment
+while the underlying optimizer in FlashMatrix merges operations and
+automatically parallelizes complex algorithms written in R.
 
-Dot product virtual matrix.
+The current implementation provides a large set of built-in VUDFs in FlashR.
+Users are able to implement many R functions with these built-in VUDFs.
+Users can also implement their own VUDFs in C/C++ and load to R to further
+extend the capability of FlashR.
 
-\subsection{Implementation}
-
-\subsection{Element type}
+Garbage collection of vectors and matrices.
 
 \subsection{Applications}
 
-We list a few well-known applications that can be expressed by the generalized
-operators in FlashMatrix.
+We implement a few well-known data mining algorithms to demonstrate
+the flexibility and the performance of FlashMatrix. All of the algorithms
+can be expressed with a set of vector and matrix operations. We implement
+all of them with its R interface.
 
 \begin{figure}[t]
 %\begin{lstlisting}
@@ -270,16 +334,18 @@ operators in FlashMatrix.
 		fontsize=\scriptsize,
 		frame=single,
 ]{r}
-pagerank <- function(A) {
-	N <- dim(A)[0]
-	pr1 <- rep.int(1/N, N)
-	do {
-		pr2 <- (1-d)/N+d*A%*%(pr1/out.deg(V))
-		diff <- abs(pr1-pr2)
-		converge <- sum(diff<epsilon)
-		pr1 <- pr2
-	} while (converge>0)
-	pr2
+d <- 0.85
+N <- dim(A)[1]
+one <- rep.int(1, N)
+deg <- A %*% one
+pr1 <- rep.int(1/N, N)
+converge <- 0
+A <- t(A)
+while (converge < N) {
+	pr2 <- (1-d)/N+d*A%*%(pr1/deg)
+	diff <- abs(pr1-pr2)
+	converge <- sum(diff<eps)
+	pr1 <- pr2
 }
 \end{minted}
 %\end{lstlisting}
@@ -288,57 +354,50 @@ pagerank <- function(A) {
 \label{fig:pagerank}
 \end{figure}
 
+PageRank is one of top 10 data mining algorithms identified by the IEEE
+International Conference on Data Mining (ICDM) \cite{top10}. It is also
+commonly used for benchmarking a graph processing framework.
+
 \begin{figure}[t]
 %\begin{lstlisting}
 \begin{minted}[mathescape,
 		fontsize=\scriptsize,
 		frame=single,
 ]{r}
-
-SMD <- function(x, sumabsu, sumabsv, niter, v) {
-	xoo <- x
-	oldv <- rnorm(ncol(x))
-	for(iter in 1:niter){
-		if(sum(abs(oldv-v))>1e-7){
-			oldv <- v
-			if(trace) cat(iter,fill=F)
-			# update u #
-			argu <- xoo%*%v
-			lamu <- BinarySearch(argu,sumabsu)
-			su <- soft(argu,lamu)
-			u <- matrix(su/l2n(su),ncol=1)
-			# done updating u #
-			# update v #
-			argv <- t(u)%*%xoo
-			lamv <- BinarySearch(argv, sumabsv)
-			sv <- soft(argv,lamv)
-			v <- matrix(sv/l2n(sv),ncol=1)
-		}
-	}
-	d <- as.numeric(t(u)%*%(xoo%*%v))
-	if(trace) cat(fill=TRUE)
-	list(d=d, u=u, v=v))
+# trace of W %*% H
+trace.MM <- function(W, H) {
+	X <- W * t(H)
+	sum(X)
 }
 
-MultiSMD <- function(x, sumabsu, sumabsv, K, niter) {
-	xuse <- x
-	ds <- numeric(K)
-	us <- matrix(0,nrow=nrow(x),ncol=K)
-	vs <- matrix(0,nrow=ncol(x),ncol=K)
-	for(k in 1:K){
-		out <- SMD(xuse, sumabsu, sumabsv, niter, matrix(v[,k],ncol=1))
-		us[,k] <- out$u
-		vs[,k] <- out$v
-		ds[k] <- out$d
-		xuse <- xuse - out$d*out$u%*%t(out$v)
-	}
-	return(list(u=us,v=vs,d=ds))
+# ||A - W %*% H||^2
+Fnorm <- function(A, W, H) {
+	tr2 <- trace.MM(t(A) %*% W, H)
+	tr3 <- trace.MM(t(H) %*% (t(W) %*% W), H)
+	sum(A * A) - 2 * tr2 + tr3
 }
 
+n <- dim(A)[1]
+m <- dim(A)[2]
+W <- matrix(runif(n*k), n, k)
+H <- matrix(runif(k*m), k, m)
+
+for (i in 1:niters) {
+	# Update H
+	den <- (t(W)%*%W)%*%H
+	H <- pmax(H*(t(W)%*%V), eps)/(den+eps)
+
+	# Update W
+	den <- W%*%(H%*%t(H))
+	W <- pmax(W*(V%*%t(H)), eps)/(den+eps)
+
+	if (i %% 5 == 0 && Fnorm(A, W, H) < thres)
+		break
+}
 \end{minted}
 %\end{lstlisting}
 \vspace{-5pt}
-\caption{The implementation of PMA.}
+\caption{The implementation of NMF.}
 \label{fig:pma}
 \end{figure}
 
@@ -348,19 +407,29 @@ MultiSMD <- function(x, sumabsu, sumabsv, K, niter) {
 		fontsize=\scriptsize,
 		frame=single,
 ]{r}
+# calculate the new centers by averaging data pointers
+# in a cluster.
+cal.centers <- function(data, parts) {
+	n <- dim(data)[1]
+	one <- rep.int(1, n)
+	sizes <- groupby(one, parts, sum)
+	centers <- groupby(data, parts, sum)
+	centers <- diag(1/sizes) %*% centers
+}
+
 #initialize centers
-num <- dim(f.mat)[1]
-rand.parts <- floor(runif(num, min=1, max=K+1))
-new.centers <- groupby(m, rand.parts, avg.center)
-centers <- max(rep.int(0, K * dim(f.mat)[2]), K, dim(f.mat)[2])
+n <- dim(data)[1]
+m <- dim(data)[2]
+rand.parts <- floor(runif(n, min=1, max=K+1))
+new.centers <- cal.centers(data, rand.parts)
+centers <- matrix(rep.int(0, K * m), K, m)
 
 while (sum(centers == new.centers) == length(centers)) {
-    m <- inner.prod(f.mat, t(centers), dist, add)
-    # calculate the new center of each data pointer.
-    dp.centers <- apply(m, 1, which.min)
-    # calculate the new centers by averaging data pointers
-	# in a cluster.
-    new.centers <- groupby(m, dp.centers, avg.center)
+	centers <- new.centers
+	m <- inner.prod(data, t(centers), dist, add)
+	# calculate the new center of each data pointer.
+	dp.centers <- apply(m, 1, which.min)
+	new.centers <- cal.centers(data, dp.centers)
 }
 \end{minted}
 %\end{lstlisting}
