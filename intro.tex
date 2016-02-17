@@ -1,57 +1,102 @@
-Linear algebra is the core of solving many scientific tasks and machine learning
-tasks. With linear algebra, we represent real-world tasks with matrices
-and the algorithms are expressed as a set of matrix operations. We can even
-formulate some of graph analysis tasks with matrix operations and solve them
-efficiently in the matrix form \cite{linear_algebra}.
+% What problem are you going to solve.
 
-Many linear algebra tasks boil down to a small number of basic matrix operations
-such as matrix multiplication and matrix addition. Having a small
-set of operations greatly simplifies the implementations for these tasks.
-As such, we only need to focus on the implementations and optimizations
-on these basic operations and the optimizations can benefit a large range of
-applications.
+In today's big data era, we face the challenges in both the explosion of
+data volume and the increasing complexity of data analysis. Experiments,
+simulations and observations generate data in the order of terabytes or
+even petabytes in many scientific and business areas. After collecting
+a massive amount of data, we often need to perform complex data analysis
+and machine learning techniques to extract value from the data.
+\dz{examples?}
 
+Many of the data analysis tasks can be formulated as matrix operations.
+For example, in a machine learning algorithm, we can store features of
+a dataset in a matrix, where a column stores data of a feature and a row
+stores all features of a sample. Consequently, we express the computation
+on the feature matrix with a sequence of matrix operations. Such a formulation
+simplifies the implementation of.
+
+% How have others addressed the problem?
+
+A common approach of analyzing data is in R or Matlab.
+
+There are two approaches of implementing parallel algorithms to process large
+datasets. We can write an efficient implementation with low-level parallel
+primitives such as the ones provided by MPI \cite{mpi} or OpenMP \cite{openmp}.
+This approach requires expertise in parallel programming as well as significant
+effort from users. The other approach is to use high-level programming
+frameworks that provide high-level operations to reduce
+the burden of programmers. In general, the second approach is less efficient
+but can significantly increase productivity and lower the entry level.
+
+% Why is it hard?
+
+It is in general challenging to provide a high-level programming framework
+that achieves both generality and efficiency. On one hand, high-optimized
+linear algebra libraries \cite{mkl, openblas, elemental, trilinos, petsc}
+provides a limited set of matrix operations that are very efficient. On the other hand,
+parallel programming frameworks such as Spark \cite{spark} provide high-level
+and general programming interface for users to express varieties of algorithms.
+However, these programming frameworks are less efficient.
+
+% What is the nature of your solution?
+
+A current trend for hardware design is to scale up a single machine for high
+performance computing.
+These machines typically have multiple processors with many CPU cores and
+a large amount of memory. They are also equipped with fast flash
+memory such as solid-state drives (SSDs) to further extend memory capacity.
+This conforms to the node design for supercomputers \cite{Ang14}.
+
+FlashMatrix is an external-memory matrix-oriented programming framework
+to support matrix operations in R, a popular data analysis framework, for
+large-scale data analysis. It stores large matrices on SSDs to scale to
+massive datasets beyond memory capacity. During the computation, FlashMatrix
+streams data from SSDs, which yeilds the maximal I/O throughput from SSDs.
+Unlike most of the linear algebra libraries, FlashMatrix provides a small
+set of highly-optimized generalized vector and matrix operations (GenOps)
+such as inner product, apply, reduce and groupby to increase the flexibility
+of expressing many more applications. We implement common vector and matrix
+operations with the GenOps in FlashMatrix. Each of the GenOps in FlashMatrix
+accepts user-defined functions (UDF) specified at runtime so that the GenOps
+can be used in R directly.
+
+% Why is it new/different/special?
+
+We have to overcome technical challenges to move data from SSDs to CPU efficiently
+due to large speed disparity between CPU and memory as well as between memory and
+SSDs. The speed disparity of CPU and memory gets larger over the past decades
+\cite{Wilkes01}. While SSDs have high IOPS and sequential I/O throughput,
+they are still an order of magnitude slower than DRAM.
+To the contrary, many data analysis tasks are data-intensive and the matrix
+formulation further increases data movement between CPU and SSDs. As such,
+the performance of the data analysis tasks is usually limited by memory
+bandwidth instead of computing power.
+
+Another challenge in FlashMatrix is to reduce CPU instructions while supporting
+UDFs specified at runtime. Most of the FlashMatrix GenOps require to invoke
+a UDF on each element in a matrix, which results in many extra CPU instructions.
+Such overhead becomes noticeable when FlashMatrix moves data between CPU and
+SSDs efficiently.
+
+To move data efficiently, FlashMatrix performs lazy evaluation and operation
+fusion aggressively to merge as many operations as possible in a single execution.
+FlashMatrix builds a directed acyclic graph (DAG) to represent all operations
+in the single execution. When evaluating the computation in the DAG, FlashMatrix
+performs two levels of data partitioning to maximize the use of the data in memory
+as well as in the CPU cache to reduce data movement between memory and SSDs
+as well as between CPU and memory.
+
+To minimize the overhead of invoking UDfs, we deploy vectorized user-defined
+functions (VUDF) to amortize the overhead from extra CPU instructions used by
+function calls. To further reduce the instructions used by loops, we use
+vector CPU instructions such as AVX \cite{avx}.
+
+% What are it's key features?
+
+so that the operations
+on vectors and matrices run in parallel automatically and computation in R
+can scale beyond memory capacities.
 When we generalize these basic matrix operations, we can even express many more
-algorithms in the matrix form. For example, many graph algorithms such as
-PageRank \cite{pagerank} and connected component detection can be formulated
-as generalized sparse matrix multiplication \cite{Mattson13, pegasus}. We can
-also use the generalized matrix operations to implement many data mining
-algorithms such as KMeans \cite{kmeans}.
+algorithms in the matrix form. We can use the generalized matrix operations to
+implement many data mining algorithms such as KMeans \cite{kmeans}.
 
-Although many simple graph algorithms can be implemented in many general-purpose
-graph processing framework such as \cite{PowerGraph, FlashGraph}, these frameworks
-are less efficient in certain applications because their generality prevents
-them from incorporating many optimizations specific to these applications.
-For example, sparse matrix vector multiplication (SpMV) can also be implemented in
-the general graph processing framework but the implementations cannot compete
-with the dedicated highly optimized SpMV implementations in many scientific
-libraries \cite{trilinos, petsc}. Many graph algorithms with the same data access
-pattern as SpMV, e.g., PageRank \cite{pagerank}, label propagation \cite{label_prop}
-and belief propagation \cite{Yedidia03}, will be less efficient when they are
-implemented in the general-purpose graph processing frameworks.
-
-Like graph analysis \cite{FlashGraph}, some matrix operations
-such as sparse matrix multiplication generate irregular data access and, thus,
-they suffer from the same challenges as graph analysis. Dense matrix operations,
-on the other hand, typically exhibit very sequential data access patterns but
-may still require large amount of data movement for computation.
-
-FlashMatrix is a SSD-based data analysis framework with a general programming
-interface in the form of vectors and matrices. It is a generalization of
-FlashEigen shown in Chapter \cite{sec:fe}, which implements a set of SSD-based
-matrix operations for eigensolvers. Like FlashEigen, FlashMatrix stores large
-vectors and matrices on SSDs and streams to memory for computation. As such,
-FlashMatrix is optimized for the applications mainly with sequential I/O access.
-In contrast to FlashEigen, FlashMatrix provides a small set
-of generalized vector and matrix operations. The current implementation has
-four generalized operators: inner product, apply, reduce and groupby,
-and each operator accepts user-defined functions. With these generalized
-matrix operations, we implement a large set of basic matrix operations that
-exist in matrix-oriented programming frameworks such as R and Matlab. These
-generalized matrix operations give us the flexibility of expressing many more
-applications in FlashMatrix.
-To minimize the overhead of invoking user-defined functions, we require
-vectorized user-defined functions (VUDF). As such, the implementation of
-some applications in FlashMatrix is able to achieve performance comparable
-to specialized operators.
-FlashMatrix is designed as the backend to support matrix operations in R.
