@@ -1,10 +1,3 @@
-@book{linear_algebra,
-	author = {Jeremy Kepner and John Gilbert},
-	title = {Graph Algorithms in the Language of Linear Algebra},
-	publisher = {Society for Industrial \& Applied Mathematics},
-	year = {2011},
-}
-
 @inproceedings{pagerank,
 	author = {Brin, Sergey and Page, Lawrence},
 	title = {The Anatomy of a Large-scale Hypertextual Web Search Engine},
@@ -12,32 +5,9 @@
 	year = {1998},
 }
 
-@INPROCEEDINGS{Mattson13,
-	author={Mattson, T. and Bader, D. and Berry, J. and Buluc, A. and Dongarra, J. and Faloutsos, C. and Feo, J. and Gilbert, J. and Gonzalez, J. and Hendrickson, B. and Kepner, J. and Leiserson, C. and Lumsdaine, A. and Padua, D. and Poole, S. and Reinhardt, S. and Stonebraker, M. and Wallach, S. and Yoo, A.}, 
-	booktitle={High Performance Extreme Computing Conference (HPEC), 2013 IEEE}, 
-	title={Standards for graph algorithm primitives}, 
-	year={2013}, 
-	doi={10.1109/HPEC.2013.6670338}, 
-	month={Sept},
-}
-
-@inproceedings{pegasus,
-	author = {Kang, U. and Tsourakakis, Charalampos E. and Faloutsos, Christos},
-	title = {PEGASUS: A Peta-Scale Graph Mining System Implementation and Observations},
-	booktitle = {Proceedings of the 2009 Ninth IEEE International Conference on Data Mining},
-	year = {2009},
-} 
-
-@inproceedings{powergraph,
-	author = {Gonzalez, Joseph E. and Low, Yucheng and Gu, Haijie and Bickson, Danny and Guestrin, Carlos},
-	title = {{PowerGraph}: Distributed Graph-parallel Computation on Natural Graphs},
-	booktitle = {Proceedings of the 10th USENIX Conference on Operating Systems Design and Implementation},
-	year = {2012},
-}
-
 @inproceedings {flashgraph,
 	author = {Da Zheng and Disa Mhembere and Randal Burns and Joshua Vogelstein and Carey E. Priebe and Alexander S. Szalay},
-	title = {FlashGraph: Processing Billion-Node Graphs on an Array of Commodity SSDs},
+	title = {{FlashGraph}: Processing Billion-Node Graphs on an Array of Commodity SSDs},
 	booktitle = {13th USENIX Conference on File and Storage Technologies (FAST 15)},
 	year = {2015},
 }
@@ -61,22 +31,6 @@
 	year = {2015}
 }
 
-@TECHREPORT{label_prop,
-	author = {Xiaojin Zhu and Zoubin Ghahramani},
-	title = {Learning from Labeled and Unlabeled Data with Label Propagation},
-	institution = {Carnegie Mellon University},
-	year = {2002}
-}
-
-@incollection{Yedidia03,
-	author = {Yedidia, Jonathan S. and Freeman, William T. and Weiss, Yair},
-	chapter = {Understanding Belief Propagation and Its Generalizations},
-	title = {Exploring Artificial Intelligence in the New Millennium},
-	year = {2003},
-	publisher = {Morgan Kaufmann Publishers Inc.},
-	address = {San Francisco, CA, USA},
-} 
-
 @article{kmeans,
 	author = {Lloyd, S.},
 	title = {Least Squares Quantization in {PCM}},
@@ -87,16 +41,213 @@
 	year = {2006},
 }
 
-@article {anasazi,
-	author = {Arbenz, Peter and Hetmaniuk, Ulrich L. and Lehoucq, Richard B. and Tuminaro, Raymond S.},
-	title = {A comparison of eigensolvers for large-scale {3D} modal analysis using {AMG}-preconditioned iterative methods},
-	journal = {International Journal for Numerical Methods in Engineering},
-	year = {2005},
-}
-
 @inproceedings{safs,
 	author = {Da Zheng and Randal Burns and Alexander S. Szalay},
 	title = {Toward Millions of File System {IOPS} on Low-Cost, Commodity Hardware},
 	booktitle = {Proceedings of the International Conference on High Performance Computing, Networking, Storage and Analysis},
 	year = {2013},
+}
+
+@inproceedings{SA-cache,
+	author = {Da Zheng and Randal Burns and Alexander S. Szalay},
+	title = {A Parallel Page Cache: {IOPS} and Caching for Multicore Systems},
+	booktitle = {Proceedings of the 4th USENIX Conference on Hot Topics in Storage and File Systems},
+	year = {2012},
+}
+
+@article{Ching12,
+	year={2012},
+	journal={International Journal of Parallel Programming},
+	volume={40},
+	number={5},
+	title={Automatic Parallelization of Array-oriented Programs for a Multi-core Machine},
+	author={Ching, Wai-Mee and Zheng, Da},
+	pages={514-531},
+}
+
+@inproceedings{accelerator,
+	author = {Tarditi, David and Puri, Sidd and Oglesby, Jose},
+	title = {Accelerator: Using Data Parallelism to Program {GPUs} for General-purpose Uses},
+	booktitle = {Proceedings of the 12th International Conference on Architectural Support for Programming Languages and Operating Systems},
+	year = {2006},
+	address = {New York, NY, USA},
+}
+
+@inproceedings {spark,
+	author = {Matei Zaharia and Mosharaf Chowdhury and Tathagata Das and Ankur Dave and Justin Ma and Murphy McCauly and Michael J. Franklin and Scott Shenker and Ion Stoica},
+	title = {Resilient Distributed Datasets: A Fault-Tolerant Abstraction for In-Memory Cluster Computing},
+	booktitle = {Presented as part of the 9th USENIX Symposium on Networked Systems Design and Implementation (NSDI 12)},
+	year = {2012},
+	address = {San Jose, CA},
+	pages = {15--28},
+	publisher = {USENIX},
+}
+
+@misc{mkl,
+	key={MKL},
+	title={Intel Math Kernel Library},
+	howpublished={\url{https://software.intel.com/en-us/intel-mkl}},
+	year={Accessed 1/24/2016},
+}
+
+@INPROCEEDINGS{openblas,
+	author={Qian Wang and Xianyi Zhang and Yunquan Zhang and Qing Yi}, 
+	booktitle={High Performance Computing, Networking, Storage and Analysis (SC), 2013 International Conference for}, 
+	title={{AUGEM}: Automatically generate high performance Dense Linear Algebra kernels on x86 CPUs}, 
+	year={2013}, 
+	pages={1-12}, 
+	month={Nov},
+}
+
+@article{elemental,
+	author = {Poulson, Jack and Marker, Bryan and van de Geijn, Robert A. and Hammond, Jeff R. and Romero, Nichols A.},
+	title = {Elemental: A New Framework for Distributed Memory Dense Matrix Computations},
+	journal = {ACM Trans. Math. Softw.},
+	volume = {39},
+	number = {2},
+	month = feb,
+	year = {2013},
+	pages = {13:1--13:24},
+	publisher = {ACM},
+	address = {New York, NY, USA},
+}
+
+@inproceedings{Ang14,
+	author = {Ang, J. A. and Barrett, R. F. and Benner, R. E. and Burke, D. and Chan, C. and Cook, J. and Donofrio, D. and Hammond, S. D. and Hemmert, K. S. and Kelly, S. M. and Le, H. and Leung, V. J. and Resnick, D. R. and Rodrigues, A. F. and Shalf, J. and Stark, D. and Unat, D. and Wright, N. J.},
+	title = {Abstract Machine Models and Proxy Architectures for Exascale Computing},
+	booktitle = {Proceedings of the 1st International Workshop on Hardware-Software Co-Design for High Performance Computing},
+	series = {Co-HPC '14},
+	year = {2014},
+	publisher = {IEEE Press},
+	address = {Piscataway, NJ, USA},
+}
+
+@inproceedings{mapreduce,
+	author = {Dean, Jeffrey and Ghemawat, Sanjay},
+	title = {{MapReduce}: Simplified Data Processing on Large Clusters},
+	booktitle = {Proceedings of the 6th Conference on Symposium on Opearting Systems Design \& Implementation - Volume 6},
+	series = {OSDI'04},
+	year = {2004},
+	publisher = {USENIX Association},
+	address = {Berkeley, CA, USA},
+}
+
+@inproceedings{pig,
+	author = {Olston, Christopher and Reed, Benjamin and Srivastava, Utkarsh and Kumar, Ravi and Tomkins, Andrew},
+	title = {{Pig Latin}: A Not-so-foreign Language for Data Processing},
+	booktitle = {Proceedings of the 2008 ACM SIGMOD International Conference on Management of Data},
+	year = {2008},
+	publisher = {ACM},
+	address = {New York, NY, USA},
+}
+
+@inproceedings{flumejava,
+	author = {Chambers, Craig and Raniwala, Ashish and Perry, Frances and Adams, Stephen and Henry, Robert R. and Bradshaw, Robert and Weizenbaum, Nathan},
+	title = {{FlumeJava}: Easy, Efficient Data-parallel Pipelines},
+	booktitle = {Proceedings of the 31st ACM SIGPLAN Conference on Programming Language Design and Implementation},
+	year = {2010},
+	publisher = {ACM},
+	address = {New York, NY, USA},
+}
+
+@inproceedings{systemml,
+	author = {Ghoting, Amol and Krishnamurthy, Rajasekar and Pednault, Edwin and Reinwald, Berthold and Sindhwani, Vikas and Tatikonda, Shirish and Tian, Yuanyuan and Vaithyanathan, Shivakumar},
+	title = {{SystemML}: Declarative Machine Learning on MapReduce},
+	booktitle = {Proceedings of the 2011 IEEE 27th International Conference on Data Engineering},
+	year = {2011},
+	publisher = {IEEE Computer Society},
+	address = {Washington, DC, USA},
+}
+
+@inproceedings{dryad,
+	author = {Isard, Michael and Budiu, Mihai and Yu, Yuan and Birrell, Andrew and Fetterly, Dennis},
+	title = {Dryad: Distributed Data-parallel Programs from Sequential Building Blocks},
+	booktitle = {Proceedings of the 2Nd ACM SIGOPS/EuroSys European Conference on Computer Systems 2007},
+	year = {2007},
+	publisher = {ACM},
+	address = {New York, NY, USA},
+}
+
+@inproceedings{dryadlinq,
+	author = {Yu, Yuan and Isard, Michael and Fetterly, Dennis and Budiu, Mihai and Erlingsson, \'{U}lfar and Gunda, Pradeep Kumar and Currey, Jon},
+	title = {{DryadLINQ}: A System for General-purpose Distributed Data-parallel Computing Using a High-level Language},
+	booktitle = {Proceedings of the 8th USENIX Conference on Operating Systems Design and Implementation},
+	year = {2008},
+	publisher = {USENIX Association},
+	address = {Berkeley, CA, USA},
+}
+
+@inproceedings{riot,
+	author = {Zhang, Yi and Herodotou, Herodotos and Yang, Jun},
+	title = {{RIOT}: {I/O}-Efficient Numerical Computing without {SQL}},
+	booktitle = {Conference on Innovative Data Systems Research},
+	year = {2009},
+}
+
+@inproceedings{presto,
+	author = {Venkataraman, Shivaram and Bodzsar, Erik and Roy, Indrajit and AuYoung, Alvin and Schreiber, Robert S.},
+	title = {Presto: Distributed Machine Learning and Graph Processing with Sparse Matrices},
+	booktitle = {Proceedings of the 8th ACM European Conference on Computer Systems},
+	year = {2013},
+	publisher = {ACM},
+	address = {New York, NY, USA},
+}
+
+@ARTICLE{atlas,
+	author = {R. Clint Whaley and Antoine Petitet and Jack J. Dongarra},
+	title = {Automated Empirical Optimization of Software and the ATLAS Project},
+	journal = {PARALLEL COMPUTING},
+	year = {2000},
+	volume = {27},
+	pages = {2001}
+}
+
+@article{Wilkes01,
+	author = {Wilkes, Maurice V.},
+	title = {The Memory Gap and the Future of High Performance Memories},
+	journal = {SIGARCH Comput. Archit. News},
+	volume = {29},
+	number = {1},
+	month = mar,
+	year = {2001},
+	pages = {2--7},
+	publisher = {ACM},
+	address = {New York, NY, USA},
+}
+
+@article{Goto,
+ author = {Goto, Kazushige and Geijn, Robert A. van de},
+ title = {Anatomy of High-performance Matrix Multiplication},
+ journal = {ACM Trans. Math. Softw.},
+ volume = {34},
+ number = {3},
+ month = may,
+ year = {2008},
+ pages = {12:1--12:25},
+ publisher = {ACM},
+ address = {New York, NY, USA},
+} 
+
+@misc{avx,
+	author       = {Chris Lomont},
+	title        = {Introduction to Intel Advanced Vector Extensions},
+	howpublished = {\url{https://software.intel.com/en-us/articles/introduction-to-intel-advanced-vector-extensions}},
+	month        = June,
+	year         = 2011
+}
+
+@article{FlashEigen,
+  author    = {Da Zheng and Randal Burns and Joshua Vogelstein and Carey E. Priebe and Alexander S. Szalay},
+  title     = {An {SSD}-based eigensolver for spectral analysis on billion-node graphs},
+  journal   = {CoRR},
+  volume    = {abs/1602.01421},
+  year      = {2016},
+}
+
+@misc{avx,
+	author       = {Chris Lomont},
+	title        = {Introduction to Intel Advanced Vector Extensions},
+	howpublished = {\url{https://software.intel.com/en-us/articles/introduction-to-intel-advanced-vector-extensions}},
+	month        = June,
+	year         = 2011
 }
