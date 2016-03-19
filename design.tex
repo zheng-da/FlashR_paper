@@ -172,27 +172,27 @@ of the computation. This strategy is essential for both in-memory and
 external-memory matrices to improve performance. It significantly reduces data
 access to memory and SSDs and memory allocation overhead.
 
-\subsubsection{Cached matrix}
-Memory cache is necessary for external-memory matrices on a machine with
-substantial memory.
-Even though SSDs have significantly improved I/O performance, they are still
-an order of magnitude slower than DRAM. Unfortunately, we cannot rely on
-the page cache in SAFS \cite{sa-cache} to buffer some portion of a dense matrix
-because streaming a matrix to memory always evicts existing data in the page
-cache and generates zero cache hits. Therefore, we explicitly cache some portion
-of a dense matrix.
+%\subsubsection{Cached matrix}
+%Memory cache is necessary for external-memory matrices on a machine with
+%substantial memory.
+%Even though SSDs have significantly improved I/O performance, they are still
+%an order of magnitude slower than DRAM. Unfortunately, we cannot rely on
+%the page cache in SAFS \cite{sa-cache} to buffer some portion of a dense matrix
+%because streaming a matrix to memory always evicts existing data in the page
+%cache and generates zero cache hits. Therefore, we explicitly cache some portion
+%of a dense matrix.
 
-We store a matrix cache as an in-memory dense matrix.
-To effectively cache data in a dense matrix, we store a tall matrix in
-column-major and cache the first few columns; we store a wide matrix in row-major
-and cache the first few rows. As such, when computation requests an I/O-level
-partition of a matrix, we only need to issue a single I/O request to read
-the remaining columns or rows to reconstruct the I/O-level partition.
+%We store a matrix cache as an in-memory dense matrix.
+%To effectively cache data in a dense matrix, we store a tall matrix in
+%column-major and cache the first few columns; we store a wide matrix in row-major
+%and cache the first few rows. As such, when computation requests an I/O-level
+%partition of a matrix, we only need to issue a single I/O request to read
+%the remaining columns or rows to reconstruct the I/O-level partition.
 
-We use a write-through policy for the matrix cache. As such, even when part of
-a dense matrix is cached, we keep a complete copy of the dense matrix on SSDs.
-The benefit of a write-through policy is to overlap computation and I/O when
-a dense matrix is created and avoid I/O latency when removing the cache.
+%We use a write-through policy for the matrix cache. As such, even when part of
+%a dense matrix is cached, we keep a complete copy of the dense matrix on SSDs.
+%The benefit of a write-through policy is to overlap computation and I/O when
+%a dense matrix is created and avoid I/O latency when removing the cache.
 
 \subsubsection{A group of dense matrices} \label{sec:mat_group}
 FlashMatrix represents a tall matrix with many columns or a wide matrix with
@@ -379,11 +379,6 @@ order and a wide-and-short matrix in row-major order to increase the length
 of input vectors to a VUDF. As such, FlashMatrix can always partition the input
 matrices and feed VUDFs with vectors of the compile-time known length.
 
-\dz{I need to describe parallelization scheme and I/O access.}
-Parallelization affects memory consumption. We need to have different I/O size
-for reads and writes to increase parallelization and reduce write amplification
-on SSDs.
-
 \subsection{Implementation of GenOps on a group of matrices}
 
 When applying a GenOp on a group of matrices,
@@ -559,50 +554,47 @@ the global task scheduler assigns consecutive partitions to threads.
 %to reduce the number of memory buffers used in the computation and avoid CPU
 %cache polution.
 
-\subsection{Memory management} \label{sec:mem}
-FlashMatrix manages large memory allocation to reduce memory allocation overhead.
-It is expensive to allocate large memory. Linux uses \textit{mmap} to allocate
-large memory in the order of megabytes. Linux relies on page fault to populate 
-the memory allocated by \textit{mmap} with physical pages when they are used
-for the first time. The overhead becomes considerable when we allocate and
-deallocate large memory constantly. Frequent page faults prevent computation
-from fully utilizing CPUs in a large parallel machine. FlashMatrix potentially
-requires more memory allocation because all data containers are immutable due
-to lazy evaluation and each GenOp outputs a new matrix.
+%\subsection{Memory management} \label{sec:mem}
+%FlashMatrix manages large memory allocation to reduce memory allocation overhead.
+%It is expensive to allocate large memory. Linux uses \textit{mmap} to allocate
+%large memory in the order of megabytes. Linux relies on page fault to populate 
+%the memory allocated by \textit{mmap} with physical pages when they are used
+%for the first time. The overhead becomes considerable when we allocate and
+%deallocate large memory constantly. Frequent page faults prevent computation
+%from fully utilizing CPUs in a large parallel machine. FlashMatrix potentially
+%requires more memory allocation because all data containers are immutable due
+%to lazy evaluation and each GenOp outputs a new matrix.
 
-\begin{figure}
-	\centering
-	\includegraphics[scale=0.5]{./matrix_mem.pdf}
-	\caption{Memory layout of a tall-and-skinny dense matrix.}
-	\label{fig:mat_mem}
-\end{figure}
+%\begin{figure}
+%	\centering
+%	\includegraphics[scale=0.5]{./matrix_mem.pdf}
+%	\caption{Memory layout of a tall-and-skinny dense matrix.}
+%	\label{fig:mat_mem}
+%\end{figure}
 
-To reduce the overhead of memory allocation, we recycle memory allocated for
-in-memory matrices. Instead of deallocating memory when a matrix is destroyed,
-we retain the memory and assign them to the next matrix. To help recycle memory,
-we allocate fixed-size memory chunks for matrices. The size of a memory chunk
-is a global parameter and is the same for all 
-matrices. As such, memory chunks allocated for a matrix can be used by another
-matrix with a totally different shape. We perform matrix operations on
-I/O-level partitions and only require an I/O-level partition to be stored in
-contiguous memory. Therefore, we can store a matrix in memory chunks,
-as long as a fixed-size memory chunk is sufficient
-to store an I/O-level partition. In practice, the memory chunk size may
-not be divisible by a I/O-level partition size. Therefore, the memory chunk
-size needs to be much larger than the I/O-level partition size to increase
-memory utilization.
+%To reduce the overhead of memory allocation, we recycle memory allocated for
+%in-memory matrices. Instead of deallocating memory when a matrix is destroyed,
+%we retain the memory and assign them to the next matrix. To help recycle memory,
+%we allocate fixed-size memory chunks for matrices. The size of a memory chunk
+%is a global parameter and is the same for all 
+%matrices. As such, memory chunks allocated for a matrix can be used by another
+%matrix with a totally different shape. We perform matrix operations on
+%I/O-level partitions and only require an I/O-level partition to be stored in
+%contiguous memory. Therefore, we can store a matrix in memory chunks,
+%as long as a fixed-size memory chunk is sufficient
+%to store an I/O-level partition. In practice, the memory chunk size may
+%not be divisible by a I/O-level partition size. Therefore, the memory chunk
+%size needs to be much larger than the I/O-level partition size to increase
+%memory utilization.
 
-Similarly, we maintain per-thread memory buffer pools to store data read from
-SSDs. These memory buffers need to be
-the same size as I/O-level partitions, which is in the order of megabytes
-to maximize I/O throughput of an SSD. Due to asynchronous I/O, a worker thread
-needs to allocate a small number of memory buffers for each matrix
-during computation. Because all partitions in a vector or a matrix have
-the same size, the memory buffers are reused for processing other partitions
-of vectors or matrices.
-
-%\subsection{Implementation details}
-%Avoid allocating memory in one thread and deallocating in another thread.
+%Similarly, we maintain per-thread memory buffer pools to store data read from
+%SSDs. These memory buffers need to be
+%the same size as I/O-level partitions, which is in the order of megabytes
+%to maximize I/O throughput of an SSD. Due to asynchronous I/O, a worker thread
+%needs to allocate a small number of memory buffers for each matrix
+%during computation. Because all partitions in a vector or a matrix have
+%the same size, the memory buffers are reused for processing other partitions
+%of vectors or matrices.
 
 \subsection{Integration with R}
 
