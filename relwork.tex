@@ -1,3 +1,44 @@
-BLAS
+Basic Linear Algebra Subprograms (BLAS) defines a small set of vector and
+matrix operations commonly used in scientific computing. There exist a few
+high-optimized BLAS implementations such as MKL \cite{mkl}, OpenBLAS
+\cite{openblas}, GotoBLAS \cite{Goto} and ATLAS \cite{atlas}. However, these
+libraries optimizes the vector and matrix operations in shared memory and BLAS
+only provides a small number of vector and matrix operations.
+
+To further speed up computation and scale to larger vector and matrices,
+several distributed memory matrix computation libraries are implemented
+\cite{trilinos, petsc, elemental}. These libraries are in general built on
+top of BLAS libraries and distribute computation with MPI. Like BLAS, these
+libraries provide a limited set of matrix operations.
+
+There are many distributed data processing frameworks.
+MapReduce \cite{mapreduce} is a general large-scale data processing framework.
+It provides a single primitive with two user-defined functions written with
+low-level programming languages such as C/C++ and Java. Due to the lack of
+efficient primitives for varieties of data access patterns, algorithms
+implemented in MapReduce is usually less efficient. Dryad \cite{dryad} is
+another general-purpose distributed execution framework for large-scale data
+analysis. It provides more primitives than MapReduce to access various data
+access patterns efficiently. Naaid \cite{naaid} is another distributed execution
+engine that supports efficient batch processing, stream processing and iterative
+and incremental computation in a single system.
+
+Due to complexity of programming in the distributed execution engines, many
+programming frameworks have been developed on top of the execution engines.
+Pig Latin \cite{pig} and FlumeJava \cite{flumejava} are two systems built
+on top of MapReduce to provide users a high-level operations for general-purpose
+data analysis. SystemML \cite{systemml} is a system built on top of MapReduce
+with a focus on large-scale machine learning.
+DryadLINQ \cite{dryadlinq} is built on top of Dryad and exposes a high-level
+language to express data analysis tasks.
+
+Spark \cite{spark} and SparkR.
 
 Array-oriented programming languages such as APL
+Auto-parallelization for APL \cite{Ching12}.
+
+Accelerator \cite{accelerator}
+
+RIOT \cite{riot}
+
+Presto \cite{presto}.
