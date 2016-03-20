@@ -1,0 +1,22 @@
+\section{Experimental evaluation}
+We evaluate the performance of FlashMatrix and the R implementations of
+the machine learning algorithms on FlashMatrix.
+
+We conduct experiments on a non-uniform memory architecture machine with
+four Intel Xeon E7-4860 processors, clocked at 2.6 GHz, and 1TB memory of
+DDR3-1600. Each processor has 12 cores. The machine has three LSI SAS 9300-8e
+host bus adapters (HBA) connected to a SuperMicro storage chassis, in which
+24 OCZ Intrepid 3000 SSDs are installed. The 24 SSDs together are capable of
+delivering 12 GB/s for read and 10 GB/s for write at maximum. The machine runs
+Linux kernel v3.13.0. We use 48 threads for our in-memory and semi-external
+implementation.
+
+\subsection{Performance of basic statistics}
+
+\subsection{Performance of clustering algorithms}
+
+\subsection{Microbenchmarks}
+
+\subsubsection{VUDF}
+Overhead of function calls.
+
