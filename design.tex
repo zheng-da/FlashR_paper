@@ -643,11 +643,11 @@ KMeans is one of top 10 data mining algorithms identified by the IEEE
 International Conference on Data Mining (ICDM) \cite{top10}.
 
 \begin{figure}[t]
-%\begin{lstlisting}
-\begin{minted}[mathescape,
-		fontsize=\scriptsize,
-		frame=single,
-]{r}
+%\begin{minted}[mathescape,
+%		fontsize=\scriptsize,
+%		frame=single,
+%]{r}
+\begin{lstlisting}
 # calculate the new centers by averaging data pointers
 # in a cluster.
 cal.centers <- function(data, parts) {
@@ -672,8 +672,8 @@ while (sum(centers == new.centers) == length(centers)) {
 	dp.centers <- apply(m, 1, which.min)
 	new.centers <- cal.centers(data, dp.centers)
 }
-\end{minted}
-%\end{lstlisting}
+\end{lstlisting}
+%\end{minted}
 \vspace{-5pt}
 \caption{The implementation of KMeans.}
 \label{fig:kmeans}
