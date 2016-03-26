@@ -9,8 +9,8 @@ and machine learning techniques to extract value from the data.
 \dz{examples?}
 
 Many data analysis tasks can be formulated as matrix operations. For example,
-in a machine learning algorithm, we store samples in a matrix, where a column
-stores data of a feature and a row stores all features of a sample.
+samples collected from an experiment can be stored in a matrix, where a row
+corresponds to a sample and a column corresponds to a feature.
 Consequently, we express the computation on the data matrix with a sequence
 of matrix operations. Such a formulation simplifies the implementation of
 machine learning algorithms and is very intuitive for many machine learning
@@ -26,16 +26,16 @@ effort from users. The other approach is to use high-level programming
 frameworks that provide high-level operations to reduce the burden of
 programmers. In general, the second approach is less computationally
 efficient but can significantly increase productivity and has a lower
-entry level for providing parallel implementations.
+entry level for writing parallel implementations.
 
 % Why is it hard?
 
 It is challenging to provide a high-level programming framework
 that achieves both generality and efficiency. On one hand, high-optimized
 linear algebra libraries \cite{mkl, openblas, elemental, trilinos, petsc}
-provides a limited set of matrix operations that are very efficient, but
-users have to parallelize the remaining matrix operations themselves
-that are not supported by the libraries. On the other hand,
+provides a matrix programming interface with a limited set of matrix operations
+that are very efficient. Users have to parallelize the remaining matrix
+operations themselves that are not supported by the libraries. On the other hand,
 parallel programming frameworks such as Spark \cite{spark} provide high-level
 and general programming interface for users to express varieties of algorithms.
 \dz{Can Spark be considered as a high-level programming framework?}
@@ -43,29 +43,28 @@ However, these programming frameworks are less efficient.
 
 % What is the nature of your solution?
 
-A current trend for hardware design is to scale up a single machine for high
-performance computing.
-These machines typically have multiple processors with many CPU cores and
-a large amount of memory. They are also equipped with fast flash
-memory such as solid-state drives (SSDs) to further extend memory capacity.
-This conforms to the node design for supercomputers \cite{Ang14}.
-
-FlashMatrix is a matrix-oriented data analysis framework that supports automatic
-parallelization and out-of-core execution for large datasets. It mainly focuses
-on dense matrices and scales
-dense matrix operations beyond memory capacity by utilizing solid-state drives
-(SSDs). Unlike most of the linear algebra libraries, FlashMatrix provides a small
+We present FlashMatrix, a matrix-oriented programming framework that supports
+automatic parallelization and out-of-core execution for large-scale data analysis.
+Unlike most of the linear algebra libraries, FlashMatrix provides a small
 set of highly-optimized generalized matrix operations (GenOps) that accept
-user-defined functions (UDF). FlashMatrix uses R, a popular data
-analysis framework, as its main programming interface and reimplements
-many matrix operations in the R \textit{base} package to provide a familiar
-programming interface and support existing R code.
+user-defined functions (UDF) to achieve generality. In addition, FlashMatrix
+uses R, a popular data analysis framework, as its main programming interface
+and reimplements many matrix operations in the R \textit{base} package to provide
+a high-level programming interface. FlashMatrix focuses on optimizations in
+a single machine and scales matrix operations beyond memory capacity by utilizing
+solid-state drives (SSDs). This design choice conforms with a current trend for
+hardware design is to scale up a single machine for high performance computing
+\cite{Ang14}.
+%These machines typically have multiple processors with many CPU cores and
+%a large amount of memory. They are also equipped with fast flash
+%memory such as solid-state drives (SSDs) to further extend memory capacity.
+%This conforms to the node design for supercomputers \cite{Ang14}.
 
 % Why is it new/different/special?
 
 We overcome many technical challenges to move data from SSDs to CPU efficiently
 owing to large speed disparity between CPU and memory, as well as between memory and
-SSDs. The speed disparity of CPU and memory has increased from X to Y over
+SSDs. The speed disparity of CPU and memory has increased exponentially over
 the past decades \cite{Wilkes01}. While SSDs have high IOPS and sequential
 I/O throughput, they are still an order of magnitude slower than DRAM.
 To the contrary, many data analysis tasks are data-intensive and the matrix
@@ -80,22 +79,24 @@ operate on individual elements in a matrix. As such, each operation on an elemen
 in a matrix potentially results in a function call, causing significant
 computation overhead.
 
-To move data efficiently, FlashMatrix performs lazy evaluation and operation
-fusion aggressively to merge as many operations as possible in a single execution.
+To move data efficiently, FlashMatrix performs lazy evaluation and aggressive
+operation fusion to merge many operations in a single execution.
 FlashMatrix builds a directed acyclic graph (DAG) to represent all operations
 in the single execution. When evaluating the computation in the DAG, FlashMatrix
-optimizes data access in two levels of memory hierarchy and performs two levels
-of data partitioning to maximize the use of the data in memory
-as well as in the CPU cache to reduce data movement between memory and SSDs
-as well as between CPU and memory. During the computation, FlashMatrix
-streams data from SSDs, which yeilds the maximal I/O throughput from SSDs.
+optimizes data access in memory hierarchy and performs two levels of data
+partitioning to achieve efficient data access and maximize data utilization in
+both main memory and CPU cache to reduce data movement between memory and SSDs
+as well as between CPU and memory. FlashMatrix streams data from SSDs to yeild
+maximal I/O throughput from SSDs.
 
-To reduce the overhead of invoking UDFs, we deploy vectorized user-defined
+To reduce CPU instructions, we deploy vectorized user-defined
 functions (VUDFs), which operates on a vector of elements instead of
-an individual element. We choose the right vector length to balance
+an individual element. We define multiple forms for each VUDF and automatically
+select the right form for each GenOp to amortize the function call overhead.
+When invoking UDFs, GenOps choose the right vector length to balance
 the amortization of the function call overhead and CPU cache misses. We use
 vector CPU instructions such as AVX \cite{avx} to further reduce CPU
-instructions. We further improve CPU vectorization with better memory alignment
+instructions and improve CPU vectorization with better memory alignment
 and code transformation.
 
 % What are it's key features?
