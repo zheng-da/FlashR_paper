@@ -100,3 +100,11 @@ and code transformation.
 
 % What are it's key features?
 
+We implement multiple machine learning algorithms such as KMeans \cite{kmeans}
+and Gaussian Mixture Model \cite{gmm} in FlashMatrix with its R programming
+interface to benchmark its performance. On a large parallel machine with 48
+CPU cores and fast SSDs, the out-of-core execution of these R implementations
+in FlashMatrix achieves performance comparable to the in-memory execution
+while significantly outperforming the ones in Spark MLlib \cite{spark}.
+We believe FlashMatrix significantly lowers the expertise for writing parallel
+and scalable implementations of machine learning algorithms.
