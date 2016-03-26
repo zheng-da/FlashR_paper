@@ -385,8 +385,8 @@
 % not capitalized unless they are the first or last word of the title.
 % Linebreaks \\ can be used within to get better formatting as desired.
 % Do not put math or special symbols in the title.
-\title{FlashMatrix: Large-scale machine learning with generalized matrix
-operations using commodity SSDs}
+\title{FlashMatrix: Parallel, Scalable Data Analysis with Generalized Matrix
+Operations using Commodity SSDs}
 
 
 % author names and affiliations
@@ -446,20 +446,22 @@ operations using commodity SSDs}
 % As a general rule, do not put math, special symbols or citations
 % in the abstract
 \begin{abstract}
-FlashMatrix is a matrix-oriented programming framework for large-scale
-machine learning by utilizing commodity SSDS. It provides a small number
-of generalized matrix operations (GenOps) that accepts user-defined functions
-(UDF) and reimplements a large number of matrix operations in the R framework
-with GenOps to support varieties of machine learning algorithms. FlashMatrix
+FlashMatrix is a general-purpose data analysis framework with a matrix-oriented
+programming interface. It mainly focuses on dense matrices and scales
+dense matrix operations beyond memory capacity by utilizing solid-state drives
+(SSDs) in a non-uniform memory architecture (NUMA).
+FlashMatrix uses R as its main programming interface and executes R code
+automatically in parallel and out of core. It provides a small number
+of generalized matrix operations (GenOps) that accept user-defined functions
+(UDFs) and reimplements a large number of matrix operations in the R framework
+with GenOps. FlashMatrix
 uses vectorized user-defined functions (VUDF) to reduce the overhead of function
 calls and fuses matrix operations to reduce data movement between CPU and
-main memory as well as between main memory and SSDs. FlashMatrix is able to
-run R code automatically in parallel and support both in-memory and out-of-core
-execution. The R implementations of many machine learning algorithms executed
-in FlashMatrix have the performance comparable to parallel C implementations
-of these algorithms. Furthermore, the out-of-core execution of these R
-implementations has performance comparable to the in-memory executation
-while significantly outperforming the in-memory implementations in Spark.
+SSDs. We implement multiple machine learning algorithms to benchmark
+the performance of FlashR. On a large parallel machine, out-of-core execution
+of these R implementations in FlashR has performance comparable to the in-memory
+executation while significantly outperforming the in-memory implementations
+in Spark MLlib.
 \end{abstract}
 
 % no keywords
