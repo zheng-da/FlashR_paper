@@ -25,29 +25,22 @@ throughput of the SSDs.
 \end{figure}
 
 FlashMatrix exposes the GenOps in the R interface and reimplements many functions
-in the R \textit{base} package with the GenOps to provide a flexible programming
-interface for machine learning algorithms. The functions provided by the R
+in the R \textit{base} package with the GenOps. The functions provided by the R
 interface are categorized into seven classes:
 \begin{itemize}
-	\item The generalized matrix operators.
-	\item The construction functions create vectors and matrices of the specified
-		shape and fill them with specified data (e.g., sequence number or random
-		number).
-	\item The conversion functions convert between FlashMatrix matrices and
+	\item The generalized matrix operators (GenOps).
+	\item The construction functions that create vectors and matrices of
+		the specified size and fill them with specified data (e.g., sequence
+		number or random number).
+	\item The conversion functions that convert between FlashMatrix matrices and
 		R matrices to enable interaction between FlashMatrix and the R framework.
-	\item The transformation functions changes the shape of a matrix. The commonly
-		used functions include matrix transpose, matrix combination such as
-		\textit{rbind} and \textit{cbind} and submatrix extraction.
-	\item element-wise computation
-	\item aggregation
-	\item matrix multiplication.
+	\item The transformation functions that change the shape of a matrix.
+		The commonly used functions include matrix transpose, matrix combination
+		such as \textit{rbind} and \textit{cbind} and submatrix extraction.
+	\item element-wise operations such as matrix addition and subtraction.
+	\item aggregation operations such as summation.
+	\item BLAS matrix multiplication.
 \end{itemize}
-
-FlashR represents VUDFs symbolically and selects the right VUDF instance for
-the input matrices at runtime. If the two input matrices in a binary GenOp have
-different element types, FlashR automatically casts one of the matrices to
-match with the other. FlashR follows the same convention of type casting and
-always cast the element type to a high-rank type.
 
 %\subsection{SAFS}
 
@@ -381,138 +374,6 @@ aggregation operations well. We manually create a small vector of reduction
 variables, flatten the loop and transform the original aggregation operation
 into aggregation onto the vector of reduction variables.
 
-\subsection{Implementation of GenOps with VUDF}
-
-FlashMatrix selects the right form of a VUDF for a given GenOp based on the data
-layout and the shape of the input matrices. The selection criteria is to maximize
-the amortization of the overhead of invoking VUDFs.
-
-Some GenOps can be applied to matrices with any data layout and any shape
-efficiently. For example, \textit{sapply} and \textit{mapply2} only requires
-the input matrices and the output matrix to have the same data layout. For tall
-column-major matrices and wide row-major matrices,
-each partition has long columns and long rows, respectively. For tall row-major
-matrices and wide column-major matrices, all rows and columns in a partition
-is stored in a single piece of memory. As such, we can always pass long vectors
-to the VUDF. A similar strategy is applicable to \textit{agg}.
-
-To reduce the overhead of invoking VUDFs, many of the GenOps favor
-the column-major order for a tall-and-skinny matrix and the row-major order
-for a short-and-wide matrix. These data layouts increase
-the length of a vector passed to a VUDF to amortize the function call overhead.
-%As such, FlashMatrix can always partition the input
-%matrices and feed VUDFs with vectors of the compile-time known length.
-Furthermore, for
-a tall matrix, the column-major order ensures data in each column in a partition
-to be well aligned in memory owing to the partition size, regardless of
-the number of columns in the matrix; the similar effect is applied to a wide
-matrix. Memory alignment helps CPU vectorization to improve performance.
-Before invoking VUDFs on CPU-level partitions, a GenOp such as inner product
-may convert the data layout of a CPU-level partition to the preferred data
-layout if an input matrix does not have the preferred data layout.
-Because a CPU-level partition can fit in the CPU cache, data layout conversion
-does not increase data access to main memory. 
-
-When a GenOp applies a VUDF on rows
-\textit{mapply\_col} and \textit{mapply\_row} favors
-the column-major order for a tall-and-skinny matrix and the row-major order
-for a short-and-wide matrix. For example, when applying \textit{mapply\_col}
-on a tall column-major matrix, FlashMatrix chooses the \textit{bVUDF1} form to
-perform computation on each column of the matrix and the vector; when applying
-\textit{mapply\_row} on a tall column-major matrix, FlashMatrix choose
-the \textit{bVUDF2} form.
-Both \textit{agg\_row}
-and \textit{agg\_col}, on the other hand, work better on the preferred data
-layout if the aggregation VUDF has the same \textit{aggregate} and \textit{combine}
-function with both \textit{aVUDF1} and \textit{aVUDF2} forms. For these aggregation
-VUDFs, we can transform \textit{agg\_row} on a column-major matrix to applying
-\textit{aVUDF2} to columns of a partition. Similar transformation is applied
-to \textit{agg\_col} on a row-major matrix.
-
-Inner product chooses different forms of VUDFs for input matrices with different
-shapes. The first UDF of inner product is a binary UDF and the second one is an
-aggregation UDF. For the sake of efficiency, inner product requires the second
-UDF to have the same \textit{aggregate} and \textit{combine} function with both
-\textit{aVUDF1} and \textit{aVUDF2} forms.
-\textit{inner\_prod\_tall} uses the \textit{bVUDF2} form of the first
-VUDF to computes the outer product of a column from the left matrix and a row
-from the right matrix and uses the \textit{bVUDF1} of the second VUDF to output
-the final result. Because \textit{inner\_prod\_tall} operates on a CPU-level
-partition, all intermediate results are kept in CPU cache and thus we only need
-to read the input partition from main memory and write the final result for
-the input partitions to main memory. \textit{inner\_prod\_wide} invokes the
-\textit{bVUDF1} form of the first VUDF on a row from the left matrix and a column
-from the right matrix and invokes the \textit{aVUDF1} form of the second VUDF
-on the output of the first VUDF to compute an element of the output from
-the input partitions.
-
-Unlike other GenOps, \textit{groupby\_row} and \textit{groupby\_col} are the only
-GenOps that do not favor the column-major order for a tall-and-skinny matrix and
-the row-major order for a short-and-wide matrix. \textit{groupby\_row} sorts
-rows in a partition based on the categorical values associated with each row
-and apply the aggregation VUDF on rows directly.
-
-\subsection{Implementation of GenOps on a group of matrices}
-
-When applying a GenOp on a group of matrices,
-we decompose the computation into multiple GenOps and apply them to individual
-matrices in the group if the GenOp supports decomposition. Decomposing computation
-to individual matrices reduces memory copy and increases CPU cache hits and thus
-can significantly improve performance. For the GenOps that cannot be decomposed,
-we combine the individual matrices on the fly and apply the GenOps on the combined
-matrix directly.
-
-We can apply some of the GenOps to individual matrices directly. \textit{sapply}
-and \textit{agg} run on individual matrices directly regardless of the shape
-and data layout of individual matrices. For other GenOps, we may also apply
-them to individual matrices directly without transformation. For a
-\textit{tall matrix group}, we can apply \textit{mapply\_col} and \textit{agg\_col}
-to individual matrices directly.
-Similarly, we can apply \textit{mapply\_row} and \textit{agg\_row} to
-individual matrices directly for a \textit{wide matrix group}. \textit{mapply2}
-requires the matrices in the two input matrix groups to have the same shape.
-\textit{Groupby\_row} on a \textit{tall matrix group} can be decomposed and
-applied to individual matrices; \textit{groupby\_col} on a \textit{wide matrix group}
-can be decomposed in a similar fashion.
-
-Applying other GenOps to a matrix group requires transformation. If an aggregation
-operation provides a combine function, applying \textit{agg\_row} to a group of
-tall matrices is transformed into two steps: apply the aggregation function on
-each row of individual matrices and apply the combine function on aggregation
-results. Similarly, the same strategy is used for \textit{agg\_col} on a group
-of wide matrices. When applying \textit{mapply\_row} to a group of tall matrices,
-we break the vector into parts to match the number of columns in the individual
-matrices in the group. Similarly, we break the vector into parts to match the number
-of rows in the individual matrices for \textit{mapply\_col}.
-
-FlashMatrix decomposes inner product on a matrix group in favor of minimizing
-the amount of data written to SSDs (Figure \ref{fig:inner_prod}).
-For \textit{inner\_prod\_tall}, we first partition the right matrix vertically
-so that the inner product of the left matrix and a vertical partition outputs
-part of a final output matrix. The number of vertical partitions determines
-the number of runs required to complete the inner product on the group of matrices.
-If the left matrix is stored on SSDs, the number of vertical partitions on
-the right matrix determines the amount of data read from SSDs. The vertical
-partition size determines the output matrix size in each run and affect
-the memory size. As such, we need to select the vertical partition size of
-the right matrix to balance I/O and memory consumption. We horizontally partition
-each vertical partition of the right matrix to further decompose the inner
-product. We construct a directed acyclic graph (DAG) to evalute the inner
-product lazily (Section \ref{sec:lazy_eval}). Similarly, we partition the right
-matrix and make a similar choice to balance I/O and memory consumption for
-\textit{inner\_prod\_wide}. We also construct a DAG and lazily evaluate
-the computation.
-
-\begin{figure}
-\centering
-\includegraphics[scale=0.4]{./inner_prod_tall.pdf}
-\vspace{-5pt}
-\caption{}
-\vspace{-5pt}
-\label{fig:inner_prod}
-\end{figure}
-
-
 \subsection{Lazy evaluation} \label{sec:lazy_eval}
 FlashMatrix evaluates matrix operations lazily because it is expensive to
 perform each matrix operation individually when matrices become large.
@@ -670,17 +531,153 @@ the global task scheduler assigns consecutive partitions to threads.
 %of vectors or matrices.
 
 \subsection{Data placement}
-FlashMatrix by default keeps large matrices on SSDs.
+FlashMatrix keeps large input matrices on SSDs and determines the default
+data placement of the output matrices from GenOps based on their
+\textit{long dimensions}.
 
 If the output matrix of a GenOp has a different \textit{long dimension} from
 the input matrices, the output matrix is considered small and is by default
 materialized in memory. For example, \textit{agg\_row} on a wide matrix and
-\textit{agg\_col} on a tall matrix outputs a vector, which is also considered
-small and is by default kept in memory; the output matrix of the inner product
-of a wide matrix with a tall matrix is also considered small and is always
-kept in memory.
+\textit{agg\_col} on a tall matrix outputs a vector. The maximal length of
+the vector is smaller than $\sqrt{N}$, where $N$ is the number of elements
+in the input matrix. As such, we can keep it in memory. For most of machine
+learning and data analysis tasks, the output matrix of the inner product of
+a wide matrix with a tall matrix is considered small and is by default kept
+in memory because the long dimension of these matrices is usually much larger
+than the short dimension in these tasks.
 
 If the output matrix of a GenOp has the same \textit{long dimension} as
 the input matrices, it is not materialized by default and thus does not require
-memory storage. These matrices are materialized on the fly and users can inform
-FlashMatrix to save the materialized data in the specified memory storage.
+memory storage. If users explicitly materialize these output matrices, they
+are by default materialized on SSDs.
+
+\subsection{Implementation of GenOps with VUDF}
+
+After FlashMatrix reads partitions from SSDs, it needs to invoke VUDFs on
+the elements of the partitions intelligently to reduce the overhead of function
+calls. Different GenOps choose different forms of VUDFs based on the data layout
+and the shape of the input matrices. Most of the GenOps requires a matrix with
+a specific data layout to increase the amortization of function call overhead.
+
+Many of the GenOps favor the column-major order for a tall-and-skinny matrix
+and the row-major order for a short-and-wide matrix. These data layouts not only
+increase the length of a vector passed to a VUDF but also align data in memory
+for CPU vectorization. For a tall matrix, the column-major order ensures data
+in each column in a partition to be well aligned in memory owing to the matrix
+format and the partition size (Figure \ref{fig:tas_mat}), regardless of the number
+of columns in the matrix; similarly, the row-major order aligns data in rows of
+a partition. Before invoking VUDFs on
+CPU-level partitions, a GenOp such as inner product may convert the data layout
+of a CPU-level partition to the preferred layout if an input matrix does not
+have the preferred layout.
+Because a CPU-level partition can fit in the CPU cache, data layout conversion
+does not increase data access to main memory. 
+
+Some GenOps can be applied to matrices with any data layout and any shape
+efficiently. For example, \textit{sapply} and \textit{mapply2} only requires
+the input matrices and the output matrix to have the same data layout. For tall
+column-major matrices and wide row-major matrices, each partition has long
+columns and long rows, respectively. As such, these GenOps can invoke a VUDF
+on the long columns and rows. For tall row-major matrices and wide column-major
+matrices, all rows and columns in a partition is stored in a single piece of
+memory. As such, these GenOps only need to invoke a VUDF once on all elements
+in a partition. A similar strategy is applicable to \textit{agg}.
+
+Given a matrix with the preferred data layout, FlashMatrix automatically
+selects the right form of a VUDF for a given GenOp to increase the length of
+the vectors passed to a VUDF. For example, when applying \textit{mapply\_col}
+on a tall column-major matrix, FlashMatrix chooses the \textit{bVUDF1} form to
+perform computation on a column from the matrix with the vector; when applying
+\textit{mapply\_row} on a tall column-major matrix, FlashMatrix choose
+the \textit{bVUDF2} form to perform computation on a column from the matrix
+with an element from the vector. When applying \textit{inner\_prod\_tall} on a tall
+column-major matrix, FlashMatrix uses the \textit{bVUDF2} form of the first
+VUDF to computes the outer product of a column from the left matrix and a row
+from the right matrix and uses the \textit{bVUDF1} of the second VUDF to compute
+the final result. Because \textit{inner\_prod\_tall} operates on a CPU-level
+partition, all intermediate results are kept in CPU cache and thus we only need
+to read the input partition from main memory and write the final result
+back to main memory. \textit{inner\_prod\_wide} invokes the
+\textit{bVUDF1} form of the first VUDF on a row from the left matrix and a column
+from the right matrix and invokes the \textit{aVUDF1} form of the second VUDF
+on the output from the first VUDF to compute an element in the output for
+the input partitions.
+
+%Both \textit{agg\_row} and \textit{agg\_col} work better on the preferred data
+%layout if the aggregation VUDF has the same \textit{aggregate} and \textit{combine}
+%function with both \textit{aVUDF1} and \textit{aVUDF2} forms. For these aggregation
+%VUDFs, we can transform \textit{agg\_row} on a column-major matrix to applying
+%\textit{aVUDF2} to columns of a partition. Similar transformation is applied
+%to \textit{agg\_col} on a row-major matrix.
+
+%Inner product chooses different forms of VUDFs for input matrices with different
+%shapes. The first UDF of inner product is a binary UDF and the second one is an
+%aggregation UDF. For the sake of efficiency, inner product requires the second
+%UDF to have the same \textit{aggregate} and \textit{combine} function with both
+%\textit{aVUDF1} and \textit{aVUDF2} forms.
+
+%Unlike other GenOps, \textit{groupby\_row} and \textit{groupby\_col} are the only
+%GenOps that do not favor the column-major order for a tall-and-skinny matrix and
+%the row-major order for a short-and-wide matrix. \textit{groupby\_row} sorts
+%rows in a partition based on the categorical values associated with each row
+%and apply the aggregation VUDF on rows directly.
+
+\subsection{Implementation of GenOps on a group of matrices}
+
+When applying a GenOp on a group of matrices,
+we decompose the computation into multiple GenOps and apply them to individual
+matrices in the group if the GenOp supports decomposition. Decomposing computation
+to individual matrices reduces memory copy and increases CPU cache hits and thus
+can significantly improve performance. For the GenOps that cannot be decomposed,
+we combine the individual matrices on the fly and apply the GenOps on the combined
+matrix directly.
+
+We can apply some of the GenOps to individual matrices directly. \textit{sapply}
+and \textit{agg} run on individual matrices directly regardless of the shape
+and data layout of individual matrices. For other GenOps, we may also apply
+them to individual matrices directly without transformation. For a
+\textit{tall matrix group}, we can apply \textit{mapply\_col} and \textit{agg\_col}
+to individual matrices directly.
+Similarly, we can apply \textit{mapply\_row} and \textit{agg\_row} to
+individual matrices directly for a \textit{wide matrix group}. \textit{mapply2}
+requires the matrices in the two input matrix groups to have the same shape.
+\textit{Groupby\_row} on a \textit{tall matrix group} can be decomposed and
+applied to individual matrices; \textit{groupby\_col} on a \textit{wide matrix group}
+can be decomposed in a similar fashion.
+
+Applying other GenOps to a matrix group requires transformation. If an aggregation
+operation provides a combine function, applying \textit{agg\_row} to a group of
+tall matrices is transformed into two steps: apply the aggregation function on
+each row of individual matrices and apply the combine function on aggregation
+results. Similarly, the same strategy is used for \textit{agg\_col} on a group
+of wide matrices. When applying \textit{mapply\_row} to a group of tall matrices,
+we break the vector into parts to match the number of columns in the individual
+matrices in the group. Similarly, we break the vector into parts to match the number
+of rows in the individual matrices for \textit{mapply\_col}.
+
+FlashMatrix decomposes inner product on a matrix group in favor of minimizing
+the amount of data written to SSDs (Figure \ref{fig:inner_prod}).
+For \textit{inner\_prod\_tall}, we first partition the right matrix vertically
+so that the inner product of the left matrix and a vertical partition outputs
+part of a final output matrix. The number of vertical partitions determines
+the number of runs required to complete the inner product on the group of matrices.
+If the left matrix is stored on SSDs, the number of vertical partitions on
+the right matrix determines the amount of data read from SSDs. The vertical
+partition size determines the output matrix size in each run and affect
+the memory size. As such, we need to select the vertical partition size of
+the right matrix to balance I/O and memory consumption. We horizontally partition
+each vertical partition of the right matrix to further decompose the inner
+product. We construct a directed acyclic graph (DAG) to evalute the inner
+product lazily (Section \ref{sec:lazy_eval}). Similarly, we partition the right
+matrix and make a similar choice to balance I/O and memory consumption for
+\textit{inner\_prod\_wide}. We also construct a DAG and lazily evaluate
+the computation.
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.4]{./inner_prod_tall.pdf}
+\vspace{-5pt}
+\caption{}
+\vspace{-5pt}
+\label{fig:inner_prod}
+\end{figure}
