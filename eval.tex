@@ -1,6 +1,10 @@
 \section{Experimental evaluation}
-We evaluate the performance of FlashMatrix and the R implementations of
-the machine learning algorithms on FlashMatrix.
+We evaluate the performance of FlashMatrix with statistics and machine learning
+applications. We implement these applications with the R interface of FlashMatrix
+and measure their performance both in memory and on SSDs. We compare their
+performance with the implementations in Spark MLlib \cite{}. We further
+illustrate the effectiveness of the optimizations deployed in FlashMatrix
+both in memory and on SSDs.
 
 We conduct experiments on a non-uniform memory architecture machine with
 four Intel Xeon E7-4860 processors, clocked at 2.6 GHz, and 1TB memory of
@@ -8,15 +12,57 @@ DDR3-1600. Each processor has 12 cores. The machine has three LSI SAS 9300-8e
 host bus adapters (HBA) connected to a SuperMicro storage chassis, in which
 24 OCZ Intrepid 3000 SSDs are installed. The 24 SSDs together are capable of
 delivering 12 GB/s for read and 10 GB/s for write at maximum. The machine runs
-Linux kernel v3.13.0. We use 48 threads for our in-memory and semi-external
-implementation.
+Linux kernel v3.13.0. We use 48 threads for in-memory and semi-external execution
+of FlashMatrix as well as Spark.
 
-\subsection{Performance of basic statistics}
+\subsection{Statistics and Machine learning applications}
+We implement multiple important applications in statistics and machine learning.
+Spark MLlib provides implementations for these applications. For fair comparison,
+we implement the applications with the same algorithms used by Spark MLlib.
+\begin{itemize}
+	\item Multivariant statistical summary: this computes the minimal value,
+		the maximal value, mean, L1 norm, L2 norm, the number of non-zero values
+		and variance of each random variable for a given set of observations.
+	\item Correlation: this computes Pearson's correlation \cite{} between
+		two series of observations and is commonly used in statistics.
+	\item Singular value decomposition (SVD) \cite{} factorizes a matrix into
+		three matrices: $U$, $\Sigma$ and $V$ such that $A=U \Sigma V^T$, where
+		both $U$ and $V$ are orthonormal matrices and $\Sigma$ is a diagonal
+		matrix with non-negative diagonals in descending order. SVD is commonly
+		used for dimension reduction.
+	\item KMeans \cite{kmeans} partitions a set of observations into $k$ clusters
+		so that each data point belongs to the cluster with minimal mean. KMeans
+		is one of the most popular clustering algorithms and is identified as
+		one of the top 10 data mining algorithms \cite{top10}.
+	\item Gaussian Mixture Model (GMM) \cite{gmm} is a clustering algorithm that
+		assumes observations are sampled under a mixture of Gaussian distributions.
+		We implement the expectation maximization (EM) \cite{em} algorithm to fit
+		the mixture of Gaussian distributions. This algorithm is also identified
+		as one of the top 10 data mining algorithms \cite{top10}.
+\end{itemize}
 
-\subsection{Performance of clustering algorithms}
+\subsection{Performance of FlashMatrix vs. Spark MLlib}
+
+The performance of FlashMatrix (Figure \ref{perf:fm})
+
+\begin{figure}
+	\begin{center}
+		\footnotesize
+		\include{FM.vs.spark}
+		\caption{The performance of FlashMatrix both in memory and on SSDs
+		compared with Spark.}
+		\label{perf:fm}
+	\end{center}
+\end{figure}
+
+\subsection{Performance of FlashMatrix vs. R}
+
+\subsection{Performance of FlashMatrix vs. C/C++}
 
 \subsection{Microbenchmarks}
 
-\subsubsection{VUDF}
-Overhead of function calls.
+The impact of operation fuse.
+the benefit of I/O-level partition.
+the benefit of CPU-level partition.
 
+Overhead of function calls.
