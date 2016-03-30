@@ -15,10 +15,11 @@ delivering 12 GB/s for read and 10 GB/s for write at maximum. The machine runs
 Linux kernel v3.13.0. We use 48 threads for in-memory and semi-external execution
 of FlashMatrix as well as Spark.
 
-\subsection{Statistics and Machine learning applications}
-We implement multiple important applications in statistics and machine learning.
-Spark MLlib provides implementations for these applications. For fair comparison,
-we implement the applications with the same algorithms used by Spark MLlib.
+\subsection{Statistics and Machine learning applications} \label{sec:apps}
+We implement multiple important applications in the field of statistics and
+machine learning in FlashMatrix. These applications are implemented completely
+with R and rely on FlashMatrix to perform computation in parallel and out of
+core.
 \begin{itemize}
 	\item Multivariant statistical summary: this computes the minimal value,
 		the maximal value, mean, L1 norm, L2 norm, the number of non-zero values
@@ -41,9 +42,73 @@ we implement the applications with the same algorithms used by Spark MLlib.
 		as one of the top 10 data mining algorithms \cite{top10}.
 \end{itemize}
 
+\dz{We should describe what datasets the algorithms usually take}
+
+\subsection{Performance of FlashMatrix in memory and on SSDs}
+
+The computation complexity of statistics computation and machine learning
+algorithms may vary for different datasets and different settings. To illusrate
+the performance of the applications thoroughly, we measure the performance
+of the first three applications on datasets with 10 million data points each
+with various numbers of features from 8 to 512. We measure the performance of
+the clustering algorithms (KMeans and GMM) on a dataset with 65 million data
+points each with 32 features and vary the number of clusters from 2 to 64.
+
+\begin{figure}
+	\begin{center}
+		\footnotesize
+		\include{IM.vs.EM.stat}
+		\caption{The relative external-memory performance of FlashMatrix for
+			statistics computation on a dataset with the number of features
+		varying from 8 to 512, normalized by its in-memory performance.}
+		\label{perf:stat}
+	\end{center}
+\end{figure}
+
+As the number of features in the datasets or the number of clusters increases,
+the performance gap between in-memory and external-memory execution
+narrows and eventually the external-memory performance gets almost 100\%
+of in-memory performance (Figure \ref{perf:stat} and \ref{perf:clust}).
+The main computation overhead in correlation and SVD is cross product on
+the $n \times p$ input matrix, which has the computation complexity of
+$O(n \times p^2)$ and I/O complexity of $O(n \times p)$. As such, when
+the number of features in the dataset gets larger, the ratio of computation
+and I/O in correlation and SVD gets larger and eventually CPU becomes
+the bottleneck. Similarly, the computation of KMeans and GMM increases
+more rapidly than I/O as the number of clusters gets larger, and get
+dominated by their computation even when the number of clusters is not
+very large.
+
+\begin{figure}
+	\begin{center}
+		\footnotesize
+		\include{IM.vs.EM.clust}
+		\caption{The relative external-memory performance of FlashMatrix for
+			clustering algorithms with different numbers of clusters, normalized
+		by its in-memory performance.}
+		\label{perf:clust}
+	\end{center}
+\end{figure}
+
 \subsection{Performance of FlashMatrix vs. Spark MLlib}
 
-The performance of FlashMatrix (Figure \ref{perf:fm})
+We compare the performance of the FlashMatrix implementations of the applications
+in Section \ref{sec:apps} with the ones in Spark MLlib. Spark MLlib provides
+implementations for these applications. We implement the applications with
+the same algorithms used by Spark MLlib. For fair comparison, we runs the Spark
+implementations with their native Scala interface and use a very large heap size
+to ensure that all input data is cached in memory. We measure the performance
+of both in-memory and out-of-core execution of the applications in FlashMatrix.
+
+The applications in FlashMatrix significantly outperform Spark MLlib (Figure
+\ref{perf:fm}). When the applications require more computation, the out-of-core
+execution of FlashMatrix significantly outperforms Spark MLlib. Multivariant
+statistical summary is the only application that does not outperform Spark
+when executed out of core because its out-of-core execution is bottlenecked
+by I/O. For applications such as correlation and GMM, even though both FlashMatrix
+and Spark implementations heavily rely on BLAS for matrix multiplication,
+FlashMatrix can still significantly outperform Spark thanks to matrix operation
+fusion and two-level partitioning for computation in FlashMatrix.
 
 \begin{figure}
 	\begin{center}
@@ -59,10 +124,37 @@ The performance of FlashMatrix (Figure \ref{perf:fm})
 
 \subsection{Performance of FlashMatrix vs. C/C++}
 
-\subsection{Microbenchmarks}
+\subsection{Effectiveness of optimizations}
 
-The impact of operation fuse.
-the benefit of I/O-level partition.
-the benefit of CPU-level partition.
+In this section, we measure the effectiveness of optimizations in FlashMatrix,
+i.e., matrix operation fusion to reduce data movement between CPU and SSDs and
+using vectorized user-defined functions (VUDF) to reduce the overhead of
+function calls. For operation fusion, we illustrate its effectiveness in both
+main memory and CPU cache. We use GMM to illustrate the effectiveness of matrix
+operation fusion because this application allows aggressive operation fusion.
+
+Matrix operation fusion has very positive impact on both in-memory and
+external-memory performance of GMM (Figure \ref{perf:mem_move}). Even though
+GMM has the highest computation overhead among all applications in Section
+\ref{sec:apps}, materializing every matrix operation on SSDs causes significant
+performance degradation and SSDs are the main bottleneck. Fusing matrix
+operations in memory significantly reduces the burden on SSDs and improves
+performance by a factor of 5. Operation fusion in main memory also has noticeable
+performance improvement when GMM runs in memory, although the impact is much
+lower, owing to reduced memory allocation overhead. Operation fusion in
+the CPU cache also has very positive performance improvement on in-memory
+and external-memory execution of GMM by 30\% and 28\%, respectively, on top of
+the improvement from fusion in main memory.
+
+\begin{figure}
+	\begin{center}
+		\footnotesize
+		\include{opts_mem_move}
+		\caption{The effectiveness of matrix operation fusion in main memory
+			(mem-fuse) and in CPU cache (cache-fuse). The operation fusion in
+		CPU cache is applied on top of the fusion in main memory.}
+		\label{perf:mem_move}
+	\end{center}
+\end{figure}
 
 Overhead of function calls.
