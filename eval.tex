@@ -42,7 +42,51 @@ core.
 		as one of the top 10 data mining algorithms \cite{top10}.
 \end{itemize}
 
-\dz{We should describe what datasets the algorithms usually take}
+The algorithms for implementing the applications have various computation
+complexity and have the same I/O complexity. Computing statistics summary
+has the lowest computation complexity, while GMM has the highest asymptotic
+computation complexity. In practice, GMM usually runs on a dataset with
+a small number of features and splits the dataset to a small number of clusters.
+As such, correlation and SVD may have higher computation overhead because
+these applications are more likely to run on a dataset with many more features
+than GMM. The first three applications require a single pass on the dataset
+to perform computation and each iteration of KMeans requires a single pass
+on the dataset. Despite lazy evalution, the FlashMatrix implementation of
+GMM requires multiple passes on the dataset in each iteration.
+
+\begin{table}
+\begin{center}
+\footnotesize
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+Application & Computation & I/O \\
+\hline
+Summary & $O(n \times p)$ & $O(n \times p)$ \\
+\hline
+Correlation & $O(n \times p^2)$ & $O(n \times p)$ \\
+\hline
+SVD & $O(n \times p^2)$ & $O(n \times p)$ \\
+\hline
+KMeans (1 iteration) & $O(n \times p \times k)$ & $O(n \times p)$ \\
+\hline
+GMM (1 iteration) & $O(n \times p^2 \times k)$ & $O(n \times p + n \times k)$ \\
+\hline
+\end{tabular}
+\normalsize
+\end{center}
+\caption{The computation and I/O complexity of the algorithms for the five
+	applications. $n$ is the number of data points in the dataset, $p$ is
+	the number of the features and $k$ is the number of clusters KMeans and
+GMM partition the dataset to.}
+\label{graphs}
+\end{table}
+
+Typically, KMeans and GMM run on a dataset with a small number of features
+while the other applications may be applied to datasets with various numbers
+of features. For performance evaluation, we run KMeans and GMM on a dataset
+with 32 eigenvectors from the Friendster graph \cite{friendster}, which is
+an important step of spectral clustering \cite{} to partition vertices to
+clusters.
 
 \subsection{Performance of FlashMatrix in memory and on SSDs}
 
@@ -120,7 +164,9 @@ fusion and two-level partitioning for computation in FlashMatrix.
 	\end{center}
 \end{figure}
 
-\subsection{Performance of FlashMatrix vs. R}
+\subsection{Speedup}
+
+\subsection{Scalability}
 
 \subsection{Performance of FlashMatrix vs. C/C++}
 
