@@ -17,9 +17,8 @@ of FlashMatrix as well as Spark.
 
 \subsection{Statistics and Machine learning applications} \label{sec:apps}
 We implement multiple important applications in the field of statistics and
-machine learning in FlashMatrix. These applications are implemented completely
-with R and rely on FlashMatrix to perform computation in parallel and out of
-core.
+machine learning. These applications are implemented completely with R and
+rely on FlashMatrix to perform computation in parallel and out of core.
 \begin{itemize}
 	\item Multivariant statistical summary: this computes the minimal value,
 		the maximal value, mean, L1 norm, L2 norm, the number of non-zero values
@@ -31,19 +30,21 @@ core.
 		both $U$ and $V$ are orthonormal matrices and $\Sigma$ is a diagonal
 		matrix with non-negative diagonals in descending order. SVD is commonly
 		used for dimension reduction.
-	\item KMeans \cite{kmeans} partitions a set of observations into $k$ clusters
+	\item KMeans \cite{kmeans} is an iterative algorithm of partitioning a set
+		of observations into $k$ clusters
 		so that each data point belongs to the cluster with minimal mean. KMeans
 		is one of the most popular clustering algorithms and is identified as
 		one of the top 10 data mining algorithms \cite{top10}.
-	\item Gaussian Mixture Model (GMM) \cite{gmm} is a clustering algorithm that
-		assumes observations are sampled under a mixture of Gaussian distributions.
-		We implement the expectation maximization (EM) \cite{em} algorithm to fit
+	\item Gaussian Mixture Model (GMM) \cite{gmm} is also an iterative
+		clustering algorithm that assumes observations are sampled under
+		a mixture of Gaussian distributions. We implement the expectation
+		maximization (EM) \cite{em} algorithm to fit
 		the mixture of Gaussian distributions. This algorithm is also identified
 		as one of the top 10 data mining algorithms \cite{top10}.
 \end{itemize}
 
-The algorithms for implementing the applications have various computation
-complexity and have the same I/O complexity. Computing statistics summary
+The algorithms have various computation complexity but have the same I/O
+complexity (Table \ref{tbl:algs}). Computing statistics summary
 has the lowest computation complexity, while GMM has the highest asymptotic
 computation complexity. In practice, GMM usually runs on a dataset with
 a small number of features and splits the dataset to a small number of clusters.
@@ -78,25 +79,26 @@ GMM (1 iteration) & $O(n \times p^2 \times k)$ & $O(n \times p + n \times k)$ \\
 	applications. $n$ is the number of data points in the dataset, $p$ is
 	the number of the features and $k$ is the number of clusters KMeans and
 GMM partition the dataset to.}
-\label{graphs}
+\label{tbl:algs}
 \end{table}
 
 Typically, KMeans and GMM run on a dataset with a small number of features
 while the other applications may be applied to datasets with various numbers
-of features. For performance evaluation, we run KMeans and GMM on a dataset
-with 32 eigenvectors from the Friendster graph \cite{friendster}, which is
+of features. For performance evaluation, we run KMeans and GMM on a matrix
+constructed from 32 eigenvectors from the Friendster graph \cite{friendster},
+which is
 an important step of spectral clustering \cite{} to partition vertices to
-clusters.
+clusters. We measure the performance of the other three applications on
+random matrices with 10 million rows and the number of columns varying
+from 8 to 512.
 
 \subsection{Performance of FlashMatrix in memory and on SSDs}
 
-The computation complexity of statistics computation and machine learning
-algorithms may vary for different datasets and different settings. To illusrate
-the performance of the applications thoroughly, we measure the performance
-of the first three applications on datasets with 10 million data points each
-with various numbers of features from 8 to 512. We measure the performance of
-the clustering algorithms (KMeans and GMM) on a dataset with 65 million data
-points each with 32 features and vary the number of clusters from 2 to 64.
+We compare the in-memory and external-memory performance of the FlashMatrix
+implementations of the applications thoroughly with different datasets and
+different settings. For the first three applications, we vary the number of
+features from 8 to 512. For KMeans and GMM, we vary the number of clusters
+from 2 to 64.
 
 \begin{figure}
 	\begin{center}
@@ -113,15 +115,15 @@ As the number of features in the datasets or the number of clusters increases,
 the performance gap between in-memory and external-memory execution
 narrows and eventually the external-memory performance gets almost 100\%
 of in-memory performance (Figure \ref{perf:stat} and \ref{perf:clust}).
-The main computation overhead in correlation and SVD is cross product on
-the $n \times p$ input matrix, which has the computation complexity of
-$O(n \times p^2)$ and I/O complexity of $O(n \times p)$. As such, when
-the number of features in the dataset gets larger, the ratio of computation
+This observation conforms with the computation and I/O complexity of
+the applications in Table \ref{tbl:algs}. As such, when the number of features
+in the dataset gets larger, the ratio of computation
 and I/O in correlation and SVD gets larger and eventually CPU becomes
 the bottleneck. Similarly, the computation of KMeans and GMM increases
-more rapidly than I/O as the number of clusters gets larger, and get
-dominated by their computation even when the number of clusters is not
-very large.
+more rapidly than I/O and get dominated by their CPU computation as the number
+of clusters gets larger. Given the I/O throughput of 10 GB/s, it does not
+require many features or clusters to have the applications bottlenecked by
+CPU.
 
 \begin{figure}
 	\begin{center}
@@ -137,12 +139,11 @@ very large.
 \subsection{Performance of FlashMatrix vs. Spark MLlib}
 
 We compare the performance of the FlashMatrix implementations of the applications
-in Section \ref{sec:apps} with the ones in Spark MLlib. Spark MLlib provides
-implementations for these applications. We implement the applications with
+in Section \ref{sec:apps} with the ones in Spark MLlib \cite{mllib}. We implement
+the applications with
 the same algorithms used by Spark MLlib. For fair comparison, we runs the Spark
 implementations with their native Scala interface and use a very large heap size
-to ensure that all input data is cached in memory. We measure the performance
-of both in-memory and out-of-core execution of the applications in FlashMatrix.
+to ensure that all input data is cached in memory.
 
 The applications in FlashMatrix significantly outperform Spark MLlib (Figure
 \ref{perf:fm}). When the applications require more computation, the out-of-core
@@ -164,6 +165,8 @@ fusion and two-level partitioning for computation in FlashMatrix.
 	\end{center}
 \end{figure}
 
+\dz{Show memory consumption?}
+
 \subsection{Speedup}
 
 \subsection{Scalability}
@@ -174,9 +177,9 @@ fusion and two-level partitioning for computation in FlashMatrix.
 
 In this section, we measure the effectiveness of optimizations in FlashMatrix,
 i.e., matrix operation fusion to reduce data movement between CPU and SSDs and
-using vectorized user-defined functions (VUDF) to reduce the overhead of
-function calls. For operation fusion, we illustrate its effectiveness in both
-main memory and CPU cache. We use GMM to illustrate the effectiveness of matrix
+vectorized user-defined functions (VUDF) to reduce the overhead of function
+calls. We illustrate the effectiveness of operation fusion in both main memory
+and CPU cache. We use GMM to illustrate the effectiveness of matrix
 operation fusion because this application allows aggressive operation fusion.
 
 Matrix operation fusion has very positive impact on both in-memory and
