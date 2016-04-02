@@ -11,15 +11,14 @@ FlashMatrix uses vectorized user-defined functions (VUDF) to reduce the
 overhead of function calls and fuses matrix operations to reduce data movement
 between CPU and SSDs.
 
-With appropriate optimizations, we demonstrate that the R framework can achieve
-very high performance and scalability when expressing algorithms in data
-analysis. We implement multiple statistics and
+With appropriate optimizations, we demonstrate that the matrix-oriented functional
+programming interface in FlashMatrix can achieve very high performance and
+scalability when expressing algorithms in data analysis. We implement multiple
+statistics and
 machine learning algorithms with R and compare their performance with Spark
 MLlib, a high-optimized parallel machine learning library, on large datasets.
 The R implementations executed in FlashMatrix significantly outperforms
-the implemnetations in Spark MLlib. We believe the array-oriented R programming
-interface is sufficient to write many efficient implementations of many
-algorithms in data analysis.
+the implemnetations in Spark MLlib.
 
 As such, FlashMatrix significantly simplifies the programming effort of writing
 parallel and out-of-core implementations for large-scale data analysis. It
