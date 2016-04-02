@@ -139,8 +139,8 @@ CPU.
 \subsection{Performance of FlashMatrix vs. Spark MLlib}
 
 We compare the performance of the FlashMatrix implementations of the applications
-in Section \ref{sec:apps} with the ones in Spark MLlib \cite{mllib}. We implement
-the applications with
+in Section \ref{sec:apps} with the ones in Spark MLlib \cite{mllib}, a high-
+optimized parallel machine learning library. We implement the applications with
 the same algorithms used by Spark MLlib. For fair comparison, we runs the Spark
 implementations with their native Scala interface and use a very large heap size
 to ensure that all input data is cached in memory.
@@ -165,13 +165,16 @@ fusion and two-level partitioning for computation in FlashMatrix.
 	\end{center}
 \end{figure}
 
-\dz{Show memory consumption?}
+\dz{TODO}
+Array-oriented functional languages can consume a lot of memory. Here we show
+that FlashMatrix actually doesn't consume much memory and the out-of-core
+execution further reduce memory consumption.
 
-\subsection{Speedup}
-
-\subsection{Scalability}
-
-\subsection{Performance of FlashMatrix vs. C/C++}
+\subsection{Performance of FlashMatrix vs. R}
+\dz{TODO}
+This section is to show the performance of FlashMatrix in a single thread
+and compare it with R implementation. We only show how FlashMatrix implementation
+can speed up with multithreading.
 
 \subsection{Effectiveness of optimizations}
 
