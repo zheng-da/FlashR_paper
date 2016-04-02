@@ -6,6 +6,8 @@ simulations and observations generate terabytes or
 even petabytes in many scientific and business areas. After collecting
 a massive amount of data, we often need to perform complex data analysis
 and machine learning techniques to extract value from the data.
+Furthermore, the field evolves rapidly and many new algorithms are developed
+to process large datasets.
 \dz{examples?}
 
 Many data analysis tasks can be formulated as matrix operations. For example,
@@ -26,25 +28,29 @@ effort from users. The other approach is to use high-level programming
 frameworks that provide high-level operations to reduce the burden of
 programmers. In general, the second approach is less computationally
 efficient but can significantly increase productivity and has a lower
-entry level for writing parallel implementations.
+entry level for writing parallel implementations. As such, the second approach
+is more preferred in the rapidly evolving field of machine learning and data
+mining. The high-level programming interface enables non-expert programmers
+to effectively use computation resources.
 
 % Why is it hard?
 
-It is challenging to provide a high-level programming framework
-that achieves both generality and efficiency. On one hand, high-optimized
+It is challenging to provide a programming framework that has a high-level
+programming interface and can achieve both generality and efficiency.
+On one hand, high-optimized
 linear algebra libraries \cite{mkl, openblas, elemental, trilinos, petsc}
 provides a matrix programming interface with a limited set of matrix operations
 that are very efficient. Users have to parallelize the remaining matrix
 operations themselves that are not supported by the libraries. On the other hand,
-parallel programming frameworks such as Spark \cite{spark} provide high-level
-and general programming interface for users to express varieties of algorithms.
-\dz{Can Spark be considered as a high-level programming framework?}
+high-level programming frameworks such as R and Matlab provide high-level and
+general programming interface for users to express varieties of algorithms.
 However, these programming frameworks are less efficient.
 
 % What is the nature of your solution?
 
 We present FlashMatrix, a matrix-oriented programming framework that supports
 automatic parallelization and out-of-core execution for large-scale data analysis.
+It provides a high-level matrix-oriented functional programming interface.
 Unlike most of the linear algebra libraries, FlashMatrix provides a small
 set of highly-optimized generalized matrix operations (GenOps) that accept
 user-defined functions (UDF) to achieve generality. In addition, FlashMatrix
