@@ -25,9 +25,12 @@ its sequential I/O throughput \cite{SEM_SpMM}.
 \label{fig:arch}
 \end{figure}
 
-FlashMatrix exposes the GenOps in the R programming interface and reimplements
-many functions in the R \textit{base} package with the GenOps. The functions
-provided by the R interface are categorized into seven classes:
+FlashMatrix provides an array-oriented functional programming interface.
+It exposes the GenOps in its R interface and reimplements many functions
+in the R \textit{base} package with the GenOps. Every function operates on
+one or more matrices and outputs a new matrix. As such, the matrices in
+FlashMatrix are immutable. The functions provided by the R interface are
+categorized into seven classes:
 \begin{itemize}
 	\item The generalized matrix operators (GenOps).
 	\item The construction functions that create vectors and matrices of
@@ -490,15 +493,15 @@ each thread. \dz{We need to identify transpose of a matrix.}
 %cache polution.
 
 \subsection{Memory management} \label{sec:mem}
-FlashMatrix manages large memory allocation to reduce memory allocation overhead.
-It is expensive to allocate large memory. Linux uses \textit{mmap} to allocate
-large memory in the order of megabytes. Linux relies on page fault to populate 
-the memory allocated by \textit{mmap} with physical pages when they are used
-for the first time. The overhead becomes considerable when we allocate and
-deallocate large memory constantly. Frequent page faults prevent computation
-from fully utilizing CPUs in a large parallel machine. FlashMatrix potentially
-requires more memory allocation because all data containers are immutable due
-to lazy evaluation and each GenOp outputs a new matrix.
+FlashMatrix manages memory allocation for large in-memory matrices and memory
+buffers for accessing data on SSDs to reduce memory allocation overhead.
+
+Frequent large memory allocation is expensive. Linux uses \textit{mmap} to
+allocate large memory in the order of megabytes and relies on page fault to
+populate the memory. Frequent page faults prevent computation from fully
+utilizing CPUs in a large parallel machine. The memory allocation overhead
+degrades performance significantly in FlashMatrix because each of its matrix
+operations generates a new matrix and causes frequent memory allocation.
 
 \begin{figure}
 	\centering
@@ -507,20 +510,18 @@ to lazy evaluation and each GenOp outputs a new matrix.
 	\label{fig:mat_mem}
 \end{figure}
 
-To reduce the overhead of memory allocation, we recycle memory allocated for
-in-memory matrices. Instead of deallocating memory when a matrix is destroyed,
-we retain the memory and assign them to the next matrix. To help recycle memory,
-we allocate fixed-size memory chunks for matrices. The size of a memory chunk
-is a global parameter and is the same for all 
-matrices. As such, memory chunks allocated for a matrix can be used by another
-matrix with a totally different shape. We perform matrix operations on
-I/O-level partitions and only require an I/O-level partition to be stored in
-contiguous memory. Therefore, we can store a matrix in memory chunks,
-as long as a fixed-size memory chunk is sufficient
-to store an I/O-level partition. In practice, the memory chunk size may
-not be divisible by a I/O-level partition size. Therefore, the memory chunk
+FlashMatrix divides an in-memory matrix into fixed-size memory chunks and
+recycles memory chunks to reduce memory allocation overhead (Figure
+\ref{fig:mat_mem}). We perform matrix operations on I/O-level partitions
+and only require an I/O-level partition to be stored in contiguous memory.
+Therefore, we can store a matrix in fixed-size memory chunks, as long as
+a memory chunk is sufficient to store an I/O-level partition. The size of
+a memory chunk is a global parameter and is the same for all matrices.
+As such, memory chunks allocated for a matrix can be used by another matrix
+with a totally different shape. In practice, the memory chunk size may
+not be divisible by an I/O-level partition size. Therefore, the memory chunk
 size needs to be much larger than the I/O-level partition size to increase
-memory utilization.
+memory utilization. We use 64MB as the default memory chunk size.
 
 Similarly, we maintain per-thread memory buffer pools to store data read from
 SSDs. These memory buffers need to be
