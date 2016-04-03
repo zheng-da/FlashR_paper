@@ -275,8 +275,7 @@ compute aggregation over each individual row or column. \textit{rowSums}
 and \textit{colSums} in R are examples. To enable parallelization,
 the aggregation UDF needs to provide an \textit{aggregate} function that runs
 on the elements of the input matrix and a \textit{combine} function that runs
-on the partially aggregated results. For many aggregation operations such as
-summation, the \textit{aggregate} and \textit{combine} functions are the same.
+on the partially aggregated results.
 
 \textit{Groupby} on a matrix groups rows (\textit{groupby\_row}) or columns
 (\textit{groupby\_col}) of a matrix based on a vector of categorical values
@@ -289,17 +288,18 @@ each requires an \textit{aggregate} function and a \textit{combine} function
 to enable parallelization.
 
 \subsection{Vectorized user-defined function}
-All of the GenOps take vectorized UDFs (VUDFs), which operates on a vector of
+All of the GenOps take vectorized UDFs (VUDFs), which takes a vector of
 elements instead of an individual element. Most of the UDFs of the GenOps
-operate on individual elements, which results in significant function call
+perform computation on individual elements, which potentially results in
+significant function call
 overhead. By transforming the operations on individual elements to the ones
 on a vector, we can significantly reduce the number of function calls and
 amortize their overhead.
 
-We support three types of VUDFs to support all of the GenOps in Section
-\ref{sec:genop}. In addition, a VUDF type may have multiple forms to allow
-GenOps to transform operations in VUDFs to increase the length of an input
-vector and increase amortization of function call overhead.
+We have three types of VUDFs to support the GenOps in Section \ref{sec:genop}.
+A VUDF type may have multiple forms to allow GenOps to transform
+operations based on the data layout of the matrix to increase the length of
+an input vector in a VUDF and increase amortization of function call overhead.
 \begin{itemize}
 	\item A \textit{unary} VUDF (denoted with \textit{uVUDF}) has only one form,
 		which takes a vector as input and outputs a vector of the same length.
@@ -314,27 +314,15 @@ vector and increase amortization of function call overhead.
 		forms is to support non-commutative binary operations such as division and
 		subtraction.
 	\item An \textit{aggregation} VUDF is composed of two functions:
-		\textit{aggregate} and \textit{combine}. For many aggregation VUDFs
-		such as summation, \textit{aggregate} and \textit{combine} are the same.
-		However, for some aggregation such as \textit{count}, \textit{aggregate}
-		and \textit{combine} are different. Both functions may have two forms:
-		the first one (denoted with \textit{aVUDF1}) takes a vector and outputs
-		a scalar; the second one (denoted with \textit{aVUDF2}) takes two
-		vectors of the same length and outputs a vector. For many aggregation
-		operations in math, such as summation and product, the \textit{aggregate}
-		and \textit{combine} functions are the same and have both \textit{aVUDF1}
-		and \textit{aVUDF2} forms.
+		\textit{aggregate} and \textit{combine}. Both functions may have two
+		forms: the first one (denoted with \textit{aVUDF1}) takes a vector and
+		outputs a scalar; the second one (denoted with \textit{aVUDF2}) takes
+		two vectors of the same length and outputs a vector. For many
+		aggregation VUDFs such as summation, \textit{aggregate} and
+		\textit{combine} are the same and have both \textit{aVUDF1} and
+		\textit{aVUDF2} forms. For some aggregation such as \textit{count},
+		\textit{aggregate} and \textit{combine} are different.
 \end{itemize}
-
-We balance the amortization of the overhead of function calls and CPU cache
-misses. Because VUDFs operate on vectors, we can no longer keep the input data
-of a VUDF in CPU registers. To reduce latency of accessing data in VUDFs,
-the input data has to be small enough to be kept in the CPU L1 cache. On the
-other hand, more input data in an invocation of VUDF amortizes the overhead of
-function calls more aggressively. We choose 128 as the maximum length of
-the input vector of a VUDF.
-Futher increasing the length does not have noticeable performance improvement.
-\dz{I need to show this in the experiment.}
 
 FlashMatrix implements many commonly used VUDFs by default. These VUDFs wrap
 basic operations built in many programming languages and libraries. For example,
@@ -353,8 +341,18 @@ the same type. If a GenOp gets two matrices with different
 element types, it first casts the the element type of one matrix to match
 the other. Type casting follows the usual arithmetic conversions \cite{}
 commonly seen in many programming languages. The type casting operation is
-implemented with \textit{sapply} and is performed laziy (in Section
+implemented with \textit{sapply} and is performed lazily (in Section
 \ref{sec:lazy_eval}).
+
+We balance the amortization of the function call overhead and CPU cache
+misses. Because VUDFs operate on vectors, we can no longer keep the input data
+of a VUDF in CPU registers. To reduce latency of accessing data in VUDFs,
+the input data has to be small enough to be kept in the CPU L1 cache. On the
+other hand, passing a longer vector to a VUDF amortizes the overhead of
+function calls more aggressively. We choose 128 as the maximum length of
+the input vector of a VUDF.
+Futher increasing the length does not have noticeable performance improvement.
+\dz{I need to show this in the experiment.}
 
 We use CPU vector instructions such as AVX \cite{avx} to accelerate
 the computation in a VUDF. The current implementation of FlashMatrix heavily
@@ -370,9 +368,10 @@ into aggregation onto the vector of reduction variables.
 
 \subsection{Lazy evaluation} \label{sec:lazy_eval}
 FlashMatrix evaluates matrix operations lazily. Evaluating individual
-matrix operations results in significant data movement between CPU and SSDs.
-Lazy evaluation allows to fuse matrix operations to minimize data movement
-as well as improve parallelization \cite{Ching12}.
+matrix operations results in significant data movement between CPU and SSDs
+and frequent memory allocation in in-memory execution.
+Lazy evaluation allows to fuse matrix operations to minimize data movement,
+reduce memory allocation overhead and improve parallelization \cite{Ching12}.
 
 \begin{figure}
 	\centering
@@ -397,7 +396,7 @@ an input matrix. Although the \textit{virtual matrices} do not need to have
 the same shape, FlashMatrix requires all \textit{virtual matrices} in the DAG
 has the same \textit{long dimension} size (Figure \ref{fig:DAG} (b)) to
 simplify evaluation and data flow of a DAG (a \textit{long dimension}
-refers to the dimension of a matrix with the larger size than the other).
+refers to the matrix dimension with the larger size).
 
 FlashMatrix allows lazy evaluation on all GenOps.
 FlashMatrix always lazily evaluate the GenOps that output matrices with
@@ -419,13 +418,13 @@ a new matrix. FlashMatrix garbage collects a matrix when there are not any
 references to it.
 
 \subsection{Matrix materialization} \label{sec:materialize}
-Lazy evaluation postpones the actual computation of matrix operations, but we
-eventually have to materialize the matrix operations.
+Lazy evaluation postpones the computation in matrix operations, but we
+eventually have to the actual computation.
 
 FlashMatrix allows to materialize any \textit{virtual matrix} in a DAG.
 By default, FlashMatrix only materializes the \textit{sink matrices} in a DAG.
 However, many iterative algorithms need to physically materialize the TAS
-\textit{virtual matrices} to avoid redundant computation and reduce I/O. As such,
+\textit{virtual matrices} to avoid redundant computation and I/O. As such,
 FlashMatrix allows users to set a flag on a TAS \textit{virtual matrix} to
 inform FlashMatrix to save materialized results during computation.
 \dz{FlashMatrix can materialize a DAG from multiple virtual matrices.}
@@ -631,29 +630,29 @@ we break the vector into parts to match the number of columns in the individual
 matrices in the group. Similarly, we break the vector into parts to match the number
 of rows in the individual matrices for \textit{mapply\_col}.
 
-FlashMatrix decomposes inner product on a matrix group in favor of minimizing
-the amount of data written to SSDs (Figure \ref{fig:inner_prod}).
-For \textit{inner\_prod\_tall}, we first partition the right matrix vertically
-so that the inner product of the left matrix and a vertical partition outputs
-part of a final output matrix. The number of vertical partitions determines
-the number of runs required to complete the inner product on the group of matrices.
-If the left matrix is stored on SSDs, the number of vertical partitions on
-the right matrix determines the amount of data read from SSDs. The vertical
-partition size determines the output matrix size in each run and affect
-the memory size. As such, we need to select the vertical partition size of
-the right matrix to balance I/O and memory consumption. We horizontally partition
-each vertical partition of the right matrix to further decompose the inner
-product. We construct a directed acyclic graph (DAG) to evalute the inner
-product lazily (Section \ref{sec:lazy_eval}). Similarly, we partition the right
-matrix and make a similar choice to balance I/O and memory consumption for
-\textit{inner\_prod\_wide}. We also construct a DAG and lazily evaluate
-the computation.
+%FlashMatrix decomposes inner product on a matrix group in favor of minimizing
+%the amount of data written to SSDs (Figure \ref{fig:inner_prod}).
+%For \textit{inner\_prod\_tall}, we first partition the right matrix vertically
+%so that the inner product of the left matrix and a vertical partition outputs
+%part of a final output matrix. The number of vertical partitions determines
+%the number of runs required to complete the inner product on the group of matrices.
+%If the left matrix is stored on SSDs, the number of vertical partitions on
+%the right matrix determines the amount of data read from SSDs. The vertical
+%partition size determines the output matrix size in each run and affect
+%the memory size. As such, we need to select the vertical partition size of
+%the right matrix to balance I/O and memory consumption. We horizontally partition
+%each vertical partition of the right matrix to further decompose the inner
+%product. We construct a directed acyclic graph (DAG) to evalute the inner
+%product lazily (Section \ref{sec:lazy_eval}). Similarly, we partition the right
+%matrix and make a similar choice to balance I/O and memory consumption for
+%\textit{inner\_prod\_wide}. We also construct a DAG and lazily evaluate
+%the computation.
 
-\begin{figure}
-\centering
-\includegraphics[scale=0.4]{./inner_prod_tall.pdf}
-\vspace{-5pt}
-\caption{Decomposition inner product on a group of dense matrix.}
-\vspace{-5pt}
-\label{fig:inner_prod}
-\end{figure}
+%\begin{figure}
+%\centering
+%\includegraphics[scale=0.4]{./inner_prod_tall.pdf}
+%\vspace{-5pt}
+%\caption{Decomposition inner product on a group of dense matrix.}
+%\vspace{-5pt}
+%\label{fig:inner_prod}
+%\end{figure}
