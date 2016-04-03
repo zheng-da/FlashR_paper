@@ -1,7 +1,7 @@
 \section{Design}
 
-FlashMatrix is a matrix-oriented programming interface framework for
-general-purpose data analysis. This work mainly focuses on dense matrices and scales
+FlashMatrix is a matrix-oriented programming framework for general-purpose
+data analysis. This work mainly focuses on dense matrices and scales
 dense matrix operations beyond memory capacity by utilizing fast I/O devices
 such as solid-state drives (SSDs) in a non-uniform memory architecture (NUMA).
 FlashMatrix uses R as its main programming interface and executes R code
@@ -25,7 +25,7 @@ its sequential I/O throughput \cite{SEM_SpMM}.
 \label{fig:arch}
 \end{figure}
 
-FlashMatrix provides an array-oriented functional programming interface.
+FlashMatrix provides an matrix-oriented functional programming interface.
 It exposes the GenOps in its R interface and reimplements many functions
 in the R \textit{base} package with the GenOps. Every function operates on
 one or more matrices and outputs a new matrix. As such, the matrices in
@@ -96,8 +96,6 @@ categorized into seven classes:
 Dense matrices are the main data types in FlashMatrix. A vector is stored
 as a one-column dense matrix. In FlashMatrix, a dense matrix can be physically
 stored in memory or on SSDs or represented by a sequence of computation.
-All matrices in FlashMatrix are immutable due to lazy evaluation (Section
-\ref{sec:lazy_eval}).
 
 %A matrix has two identifiers: the \textit{matrix identifier} that indicates
 %the matrix itself and the \textit{matrix data identifier} that indicates
@@ -108,16 +106,15 @@ All matrices in FlashMatrix are immutable due to lazy evaluation (Section
 \subsubsection{Tall-and-skinny matrix} \label{sec:tas_mat}
 
 FlashMatrix optimizes for tall-and-skinny (TAS) dense matrices due to their
-common existence in many machine learning tasks. As suggested by the name,
+common existence in many data analysis tasks. As suggested by the name,
 a dimension of these matrices is much larger than the other (Figure \ref{fig:tas_mat}).
-In machine learning, many data matrices contain a large number of samples with
-a relatively small number of features, so the shape of the data matrices is
-usually tall and skinny; if a data matrix has many features, the first step
-usually is to reduce dimension to generate a tall-and-skinny matrix. FlashMatrix
-specifically optimizes for TAS dense matrices with tens of columns.
-A vector in FlashMatrix is a special case of a TAS
-matrix. This section describes optimizations on TAS matrices and all of
-the optimizations can be applied to wide-and-narrow matrices similarly.
+In data analysis, many data matrices contain a large number of samples with
+a relatively small number of attributes, so the shape of the data matrices is
+usually tall and skinny; if a data matrix has many attributes, the first step
+is usually dimension reduction that results in a tall-and-skinny matrix.
+FlashMatrix specifically optimizes for TAS dense matrices with tens of columns.
+This section describes optimizations on TAS matrices and the same optimizations
+can be applied to short-and-wide matrices.
 
 \begin{figure}
 	\centering
@@ -127,21 +124,22 @@ the optimizations can be applied to wide-and-narrow matrices similarly.
 \end{figure}
 
 FlashMatrix uses two-level horizontal partitioning on TAS matrices for efficient
-data access to SSDs and main memory (Figure \ref{fig:tas_mat}). A TAS matrix
-is first partitioned horizontally into I/O-level partitions. All elements in
-an I/O-level partition
-are stored contiguously regardless of the data layout in the matrix. Each I/O
+data access to SSDs and main memory (Figure \ref{fig:tas_mat}). Both in-memory
+and external-memory TAS matrices are first partitioned horizontally into
+I/O-level partitions. All elements in an I/O-level partition are stored
+contiguously regardless of the data layout in the matrix. For an in-memory matrix,
+the partition size determines the size of contiguous memory required in memory
+allocation (see Section \ref{sec:mem}). For an external-memory matrix, each I/O
 access reads the entire I/O-level partition and thus its size determines an I/O
-size (usually in the order of megabytes). We further split an I/O-level partition
-horizontally into smaller partitions (CPU-level partitions) for computation.
-We use a small
+size (usually in the order of megabytes). The number of rows in an I/O-level
+partition is always $2^i$. As such, for a column-major TAS matrix, data in
+columns of a partition is well aligned in memory to help CPU vectorization.
+We further split an I/O-level partition
+horizontally into CPU-level partitions for computation. We use a small
 CPU-level partition (in the order of kilobytes) so that it fits in CPU L1/L2
 cache to reduce CPU cache misses when evaluating a sequence of matrix
-operations (Section \ref{sec:lazy_eval}).
-FlashMatrix determines the number of rows in a CPU-level partition based on
-the number of columns in a matrix. The number of rows in a partition
-is always $2^i$. As such, for a column-major TAS matrix, data in columns of
-a partition is well aligned in memory to help CPU vectorization.
+operations (Section \ref{sec:lazy_eval}). FlashMatrix determines the number
+of rows in a CPU-level partition based on the number of columns in a matrix.
 
 %\begin{itemize}
 %\item NUMA-level partitioning: When a TAS
@@ -151,20 +149,15 @@ a partition is well aligned in memory to help CPU vectorization.
 %to the same NUMA node to reduce inter-processor communication. As such,
 %the partition size (the number of rows in a partition) is a global parameter
 %and is not affected by the number of columns in a matrix.
-%\item I/O-level partitioning:
-% Both in-memory and external-memory matrices have I/O-level partitioning.
-%For an in-memory matrix, the partition size determines the size of
-%contiguous memory required in memory allocation (see Section \ref{sec:mem}).
-%The number of rows in an I/O-level partition is determined locally
-%and can be affected by the number of columns in a matrix. \dz{Is this necessary?}
 %\end{itemize}
 
-FlashMatrix supports both row-major and column-major matrix layout to avoid
-physical data copy for matrix operations such as matrix transpose. Due to
+FlashMatrix supports both row-major and column-major matrix layout. As such,
+we avoid physical data copy for matrix operations such as matrix transpose.
+Furthermore, each GenOp has its own preferred matrix layout. Therefore,
+FlashMatrix optimizes matrix operations for both data layouts. The layout
+of an output matrix is generally determined by a GenOp. Due to
 the partitioning scheme shown above, a column in a column-major TAS matrix
-is not stored contiguously (Figure \ref{fig:tas_mat}). FlashMatrix optimizes
-matrix operations for both data layouts.
-The layout of an output matrix is generally determined by a GenOp.
+is not stored contiguously (Figure \ref{fig:tas_mat}). 
 
 \subsubsection{Virtual matrix} \label{virt_mat}
 In many cases, we do not need to store the data of a matrix physically. Instead,
@@ -207,10 +200,8 @@ memory allocation overhead.
 \subsubsection{A group of dense matrices} \label{sec:mat_group}
 FlashMatrix represents a tall matrix with many columns with a group of
 tall-and-skinny matrices and a wide matrix with a group of short-and-wide
-matrices. We denote a group of tall-and-skinny matrices with \textit{tall
-matrix group} and a group of short-and-wide matrices with \textit{wide matrix
-group}. We construct a special \textit{virtual matrix} to represent
-the group of dense matrices and decomposes a matrix operation on the group of
+matrices. We construct a special \textit{virtual matrix} to represent
+the group of dense matrices and decompose a matrix operation on the group of
 matrices into multiple matrix operations on individual matrices in the group to
 take advantage of the optimizations on matrix operations on TAS matrices.
 This strategy resembles 2D-partitioning on a dense matrix.
@@ -231,7 +222,7 @@ This strategy resembles 2D-partitioning on a dense matrix.
 %becomes the sub-vector of the new vector.
 
 \subsection{Generalized computation operations} \label{sec:genop}
-To enhance flexibility and simplify the implementation, FlashMatrix provides
+To improve generality and simplify the implementation, FlashMatrix provides
 only four generalized operators (GenOps) on matrices: \textit{inner product},
 \textit{apply}, \textit{aggregation} and \textit{groupby}. Each of the operators
 represents a data access pattern and accepts user-defined functions (UDF) to
@@ -241,7 +232,7 @@ to support dynamic programming languages such as R.
 \textit{Inner product} is a generalized matrix multiplication. It replaces
 multiplication and addition in matrix multiplication with two UDFs,
 respectively. The first UDF performs binary operation and the second one
-performs aggregation. We can define many operations
+performs aggregation. We define many operations
 with inner product. For example, we use inner product to compute various
 pair-wise distance matrices of vectors such as Euclidean distance and
 Hamming distance. For dense matrices, we mainly focus on
@@ -254,16 +245,16 @@ transform this form of inner product to the other two forms to reduce computatio
 and space.} Even though we can implement matrix multiplication with inner product,
 FlashMatrix relies on BLAS to implement matrix multiplication for
 floating-point matrices to achieve speed and precision required by
-many numeric libraries, such as the Trilinos eigensolver \cite{anasazi, FlashEigen}.
+many numeric libraries, such as eigensolvers \cite{anasazi, FlashEigen}.
 
 \textit{Apply} is a generalized form of element-wise operations and has
-multiple variants. The simplest variant denoted with \textit{sapply} is
+multiple variants. The simplest variant (denoted with \textit{sapply}) is
 a generalized element-wise unary operation whose UDF takes one element at a time
-in a matrix and outputs one value. We can use it to implement many unary
+in a matrix and outputs one element. We can use it to implement many unary
 operations such as negation, square root or element type casting
-on a matrix. The second variant denoted with \textit{mapply2} is a generalized
-element-wise binary operation whose UDF takes one element from each
-matrix and outputs a single value. We use it to implement many binary
+on a matrix. The second variant (denoted with \textit{mapply2}) is a generalized
+element-wise binary operation whose UDF takes one element from each input
+matrix and outputs a single element. We use it to implement many binary
 matrix operations such as matrix addition and subtraction. The third
 (denoted with \textit{mapply\_row}) and the fourth variants (denoted with
 \textit{mapply\_col}) are perform element-wise
@@ -277,16 +268,15 @@ matrix and output a matrix with the same shape as the input matrix.
 
 \textit{Aggregation} takes multiple elements and an aggregation UDF and outputs
 a single element. It has three variants on a matrix.
-The first variant denoted by \textit{agg} aggregates over all elements on a matrix.
+The first variant (denoted with \textit{agg}) aggregates over all elements on a matrix.
 Matrix summation is an example of the first variant. The second (denoted with
 \textit{agg\_row}) and the third variants (denoted with \textit{agg\_col})
 compute aggregation over each individual row or column. \textit{rowSums}
-and \textit{colSums} in R are examples.
-To enable parallelization, the aggregation UDF needs to
-provide an aggregation function that runs on the elements of the input matrix
-and a combination function that runs on the partially aggregated
-results. For many aggregation operations such as summation, the aggregation
-and combination functions are the same.
+and \textit{colSums} in R are examples. To enable parallelization,
+the aggregation UDF needs to provide an \textit{aggregate} function that runs
+on the elements of the input matrix and a \textit{combine} function that runs
+on the partially aggregated results. For many aggregation operations such as
+summation, the \textit{aggregate} and \textit{combine} functions are the same.
 
 \textit{Groupby} on a matrix groups rows (\textit{groupby\_row}) or columns
 (\textit{groupby\_col}) of a matrix based on a vector of categorical values
@@ -294,27 +284,22 @@ and invokes an aggregation UDF on the rows or
 columns associated with the same categorical value. Matrix \textit{groupby}
 can be used in many classification and clustering algorithms that compute
 aggregation on the data points in a class or in a cluster. Aggregation UDFs
-in \textit{groupby} are the same
-to the ones in \textit{aggregation} and each requires an aggregation function
-and a combine function to enable parallelization.
+in \textit{groupby} are the same to the ones in \textit{aggregation} and
+each requires an \textit{aggregate} function and a \textit{combine} function
+to enable parallelization.
 
 \subsection{Vectorized user-defined function}
-All of the GenOps take vectorized UDFs (VUDFs), which operates on a vector
-of elements instead of an individual element, to amortize the overhead
-of function calls.
-
-We balance the amortization of the overhead of function calls and CPU cache
-misses. Because VUDFs operate on vectors, we can no longer keep the input data
-of a VUDF in CPU registers. To reduce latency of accessing data in VUDFs,
-the input data has to be small enough to be kept in the CPU L1 cache. On the
-other hand, more input data in an invocation of VUDF amortizes the overhead of
-function calls more aggressively. We choose 128 as the maximum length of
-the input vector of a VUDF.
-Futher increasing the length does not have noticeable performance improvement.
-\dz{I need to show this in the experiment.}
+All of the GenOps take vectorized UDFs (VUDFs), which operates on a vector of
+elements instead of an individual element. Most of the UDFs of the GenOps
+operate on individual elements, which results in significant function call
+overhead. By transforming the operations on individual elements to the ones
+on a vector, we can significantly reduce the number of function calls and
+amortize their overhead.
 
 We support three types of VUDFs to support all of the GenOps in Section
-\ref{sec:genop}. A VUDF type may have multiple forms.
+\ref{sec:genop}. In addition, a VUDF type may have multiple forms to allow
+GenOps to transform operations in VUDFs to increase the length of an input
+vector and increase amortization of function call overhead.
 \begin{itemize}
 	\item A \textit{unary} VUDF (denoted with \textit{uVUDF}) has only one form,
 		which takes a vector as input and outputs a vector of the same length.
@@ -340,6 +325,16 @@ We support three types of VUDFs to support all of the GenOps in Section
 		and \textit{combine} functions are the same and have both \textit{aVUDF1}
 		and \textit{aVUDF2} forms.
 \end{itemize}
+
+We balance the amortization of the overhead of function calls and CPU cache
+misses. Because VUDFs operate on vectors, we can no longer keep the input data
+of a VUDF in CPU registers. To reduce latency of accessing data in VUDFs,
+the input data has to be small enough to be kept in the CPU L1 cache. On the
+other hand, more input data in an invocation of VUDF amortizes the overhead of
+function calls more aggressively. We choose 128 as the maximum length of
+the input vector of a VUDF.
+Futher increasing the length does not have noticeable performance improvement.
+\dz{I need to show this in the experiment.}
 
 FlashMatrix implements many commonly used VUDFs by default. These VUDFs wrap
 basic operations built in many programming languages and libraries. For example,
