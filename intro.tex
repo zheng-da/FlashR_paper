@@ -5,58 +5,61 @@ data volume and the increasing complexity of data analysis. Experiments,
 simulations and observations generate terabytes or
 even petabytes in many scientific and business areas. After collecting
 a massive amount of data, we often need to perform complex data analysis
-and machine learning techniques to extract value from the data.
-Furthermore, the field evolves rapidly and many new algorithms are developed
-to process large datasets.
-\dz{examples?}
-
-Many data analysis tasks can be formulated as matrix operations. For example,
-samples collected from an experiment can be stored in a matrix, where a row
-corresponds to a sample and a column corresponds to a feature.
-Consequently, we express the computation on the data matrix with a sequence
-of matrix operations. Such a formulation simplifies the implementation of
-machine learning algorithms and is very intuitive for many machine learning
-and data analysis experts.
+and machine learning techniques to extract value from the data. To handle
+the increasing volume size and effectively extract value from the data,
+the field of data mining and machine learning evolves rapidly and the community
+is developing many new algorithms to process large datasets.
 
 % How have others addressed the problem?
 
-There are two approaches of implementing parallel algorithms to process large
+Large-scale data analysis requires a large parallel machine or a cluster to
+gain computation power and memory capacity. Currently,
+there are two approaches of implementing parallel algorithms to process large
 datasets. We can write an efficient implementation with low-level parallel
 primitives such as the ones provided by MPI \cite{mpi} or OpenMP \cite{openmp}.
 This approach requires expertise in parallel programming and significant
-effort from users. The other approach is to use high-level programming
+effort from programmers. The other approach is to use high-level programming
 frameworks that provide high-level operations to reduce the burden of
 programmers. In general, the second approach is less computationally
-efficient but can significantly increase productivity and has a lower
-entry level for writing parallel implementations. As such, the second approach
-is more preferred in the rapidly evolving field of machine learning and data
-mining. The high-level programming interface enables non-expert programmers
-to effectively use computation resources.
+efficient but can significantly increase productivity and lower the barrier
+of writing parallel implementations. As such, the second approach is usually
+more preferred in the rapidly evolving field of machine learning and data
+mining.
+%The high-level programming interface enables non-expert programmers
+%to effectively use computation resources.
 
 % Why is it hard?
 
 It is challenging to provide a programming framework that has a high-level
-programming interface and can achieve both generality and efficiency.
-On one hand, high-optimized
-linear algebra libraries \cite{mkl, openblas, elemental, trilinos, petsc}
-provides a matrix programming interface with a limited set of matrix operations
-that are very efficient. Users have to parallelize the remaining matrix
-operations themselves that are not supported by the libraries. On the other hand,
+programming interface and still achieves both generality and efficiency.
+Some high-optimized linear algebra libraries \cite{mkl, openblas, elemental,
+trilinos, petsc} provides a matrix programming interface that has a limited
+set of matrix operations with efficient implementations. Users have to
+parallelize the remaining matrix
+operations themselves that are not supported by the libraries. Other
 high-level programming frameworks such as R and Matlab provide high-level and
 general programming interface for users to express varieties of algorithms.
 However, these programming frameworks are less efficient.
 
 % What is the nature of your solution?
 
-We present FlashMatrix, a matrix-oriented programming framework that supports
-automatic parallelization and out-of-core execution for large-scale data analysis.
-It provides a high-level matrix-oriented functional programming interface.
+Matrix operations are an intuitive formulation for many computation tasks,
+especially for many data analysis tasks. For example, we can store samples
+collected from an experiment in a matrix with rows corresponding to samples
+and columns corresponding to attributes.
+Consequently, we express the computation on the data matrix with a sequence
+of matrix operations. Such a formulation simplifies the implementation of
+data analysis algorithms and is very intuitive for many machine learning
+and data analysis experts.
+
+We present FlashMatrix, a programming framework that provides a high-level
+matrix-oriented functional programming interface and supports automatic
+parallelization and out-of-core execution for large-scale data analysis.
 Unlike most of the linear algebra libraries, FlashMatrix provides a small
 set of highly-optimized generalized matrix operations (GenOps) that accept
-user-defined functions (UDF) to achieve generality. In addition, FlashMatrix
-uses R, a popular data analysis framework, as its main programming interface
-and reimplements many matrix operations in the R \textit{base} package to provide
-a high-level programming interface. FlashMatrix focuses on optimizations in
+user-defined functions (UDF) to achieve generality and reimplements many matrix
+operations in the R \textit{base} package to execute R code in parallel and
+out of core automatically. FlashMatrix focuses on optimizations in
 a single machine and scales matrix operations beyond memory capacity by utilizing
 solid-state drives (SSDs). This design choice conforms with a current trend of
 hardware design that scales up a single machine for high performance computing
@@ -70,13 +73,13 @@ hardware design that scales up a single machine for high performance computing
 
 We overcome many technical challenges to move data from SSDs to CPU efficiently
 owing to large speed disparity between CPU and memory, as well as between memory and
-SSDs. The speed disparity of CPU and memory has increased exponentially over
+SSDs. The speed disparity of CPU and DRAM has increased exponentially over
 the past decades \cite{Wilkes01}. While SSDs have high IOPS and sequential
 I/O throughput, they are still an order of magnitude slower than DRAM.
 To the contrary, many data analysis tasks are data-intensive and the matrix
-formulation further increases data movement between CPU and SSDs. As such,
-the performance of the data analysis tasks is usually limited by memory
-bandwidth instead of computing power.
+formulation further increases data movement between CPU and SSDs.% As such,
+%the performance of the data analysis tasks is usually limited by memory
+%bandwidth instead of computing power.
 
 Another challenge in FlashMatrix is to reduce CPU instructions. To support
 the matrix operations in the R \textit{base} package, the GenOps in FlashMatrix
@@ -86,14 +89,16 @@ in a matrix potentially results in a function call, causing significant
 computation overhead.
 
 To move data efficiently, FlashMatrix performs lazy evaluation and aggressive
-operation fusion to merge many operations in a single execution.
+operation fusion to merge many operations in a single parallel execution.
 FlashMatrix builds a directed acyclic graph (DAG) to represent all operations
 in the single execution. When evaluating the computation in the DAG, FlashMatrix
 optimizes data access in memory hierarchy and performs two levels of data
 partitioning to achieve efficient data access and maximize data utilization in
-both main memory and CPU cache to reduce data movement between memory and SSDs
-as well as between CPU and memory. FlashMatrix streams data from SSDs to yeild
-maximal I/O throughput from SSDs.
+both main memory and CPU cache and reduce data movement between memory and SSDs
+as well as between CPU and memory. To access data stored on SSDs, FlashMatrix
+streams data from SSDs to yeild maximal I/O throughput from SSDs.
+
+\dz{maybe we should say something about optimization on memory allocation?}
 
 To reduce CPU instructions, we deploy vectorized user-defined
 functions (VUDFs), which operates on a vector of elements instead of
@@ -113,5 +118,7 @@ interface to benchmark its performance. On a large parallel machine with 48
 CPU cores and fast SSDs, the out-of-core execution of these R implementations
 in FlashMatrix achieves performance comparable to the in-memory execution
 while significantly outperforming the ones in Spark MLlib \cite{spark}.
-We believe FlashMatrix significantly lowers the expertise for writing parallel
-and scalable implementations of machine learning algorithms.
+We believe FlashMatrix significantly lowers the requirements for writing parallel
+and scalable implementations of data analysis algorithms; it also offers new
+design possibilities for data analysis clusters, replacing memory with larger
+and cheaper SSDs and processing bigger problems on fewer nodes.
