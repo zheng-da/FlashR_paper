@@ -39,7 +39,7 @@ rely on FlashMatrix to perform computation in parallel and out of core.
 	\item Gaussian Mixture Model (GMM) \cite{gmm} is also an iterative
 		clustering algorithm that assumes observations are sampled under
 		a mixture of Gaussian distributions. We implement the expectation
-		maximization (EM) \cite{em} algorithm to fit
+		maximization (EM) \cite{gmm} algorithm to fit
 		the mixture of Gaussian distributions. This algorithm is also identified
 		as one of the top 10 data mining algorithms \cite{top10}.
 \end{itemize}
@@ -85,9 +85,9 @@ while the other applications may be applied to datasets with various numbers
 of features. For performance evaluation, we run KMeans and GMM on a matrix
 with 65 million rows and 32 columns, constructed from 32 eigenvectors from
 the Friendster graph \cite{friendster}. Running KMeans on eigenvectors is
-an important step of spectral clustering \cite{} to partition vertices to
-clusters. We measure the performance of the other three applications on
-random matrices with 64 million rows and vary the number of columns from 8
+an important step of spectral clustering \cite{Luxburg07} to partition vertices
+to clusters. We measure the performance of the other three applications on
+random matrices with 65 million rows and vary the number of columns from 8
 to 512.
 
 \subsection{Performance of FlashMatrix in memory and on SSDs}
@@ -192,10 +192,10 @@ of columns of a matrix.
 FlashMatrix significantly outperforms R even with a single thread in these
 applications (Figure \ref{fig:fmR}). Even though the FlashMatrix implementation
 of statistic summary computes more statistical values, it still outperforms
-the R implementation. The factor that the FlashMatrix
-implementations of correlation, SVD and KMeans outperform the C implementations
-in R indicates that FlashMatrix is able to run R code very efficiently
-and has performance comparable to or even outperforms some C implementations.
+the R implementation by a factor of two, which indicates that FlashMatrix is
+able to execute R code more efficiently than the R framework. The performance
+result of the other applications indicates that the FlashMatrix can even
+execute R code efficiently to outperform some C implementations.
 
 \begin{figure}
 	\begin{center}
@@ -206,40 +206,52 @@ and has performance comparable to or even outperforms some C implementations.
 	\end{center}
 \end{figure}
 
-When running in memory, all FlashMatrix implementations are able to speed up
-almost linearly with more CPU cores owing to reduced data movement between
-CPU and main memory (Figure \ref{fig:speedup}).
+FlashMatrix can also speed up the execution of all applications almost linearly
+with more CPU cores (Figure \ref{fig:speedup}). The machine has only 48 CPU
+cores, so running the applications with 64 threads does not double their
+performance of running with 32 threads. Owing to operation fusion in CPU cache,
+FlashMatrix significantly
+reduce data movement between CPU and main memory. As such, memory bandwidth is
+no longer the bottleneck and the computation can speed up linearly by adding
+more CPU cores. This performance results in Figure \ref{fig:fmR} and Figure
+\ref{fig:speedup} indicate that the applications executed in FlashMatrix can
+achieve performance comparable to or even outperform the potential parallel
+C implementations.
 
 \subsection{Effectiveness of optimizations}
 
-In this section, we measure the effectiveness of optimizations in FlashMatrix,
-i.e., matrix operation fusion to reduce data movement between CPU and SSDs and
-vectorized user-defined functions (VUDF) to reduce the overhead of function
-calls. We illustrate the effectiveness of operation fusion in both main memory
-and CPU cache. We use GMM to illustrate the effectiveness of matrix
-operation fusion because this application allows aggressive operation fusion.
+In this section, we illustrate the performance obstacles in an array-oriented
+functional language and the effectiveness of our optimizations in FlashMatrix.
+We focus on three main optimizations: reducing large memory allocation from
+Linux, matrix
+operation fusion and vectorized user-defined functions (VUDF). We illustrate
+the effectiveness of operation fusion in both main memory and CPU cache.
+Due to the space limit, we only illustrate the effectiveness of
+the optimizations on the applications when they are executed on SSDs.
 
-Matrix operation fusion has very positive impact on both in-memory and
-external-memory performance of GMM (Figure \ref{perf:mem_move}). Even though
-GMM has the highest computation overhead among all applications in Section
-\ref{sec:apps}, materializing every matrix operation on SSDs causes significant
-performance degradation and SSDs are the main bottleneck. Fusing matrix
-operations in memory significantly reduces the burden on SSDs and improves
-performance by a factor of 5. Operation fusion in main memory also has noticeable
-performance improvement when GMM runs in memory, although the impact is much
-lower, owing to reduced memory allocation overhead. Operation fusion in
-the CPU cache also has very positive performance improvement on in-memory
-and external-memory execution of GMM by 30\% and 28\%, respectively, on top of
-the improvement from fusion in main memory.
+Each optimization has significant performance improvement on most of the
+applications (Figure \ref{perf:opts}). Operation fusion in main memory achieves
+the highest performance improvement in almost all applications, even in GMM,
+which has the highest asymptotic computation complexity. Materializing every
+matrix operation on SSDs causes significant amount of I/O. Even though the SSDs
+deliver 10GB/s I/O throughput, they are still the main bottleneck in the system.
+Fusing matrix operations in memory significantly reduces the burden on SSDs and
+improves performance by a large factor. Operation fusion in the CPU cache also
+has very positive performance impact in some applications even when
+the applications run on SSDs. This suggests that with sufficient I/O optimizations,
+many machine learning applications that run on SSDs can be bottlenecked by
+the bandwidth of main memory, instead of I/O. Even though it is less noticeable,
+reducing large memory allocation from Linux can significantly improvement I/O
+performance and almost double the performance for all applications.
 
 \begin{figure}
 	\begin{center}
 		\footnotesize
-		\include{opts_mem_move}
-		\caption{The effectiveness of matrix operation fusion in main memory
-			(mem-fuse) and in CPU cache (cache-fuse). The operation fusion in
-		CPU cache is applied on top of the fusion in main memory.}
-		\label{perf:mem_move}
+		\include{opts.EM}
+		\caption{The effectiveness of memory optimizations on different applications
+			when they are executed on SSDs. The memory optimizations are applied
+		incrementally.}
+		\label{perf:opts}
 	\end{center}
 \end{figure}
 
