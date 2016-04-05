@@ -1,7 +1,7 @@
 \section{Design}
 
-FlashMatrix is a matrix-oriented programming framework for general-purpose
-data analysis. This work mainly focuses on dense matrices and scales
+FlashMatrix is a matrix-oriented programming framework for general data analysis.
+This work mainly focuses on dense matrices and scales
 dense matrix operations beyond memory capacity by utilizing fast I/O devices
 such as solid-state drives (SSDs) in a non-uniform memory architecture (NUMA).
 FlashMatrix uses R as its main programming interface and executes R code
@@ -205,7 +205,9 @@ matrices. We construct a special \textit{virtual matrix} to represent
 the group of dense matrices and decompose a matrix operation on the group of
 matrices into multiple matrix operations on individual matrices in the group to
 take advantage of the optimizations on matrix operations on TAS matrices.
-This strategy resembles 2D-partitioning on a dense matrix.
+Coupled with the two-level partitioning on TAS matrices, this strategy enables
+2D-partitioning on a dense matrix and each partition can fit in main memory
+or CPU cache.
 
 %\begin{figure}
 %	\centering
@@ -253,7 +255,7 @@ multiple variants. The simplest variant (denoted with \textit{sapply}) is
 a generalized element-wise unary operation whose UDF takes one element at a time
 in a matrix and outputs one element. We can use it to implement many unary
 operations such as negation, square root or element type casting
-on a matrix. The second variant (denoted with \textit{mapply2}) is a generalized
+on a matrix. The second variant (denoted with \textit{mapply}) is a generalized
 element-wise binary operation whose UDF takes one element from each input
 matrix and outputs a single element. We use it to implement many binary
 matrix operations such as matrix addition and subtraction. The third
@@ -263,7 +265,7 @@ binary operation on the input vector with every row or column of the input
 matrix and output a matrix with the same shape as the input matrix.
 %Although
 %\textit{mapply\_row} and \textit{mapply\_col} can also be implemented by
-%replicating the input vector to create a matrix and applying \textit{mapply2}
+%replicating the input vector to create a matrix and applying \textit{mapply}
 %on the input matrix and the created matrix, \textit{mapply\_row} and
 %\textit{mapply\_col} avoid CPU cache polution to improve performance.
 
@@ -292,15 +294,25 @@ to enable parallelization.
 All of the GenOps take vectorized UDFs (VUDFs), which takes a vector of
 elements instead of an individual element. Most of the UDFs of the GenOps
 perform computation on individual elements, which potentially results in
-significant function call
-overhead. By transforming the operations on individual elements to the ones
-on a vector, we can significantly reduce the number of function calls and
-amortize their overhead.
+significant function call overhead. By transforming the operations on
+individual elements to the ones on a vector, we can significantly amortize
+the overhead of function calls.
 
-We have three types of VUDFs to support the GenOps in Section \ref{sec:genop}.
-A VUDF type may have multiple forms to allow GenOps to transform
-operations based on the data layout of the matrix to increase the length of
-an input vector in a VUDF and increase amortization of function call overhead.
+Although VUDF is able to amortize function call overhead, we balance
+the amortization and CPU cache
+misses. Because VUDFs operate on vectors, we can no longer keep the input data
+of a VUDF in CPU registers. To reduce latency of accessing data in VUDFs,
+the input data has to be small enough to be kept in the CPU L1 cache. On the
+other hand, passing a longer vector to a VUDF amortizes the overhead of
+function calls more aggressively. We choose 128 as the maximum length of
+the input vector of a VUDF.
+Futher increasing the length does not have noticeable performance improvement.
+\dz{I need to show this in the experiment.}
+
+We have three types of VUDFs to support the GenOps in FlashMatrix. Each VUDF
+type may have multiple forms to allow GenOps to transform operations to
+increase the length of an input vector to a VUDF and increase amortization
+of function call overhead.
 \begin{itemize}
 	\item A \textit{unary} VUDF (denoted with \textit{uVUDF}) has only one form,
 		which takes a vector as input and outputs a vector of the same length.
@@ -310,10 +322,9 @@ an input vector in a VUDF and increase amortization of function call overhead.
 		with \textit{bVUDF2}) takes a vector as the left argument and a scalar
 		as the right argument and outputs a vector with the same length as
 		the input vector; the third form (denoted with bVUDF3) takes a scalar
-		as the left argument and a vector as the right
-		argument and outputs a vector. The reason of having both the second and third
-		forms is to support non-commutative binary operations such as division and
-		subtraction.
+		as the left argument and a vector as the right argument and outputs
+		a vector. The reason of having both the second and third forms is to
+		support non-commutative binary operations such as division and subtraction.
 	\item An \textit{aggregation} VUDF is composed of two functions:
 		\textit{aggregate} and \textit{combine}. Both functions may have two
 		forms: the first one (denoted with \textit{aVUDF1}) takes a vector and
@@ -325,6 +336,21 @@ an input vector in a VUDF and increase amortization of function call overhead.
 		\textit{aggregate} and \textit{combine} are different.
 \end{itemize}
 
+Figure \ref{fig:DAG} shows an example of using GenOps and VUDFs to compute
+standard deviation on a matrix with missing values. Standard deviation is
+computed with the following
+formula: $\sigma = \sqrt{E[X^2] - (E[X])^2}$, where $X$ is the input matrix and
+$E[X]$ is the mean of the matrix $X$. In the presence of missing values, we
+need to exclude the missing values from the matrix. The first step is to apply
+$sapply$ with the unary VUDF $sq$ to compute $X^2$ and apply $sapply$ with
+the unary VUDF $isna$ to test which elements are missing values. The second
+step is to apply $mapply$ with the binary VUDF $ifelse0$ on $X$ and $isna.x$
+to replace missing
+values in $X$ with 0 and on $X^2$ and $isna.x$ to replace missing values in
+$X^2$ with 0. The third step is to apply $agg$ with $+$ to compute summation
+of $X$, $X^2$ and $isna.x$. Eventually, we can compute the mean of $X$ and
+$X^2$ excluding missing values and the standard deviation.
+
 FlashMatrix implements many commonly used VUDFs by default. These VUDFs wrap
 basic operations built in many programming languages and libraries. For example,
 FlashMatrix provides arithmetic operations such as \textit{addition} and
@@ -334,26 +360,20 @@ FlashMatrix provides arithmetic operations such as \textit{addition} and
 absolute values and square root. FlashMatrix also provides a set of VUDFs to
 cast primitive element types.
 
-For each basic operation wrapped in a VUDF, FlashMatrix provides multiple
-VUDF implementations to support different element types. To reduce the number
-of binary VUDF implementations,
-FlashMatrix only provides the implementations that take two input arguments of
-the same type. If a GenOp gets two matrices with different
-element types, it first casts the the element type of one matrix to match
+For each basic operation in a VUDF, FlashMatrix provides multiple VUDF
+implementations to support different element types. To reduce the number
+of binary VUDF implementations, FlashMatrix only provides the ones that take
+two input arguments of the same type. If a GenOp gets two matrices with different
+element types, it first casts the element type of one matrix to match
 the other. Type casting follows the usual arithmetic conversions \cite{}
-commonly seen in many programming languages. The type casting operation is
-implemented with \textit{sapply} and is performed lazily (in Section
-\ref{sec:lazy_eval}).
+commonly seen in many programming languages. Type casting operations are
+implemented with \textit{sapply} and are performed lazily.
 
-We balance the amortization of the function call overhead and CPU cache
-misses. Because VUDFs operate on vectors, we can no longer keep the input data
-of a VUDF in CPU registers. To reduce latency of accessing data in VUDFs,
-the input data has to be small enough to be kept in the CPU L1 cache. On the
-other hand, passing a longer vector to a VUDF amortizes the overhead of
-function calls more aggressively. We choose 128 as the maximum length of
-the input vector of a VUDF.
-Futher increasing the length does not have noticeable performance improvement.
-\dz{I need to show this in the experiment.}
+FlashMatrix allows users to register new VUDFs to the framework to increase
+flexibility. Like built-in VUDFs, a new VUDF needs to provide multiple
+implementations to support different element types; based on the type of
+the VUDF, it may need to provide different forms as described above.
+FlashMatrix currently requires a VUDF to be implemented with C/C++.
 
 We use CPU vector instructions such as AVX \cite{avx} to accelerate
 the computation in a VUDF. The current implementation of FlashMatrix heavily
@@ -387,9 +407,8 @@ computation formed by a sequence of matrix operations evaluated lazily
 (Figure \ref{fig:DAG} (a)). A lazily evaluated GenOp outputs a \textit{virtual matrix}
 to capture the matrix computation and the input matrices. As such, a computation
 DAG is formed with a set of \textit{virtual matrix} nodes (shown as rectangles)
-and computation nodes (shown as cycles). We refer to the input matrices of
-a computation node as the parent matrices and the output matrix as the child
-matrix.
+and computation nodes (shown as ellipses). We refer to the input matrices of
+a computation node as the parent matrices and the output matrix as the child matrix.
 The computation nodes may contain some immutable computation state such as
 scalar variables and small matrices involved in the matrix computation.
 A computation node may take more than two matrices as input and always outputs
@@ -404,7 +423,7 @@ FlashMatrix allows lazy evaluation on all GenOps.
 FlashMatrix always lazily evaluate the GenOps that output matrices with
 the same \textit{long dimension} size because they can be easily connected
 with other nodes in a DAG. The examples of such GenOps are \textit{sapply}
-and \textit{mapply2}, which always output a matrix with the same size as
+and \textit{mapply}, which always output a matrix with the same size as
 the input matrices, and \textit{agg\_row} on a tall matrix and \textit{agg\_col}
 on a wide matrix, which output a matrix with a different shape but with
 the same \textit{long dimension} size as the input matrix. FlashMatrix also
@@ -413,30 +432,35 @@ supports lazy evaluation on the GenOps that output matrices with different
 \textit{sink matrices} in a DAG because any computation
 that uses a \textit{sink matrix} as input cannot be connected to the same DAG.
 
-To enable lazy evaluation, all matrices in FlashMatrix are immutable.
-As such, \textit{virtual matrices} can generate the same result every time
-they are materialized. This requires every matrix operation to generate
-a new matrix. FlashMatrix garbage collects a matrix when there are not any
-references to it.
+To enable lazy evaluation, all matrices in FlashMatrix are immutable and every
+matrix operation generates a new matrix. As such, \textit{virtual matrices}
+can generate the same result every time they are materialized. FlashMatrix
+garbage collects a matrix when there are not any references to it.
 
 \subsection{Matrix materialization} \label{sec:materialize}
-Lazy evaluation postpones the computation in matrix operations, but we
-eventually have to the actual computation.
+Lazy evaluation postpones computation in matrix operations, but we eventually
+have to perform actual computation. Owing to lazy evaluation,
+we evaluate all matrix operations in a DAG together. Evaluation is
+usually triggered on \textit{sink matrices} implicitly and can be triggered
+by users explicitly.
 
-FlashMatrix allows to materialize any \textit{virtual matrix} in a DAG.
+FlashMatrix allows to materialize any \textit{virtual matrix} in a DAG and
+can materialize multiple \textit{virtual matrices} at the same time.
+In the example shown in Figure \ref{fig:DAG}, we materialize the three
+\textit{sink matrices} together to reduce I/O.
 By default, FlashMatrix only materializes the \textit{sink matrices} in a DAG.
 However, many iterative algorithms need to physically materialize the TAS
 \textit{virtual matrices} to avoid redundant computation and I/O. As such,
 FlashMatrix allows users to set a flag on a TAS \textit{virtual matrix} to
-inform FlashMatrix to save materialized results during computation.
-\dz{FlashMatrix can materialize a DAG from multiple virtual matrices.}
+inform FlashMatrix to save materialized data of the TAS \textit{virtual matrix}
+during computation.
 
 We partition matrices on a DAG in the \textit{long dimension} for materialization
 and parallelization (Figure \ref{fig:DAG} (b)). All \textit{virtual matrices}
 except \textit{sink matrices} on a DAG have the same \textit{long dimension}
 size and they all share the same partition size in the \textit{long dimension}.
 As such, a partition $i$ of a \textit{virtual matrix} only requires data from
-partitions $i$ of the parent matrices and thus partitions in a matrix can be
+partitions $i$ of the parent matrices and partitions in a matrix are
 evaluated independantly. By default, FlashMatrix discards data in a partition
 immediately once the data is used by all children matrices.
 %Owing to the storage scheme for
@@ -444,38 +468,36 @@ immediately once the data is used by all children matrices.
 %on the same NUMA node to minimize remote memory access.
 
 A \textit{sink matrix} uses the same partitioning as other matrices in a DAG
-and performs a form of aggregation operation on the partitions
-of its parent matrix. Each thread computes partial aggregation result from
-the partitions of its parent matrix assigned to the thread and stores partial
-aggregation in a local memory buffer. Afterwards, FlashMatrix combines
-the partial aggregation results to compute the final result.
+and performs some form of aggregation on the partitions
+of its parent matrix. Each thread computes partial aggregation results from
+the partitions assigned to the thread and stores partial
+aggregation in a local memory buffer. In the end of computation, FlashMatrix
+combines the partial aggregation results to compute the final result.
 
-We consider \textit{sink matrices} small and by default materialize them
-in memory. For example, \textit{agg\_row} on a wide matrix and
-\textit{agg\_col} on a tall matrix outputs a vector. The maximal length of
-the vector is smaller than $\sqrt{N}$, where $N$ is the number of elements
-in the input matrix. As such, we can always keep it in memory. For most of machine
-learning and data analysis tasks, the output matrix of the inner product of
-a wide matrix with a tall matrix is considered small and is by default kept
-in memory because the long dimension of these matrices is usually much larger
-than the short dimension in these tasks.
+%\textit{sink matrices} are usually small and are materialized in memory.
+%For example, \textit{agg\_row} on a wide matrix and
+%\textit{agg\_col} on a tall matrix outputs a vector. The maximal length of
+%the vector is $\sqrt{N}$, where $N$ is the number of elements
+%in the input matrix. As such, we can always keep it in memory. For most of machine
+%learning and data analysis tasks, the output matrix of the inner product of
+%a wide matrix with a tall matrix is usually small and is by default kept
+%in memory because the long dimension of these matrices is usually much larger
+%than the short dimension in these tasks.
 
-%How is a DAG traversed during materialization?
-%When materializing a partition on a \textit{virtual matrix}, FlashMatrix requires
-%all input partitions have been materialized or read from SSDs.
-
-FlashMatrix uses two levels of partitioning when materializing computation.
+When materializing computation, FlashMatrix takes advantage of the two-level
+partitioning on dense matrices to reduce data movement between SSDs and CPU.
 It assigns I/O-level partitions (Section \ref{sec:tas_mat}) to a thread as
 computation tasks for parallelization. We choose a relatively small partition
 size to balance the overhead of accessing a partition, parallelization skew
 and memory consumption. A thread further splits an I/O-level partition into
-CPU-level partitions and materializes one CPU-level partition at a time.
-When a CPU-level partition is materialized, it is passed to the subsequent
-operation in the DAG. A CPU-level partition is sufficiently small to fit in
-the CPU cache so that it still resides in CPU cache when it is consumed by
-the subsequent computation. In a DAG, a matrix may be required by multiple
-GenOps so each matrix always buffers one materialized CPU-level partition in
-each thread. \dz{We need to identify transpose of a matrix.}
+CPU-level partitions at runtime and materializes one CPU-level partition at
+a time. When a CPU-level partition is materialized, it is passed to the
+subsequent operation in the DAG. A CPU-level partition is sufficiently small
+to fit in the CPU cache so that the partition still resides in CPU cache when
+it is consumed by the subsequent computation. In a DAG, a matrix may be
+required by multiple GenOps. As such, each matrix always buffers one materialized
+CPU-level partition in each thread to avoid redundant computation.
+%\dz{We need to identify transpose of a matrix.}
 
 %FlashMatrix uses a global task scheduler to assign tasks to threads dynamically
 %for load balancing and I/O merging. However, SSDs require large
@@ -489,15 +511,14 @@ each thread. \dz{We need to identify transpose of a matrix.}
 %cache polution.
 
 \subsection{Memory management} \label{sec:mem}
-FlashMatrix manages memory allocation for large in-memory matrices and memory
-buffers for accessing data on SSDs to reduce memory allocation overhead.
-
-Frequent large memory allocation is expensive. Linux uses \textit{mmap} to
-allocate large memory in the order of megabytes and relies on page fault to
+Functional programming incurs more frequent memory allocation and FlashMatrix
+manages large memory allocation itself to reduce memory allocation overhead.
+Large memory allocation is expensive in Linux because Linux uses \textit{mmap}
+to allocate large memory and relies on page fault to
 populate the memory. Frequent page faults prevent computation from fully
-utilizing CPUs in a large parallel machine. The memory allocation overhead
-degrades performance significantly in FlashMatrix because each of its matrix
-operations generates a new matrix and causes frequent memory allocation.
+utilizing CPUs in a large parallel machine and causes significant performance
+degradation. Both creating large in-memory matrices and I/O access to SSDs
+require large memory allocation.
 
 \begin{figure}
 	\centering
@@ -506,11 +527,12 @@ operations generates a new matrix and causes frequent memory allocation.
 	\label{fig:mat_mem}
 \end{figure}
 
-FlashMatrix divides an in-memory matrix into fixed-size memory chunks and
+FlashMatrix stores an in-memory matrix in fixed-size memory chunks and
 recycles memory chunks to reduce memory allocation overhead (Figure
-\ref{fig:mat_mem}). We perform matrix operations on I/O-level partitions
+\ref{fig:mat_mem}). We perform computation on I/O-level partitions of a matrix
 and only require an I/O-level partition to be stored in contiguous memory.
-Therefore, we can store a matrix in fixed-size memory chunks, as long as
+Therefore, we can store data of a matrix in a set of fixed-size memory chunks,
+as long as
 a memory chunk is sufficient to store an I/O-level partition. The size of
 a memory chunk is a global parameter and is the same for all matrices.
 As such, memory chunks allocated for a matrix can be used by another matrix
@@ -519,58 +541,56 @@ not be divisible by an I/O-level partition size. Therefore, the memory chunk
 size needs to be much larger than the I/O-level partition size to increase
 memory utilization. We use 64MB as the default memory chunk size.
 
-Similarly, we maintain per-thread memory buffer pools to store data read from
-SSDs. These memory buffers need to be
-the same size as I/O-level partitions, which is in the order of megabytes
-to maximize I/O throughput of an SSD. Due to asynchronous I/O, a worker thread
-needs to allocate a small number of memory buffers for each matrix
-during computation. Because all partitions in a vector or a matrix have
-the same size, the memory buffers are reused for processing other partitions
-of vectors or matrices.
+Similarly, we maintain per-thread memory buffer pools for I/O access to
+external-memory matrices. These memory buffers need to be the same size as
+I/O-level partitions, which is in the order of megabytes to maximize I/O
+throughput of an SSD. Because all partitions of a matrix have the same size,
+the memory buffers are reused. Due to asynchronous I/O, a worker thread
+needs to allocate a small number of memory buffers for each matrix during
+computation.
 
 \subsection{Implementation of GenOps with VUDF}
 
-After FlashMatrix reads partitions from SSDs, it needs to invoke VUDFs on
-the elements of the partitions intelligently to reduce the overhead of function
+FlashMatrix invokes VUDFs on the elements of CPU-level partitions intelligently
+to reduce the overhead of function
 calls. Different GenOps choose different forms of VUDFs based on the data layout
-and the shape of the input matrices. Most of the GenOps requires a matrix with
+and the shape of the input matrices. Most of the GenOps require a matrix with
 a specific data layout to increase the amortization of function call overhead.
 
 Many of the GenOps favor the column-major order for a tall-and-skinny matrix
-and the row-major order for a short-and-wide matrix. These data layouts not only
-increase the length of a vector passed to a VUDF but also align data in memory
-for CPU vectorization. For a tall matrix, the column-major order ensures data
-in each column in a partition to be well aligned in memory owing to the matrix
+and the row-major order for a short-and-wide matrix. These data layouts increase
+the length of a vector passed to a VUDF. Furthermore, the column-major order
+ensures that each column in a partition of a tall matrix is well aligned in memory
+owing to the matrix
 format and the partition size (Figure \ref{fig:tas_mat}), regardless of the number
 of columns in the matrix; similarly, the row-major order aligns data in rows of
-a partition. Before invoking VUDFs on
-CPU-level partitions, a GenOp such as inner product may convert the data layout
-of a CPU-level partition to the preferred layout if an input matrix does not
-have the preferred layout.
-Because a CPU-level partition can fit in the CPU cache, data layout conversion
+a partition of a wide matrix. Before invoking VUDFs on a partition, a GenOp
+such as inner product may convert the data layout of a CPU-level partition to
+the preferred layout if an input matrix does not have the preferred layout.
+Because a CPU-level partition fits in the CPU cache, data layout conversion
 does not increase data access to main memory. 
 
 Some GenOps can be applied to matrices with any data layout and any shape
-efficiently. For example, \textit{sapply} and \textit{mapply2} only require
+efficiently. For example, \textit{sapply} and \textit{mapply} only require
 the input matrices and the output matrix to have the same data layout. For tall
 column-major matrices and wide row-major matrices, each partition has long
 columns and long rows, respectively. As such, these GenOps can invoke a VUDF
 on the long columns and rows. For tall row-major matrices and wide column-major
 matrices, all rows and columns in a partition is stored in a single piece of
 memory. As such, these GenOps only need to invoke a VUDF once on all elements
-in a partition. A similar strategy is applicable to \textit{agg}.
+in a partition. %A similar strategy is applicable to \textit{agg}.
 
 Given a matrix with the preferred data layout, FlashMatrix automatically
 selects the right form of a VUDF for a given GenOp to increase the length of
 the vectors passed to a VUDF. For example, when applying \textit{mapply\_col}
 on a tall column-major matrix, FlashMatrix chooses the \textit{bVUDF1} form to
-perform computation on a column from the matrix with the vector; when applying
-\textit{mapply\_row} on a tall column-major matrix, FlashMatrix choose
+perform computation on a column from the matrix with the input vector; when
+applying \textit{mapply\_row} on a tall column-major matrix, FlashMatrix choose
 the \textit{bVUDF2} form to perform computation on a column from the matrix
 with an element from the vector. When applying \textit{inner\_prod\_tall} on a tall
 column-major matrix, FlashMatrix uses the \textit{bVUDF2} form of the first
 VUDF to computes the outer product of a column from the left matrix and a row
-from the right matrix and uses the \textit{bVUDF1} of the second VUDF to compute
+from the right matrix and uses the \textit{aVUDF2} of the second VUDF to compute
 the final result. Because \textit{inner\_prod\_tall} operates on a CPU-level
 partition, all intermediate results are kept in CPU cache and thus we only need
 to read the input partition from main memory once and write the final result
@@ -601,36 +621,37 @@ the input partitions.
 
 \subsection{Implementation of GenOps on a group of matrices}
 
-When applying a GenOp on a group of matrices,
+When applying a GenOp on a group of matrices (Section \ref{sec:mat_group}),
 we decompose the computation into multiple GenOps and apply them to individual
 matrices in the group if the GenOp supports decomposition. Decomposing computation
 to individual matrices reduces memory copy and increases CPU cache hits and thus
-can significantly improve performance. For the GenOps that cannot be decomposed,
+significantly improves performance. For the GenOps that cannot be decomposed,
 we combine the individual matrices on the fly and apply the GenOps on the combined
 matrix directly.
 
-We can apply some of the GenOps to individual matrices directly. For example,
+We can apply some of the GenOps to individual matrices directly without
+transformation. For example,
 \textit{sapply} and \textit{agg} run on individual matrices directly regardless
 of the shape and data layout of individual matrices. Other GenOps may be applied
-to individual matrices directly without transformation if the input matrices
-have certain shape. For a \textit{tall matrix group}, we can apply
+to individual matrices directly if the input matrices have certain shape. For
+a group of tall matrices, we can apply
 \textit{mapply\_col} and \textit{agg\_col} to individual matrices directly.
 Similarly, we can apply \textit{mapply\_row} and \textit{agg\_row} to
-individual matrices directly for a \textit{wide matrix group}. %\textit{mapply2}
+individual matrices directly for a group of wide matrices. %\textit{mapply}
 %requires the matrices in the two input matrix groups to have the same shape.
 %\textit{Groupby\_row} on a \textit{tall matrix group} can be decomposed and
 %applied to individual matrices; \textit{groupby\_col} on a \textit{wide matrix group}
 %can be decomposed in a similar fashion.
 
-Applying other GenOps to a matrix group requires transformation. If an aggregation
-operation provides a combine function, applying \textit{agg\_row} to a group of
-tall matrices is transformed into two steps: apply the aggregation function on
-each row of individual matrices and apply the combine function on aggregation
-results. Similarly, the same strategy is used for \textit{agg\_col} on a group
-of wide matrices. When applying \textit{mapply\_row} to a group of tall matrices,
+Applying other GenOps to a group of matrices requires transformation. If an aggregation
+operation provides a \textit{combine} function, applying \textit{agg\_row} to a group of
+tall matrices is transformed into two steps: apply the \textit{aggregate} function on
+each row of individual matrices and apply the \textit{combine} function on the partial
+aggregation results. When applying \textit{mapply\_row} to a group of tall matrices,
 we break the vector into parts to match the number of columns in the individual
-matrices in the group. Similarly, we break the vector into parts to match the number
-of rows in the individual matrices for \textit{mapply\_col}.
+matrices in the group and apply \textit{mapply\_row} to individual matrices
+separately. The same strategies are used for \textit{agg\_col} and
+\textit{mapply\_col} on a group of wide matrices. 
 
 %FlashMatrix decomposes inner product on a matrix group in favor of minimizing
 %the amount of data written to SSDs (Figure \ref{fig:inner_prod}).
