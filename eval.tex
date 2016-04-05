@@ -2,8 +2,8 @@
 We evaluate the performance of FlashMatrix with statistics and machine learning
 applications. We implement these applications with the R interface of FlashMatrix
 and measure their performance both in memory and on SSDs. We compare their
-performance with the implementations in Spark MLlib \cite{mllib}, a high-
-optimized parallel machine learning library. We further
+performance with the implementations in Spark MLlib \cite{mllib},
+a high-optimized parallel machine learning library. We further
 illustrate the effectiveness of the optimizations deployed in FlashMatrix
 when running both in memory and on SSDs.
 
@@ -220,17 +220,20 @@ C implementations.
 
 \subsection{Effectiveness of optimizations}
 
-In this section, we illustrate the performance obstacles in an array-oriented
-functional language and the effectiveness of our optimizations in FlashMatrix.
-We focus on three main optimizations: reducing large memory allocation from
-Linux, matrix
-operation fusion and vectorized user-defined functions (VUDF). We illustrate
-the effectiveness of operation fusion in both main memory and CPU cache.
+In this section, we illustrate the effectiveness of our memory and CPU
+optimizations in FlashMatrix. To reduce memory overhead, we focus on three
+main optimizations: \textit{(i)} recycling memory chunks to reduce large
+memory allocation from Linux, \textit{(ii)} matrix operation fusion in main
+memory to reduce data movement between SSDs and main memory, \textit{(iii)}
+matrix operation fusion in CPU cache to reduce data movement between main
+memory and CPU cache. To reduce computation overhead, we illustrate
+the effectiveness of using vectorized user-defined functions (VUDF).
 Due to the space limit, we only illustrate the effectiveness of
 the optimizations on the applications when they are executed on SSDs.
 
 Each optimization has significant performance improvement on most of the
-applications (Figure \ref{perf:opts}). Operation fusion in main memory achieves
+applications when they are executed on SSDs(Figure \ref{perf:opts}).
+Operation fusion in main memory achieves
 the highest performance improvement in almost all applications, even in GMM,
 which has the highest asymptotic computation complexity. Materializing every
 matrix operation on SSDs causes significant amount of I/O. Even though the SSDs
@@ -249,10 +252,8 @@ performance and almost double the performance for all applications.
 		\footnotesize
 		\include{opts.EM}
 		\caption{The effectiveness of memory optimizations on different applications
-			when they are executed on SSDs. The memory optimizations are applied
-		incrementally.}
+			when they are executed on SSDs. Three memory optimizations are applied
+		to FlashMatrix incrementally.}
 		\label{perf:opts}
 	\end{center}
 \end{figure}
-
-Overhead of function calls.
