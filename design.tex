@@ -108,10 +108,11 @@ stored in memory or on SSDs or represented by a sequence of computation.
 FlashMatrix optimizes for tall-and-skinny (TAS) dense matrices due to their
 common existence in many data analysis tasks. As suggested by the name,
 a dimension of these matrices is much larger than the other (Figure \ref{fig:tas_mat}).
-In data analysis, many data matrices contain a large number of samples with
-a relatively small number of attributes, so the shape of the data matrices is
-usually tall and skinny; if a data matrix has many attributes, the first step
-is usually dimension reduction that results in a tall-and-skinny matrix.
+In data analysis and machine learning, many data matrices contain a large
+number of samples with a relatively small number of attributes, so the shape
+of the data matrices is usually tall and skinny; if a data matrix has many
+attributes, the first step is usually dimension reduction due to the curse of
+dimensionality \cite{} and the operation results in a tall-and-skinny matrix.
 FlashMatrix specifically optimizes for TAS dense matrices with tens of columns.
 This section describes optimizations on TAS matrices and the same optimizations
 can be applied to short-and-wide matrices.
@@ -375,8 +376,9 @@ reduce memory allocation overhead and improve parallelization \cite{Ching12}.
 
 \begin{figure}
 	\centering
-	\includegraphics[scale=0.7]{./DAG.pdf}
-	\caption{A directed acyclic graph.}
+	\includegraphics[scale=0.7]{./sd.pdf}
+	\caption{A directed acyclic graph of computing standard deviation on
+	a matrix with missing values.}
 	\label{fig:DAG}
 \end{figure}
 
