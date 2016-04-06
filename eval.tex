@@ -78,8 +78,9 @@ GMM partition the dataset.}
 \label{tbl:algs}
 \end{table}
 
-Typically, KMeans and GMM run on a dataset with a small number of features
-while the other applications may be applied to datasets with various numbers
+KMeans and GMM typically run on a dataset with a small number of features
+due to curse of dimensionality while the other applications may be applied
+to datasets with various numbers
 of features. For performance evaluation, we run KMeans and GMM on a matrix
 with 65 million rows and 32 columns, constructed from 32 eigenvectors from
 the Friendster graph \cite{friendster}. Running KMeans on eigenvectors is
@@ -101,7 +102,7 @@ the number of clusters from 2 to 64.
 		\footnotesize
 		\include{IM.vs.EM.stat}
 		\caption{The relative external-memory performance of FlashMatrix for
-			statistics computation on a dataset with 65 million data points
+			statistics computation on datasets with 65 million data points
 			and the number of features varying from 8 to 512, normalized by
 		its in-memory performance.}
 		\label{perf:stat}
@@ -168,22 +169,20 @@ execution further reduce memory consumption.
 
 \subsection{Performance of FlashMatrix vs. R}
 In this section, we compare the performance of FlashMatrix with R on the matrix
-with 65 million rows and 32 columns. To have
-a fair comparison, we run FlashMatrix in a single thread. In addition, we
-measure the speedup of FlashMatrix with multithreading. The R framework
-provides C implementations for correlation, SVD and KMeans. We use R functions
-to compute statistic summary except minimum and maximum
-because R does not provide an efficient way of computing minimum and maximum
-of columns of a matrix.
-
-\dz{I need to GMM in R.}
+with 65 million rows and 32 columns. To have a fair comparison, we run
+FlashMatrix in a single thread. In addition, we measure the speedup of
+FlashMatrix with multithreading. The R framework provides C implementations
+for correlation, SVD and KMeans. The R package mclust \cite{mclust} provides
+a FORTRAN implementation of GMM. We use R functions to compute statistic summary
+except minimum and maximum because R does not provide an efficient way of
+computing minimum and maximum of columns of a matrix.
 
 \begin{figure}
 	\begin{center}
 		\footnotesize
 		\include{FM.vs.R}
-		\caption{The performance of in-memory FlashMatrix in a single thread
-		compared with R.}
+		\caption{The performance of FlashMatrix in a single thread both in memory
+		and on SSDs compared with R.}
 		\label{fig:fmR}
 	\end{center}
 \end{figure}
@@ -200,7 +199,8 @@ execute R code efficiently to outperform some C implementations.
 	\begin{center}
 		\footnotesize
 		\include{speedup}
-		\caption{The speedup of in-memory FlashMatrix with multithreading.}
+		\caption{The speedup of FlashMatrix with multithreading both in memory
+		and on SSDs.}
 		\label{fig:speedup}
 	\end{center}
 \end{figure}
