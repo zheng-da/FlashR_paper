@@ -5,10 +5,7 @@ data volume and the increasing complexity of data analysis. Experiments,
 simulations and observations generate terabytes or
 even petabytes in many scientific and business areas. After collecting
 a massive amount of data, we often need to perform complex data analysis
-and machine learning techniques to extract value from the data. To handle
-the increasing volume size and effectively extract value from the data,
-the field of data mining and machine learning evolves rapidly and the community
-is developing many new algorithms to process large datasets.
+and machine learning techniques to extract value from the data.
 
 % How have others addressed the problem?
 
@@ -22,9 +19,8 @@ effort from programmers. The other approach is to use high-level programming
 frameworks that provide high-level operations to reduce the burden of
 programmers. In general, the second approach is less computationally
 efficient but can significantly increase productivity and lower the barrier
-of writing parallel implementations. As such, the second approach is usually
-more preferred in the rapidly evolving field of machine learning and data
-mining.
+of writing parallel implementations. As such, the second approach is
+preferred in the rapidly evolving field of machine learning and data mining.
 %The high-level programming interface enables non-expert programmers
 %to effectively use computation resources.
 
@@ -32,10 +28,10 @@ mining.
 
 It is challenging to provide a programming framework that has a high-level
 programming interface and still achieves both generality and efficiency.
-Some high-optimized linear algebra libraries \cite{mkl, openblas, elemental,
-trilinos, petsc} provides a matrix programming interface that has a limited
-set of matrix operations with efficient implementations. Users have to
-parallelize the remaining matrix
+Some optimized linear algebra libraries \cite{mkl, openblas, elemental,
+trilinos, petsc} provide a matrix programming interface that has a limited
+set of matrix operations with efficient implementations. \dz{TODO}
+Users have to parallelize the remaining matrix
 operations themselves that are not supported by the libraries. Other
 high-level programming frameworks such as R and Matlab provide high-level and
 general programming interface for users to express varieties of algorithms.
@@ -44,7 +40,7 @@ However, these programming frameworks are less efficient.
 % What is the nature of your solution?
 
 Matrix operations are an intuitive formulation for many computation tasks,
-especially for many data analysis tasks. For example, we can store samples
+especially for data analysis. For example, we can store samples
 collected from an experiment in a matrix with rows corresponding to samples
 and columns corresponding to attributes.
 Consequently, we express the computation on the data matrix with a sequence
@@ -71,13 +67,15 @@ hardware design that scales up a single machine for high performance computing
 
 % Why is it new/different/special?
 
-We overcome many technical challenges to move data from SSDs to CPU efficiently
-owing to large speed disparity between CPU and memory, as well as between memory and
+We overcome many technical challenges to move data from SSDs to CPU efficiently,
+overcoming the large speed disparity between CPU and memory, as well as between
+memory and
 SSDs. The speed disparity of CPU and DRAM has increased exponentially over
 the past decades \cite{Wilkes01}. While SSDs have high IOPS and sequential
 I/O throughput, they are still an order of magnitude slower than DRAM.
 To the contrary, many data analysis tasks are data-intensive and the matrix
-formulation further increases data movement between CPU and SSDs.% As such,
+formulation further increases data movement between CPU and SSDs. \dz{TODO}
+% As such,
 %the performance of the data analysis tasks is usually limited by memory
 %bandwidth instead of computing power.
 
@@ -88,15 +86,15 @@ operate on individual elements in a matrix. As such, each operation on an elemen
 in a matrix potentially results in a function call, causing significant
 computation overhead.
 
-To move data efficiently, FlashMatrix performs lazy evaluation and aggressive
-operation fusion to merge many operations in a single parallel execution.
+To move data efficiently, FlashMatrix evaluates expressions lazily and fuses
+operations aggressively in a single parallel execution job.
 FlashMatrix builds a directed acyclic graph (DAG) to represent all operations
 in the single execution. When evaluating the computation in the DAG, FlashMatrix
 optimizes data access in memory hierarchy and performs two levels of data
 partitioning to achieve efficient data access and maximize data utilization in
 both main memory and CPU cache and reduce data movement between memory and SSDs
 as well as between CPU and memory. To access data stored on SSDs, FlashMatrix
-streams data from SSDs to yeild maximal I/O throughput from SSDs.
+streams data from SSDs to yeild maximal I/O throughput.
 
 \dz{maybe we should say something about optimization on memory allocation?}
 
@@ -105,10 +103,9 @@ functions (VUDFs), which operates on a vector of elements instead of
 an individual element. We define multiple forms for each VUDF and automatically
 select the right form for each GenOp to amortize the function call overhead.
 When invoking UDFs, GenOps choose the right vector length to balance
-the amortization of the function call overhead and CPU cache misses. We use
-vector CPU instructions such as AVX \cite{avx} to further reduce CPU
-instructions and improve CPU vectorization with better memory alignment
-and code transformation.
+the amortization of the function call overhead and CPU cache misses. The use
+of vector CPU instructions, such as AVX \cite{avx}, reduce CPU
+instructions and improve CPU vectorization with memory alignment.
 
 % What are it's key features?
 
