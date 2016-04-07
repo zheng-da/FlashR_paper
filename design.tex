@@ -408,23 +408,21 @@ has the same \textit{long dimension} size (Figure \ref{fig:DAG} (b)) to
 simplify evaluation and data flow of a DAG (a \textit{long dimension}
 refers to the matrix dimension with the larger size).
 
-FlashMatrix allows lazy evaluation on all GenOps.
-FlashMatrix always lazily evaluate the GenOps that output matrices with
-the same \textit{long dimension} size because they can be easily connected
-with other nodes in a DAG. The examples of such GenOps are \textit{sapply}
-and \textit{mapply}, which always output a matrix with the same size as
-the input matrices, and \textit{agg\_row} on a tall matrix and \textit{agg\_col}
-on a wide matrix, which output a matrix with a different shape but with
-the same \textit{long dimension} size as the input matrix. FlashMatrix also
-supports lazy evaluation on the GenOps that output matrices with different
-\textit{long dimensions} sizes. The output matrices of these GenOps are
-\textit{sink matrices} in a DAG because any computation
-that uses a \textit{sink matrix} as input cannot be connected to the same DAG.
+FlashMatrix allows lazy evaluation on all GenOps to construct a DAG. There
+are two types of GenOps
+in a DAG: the ones such as \textit{sapply} and \textit{mapply} that output
+matrices with the same \textit{long dimension} size as the input matrices
+and the ones such as \textit{agg} and \textit{groupby} that output matrices
+with different \textit{long dimension} sizes. The output matrices of the first
+type of GenOps can be easily connected to other nodes in a DAG. Any computation
+that uses the output matrices of the second type of GenOps as input cannot be
+connected to the same DAG and we refer to these output matrices as
+\textit{sink matrices}.
 
 To enable lazy evaluation, all matrices in FlashMatrix are immutable and every
 matrix operation generates a new matrix. As such, \textit{virtual matrices}
 can generate the same result every time they are materialized. FlashMatrix
-garbage collects a matrix when there are not any references to it.
+garbage collects a matrix when there are no references to it.
 
 \subsection{Matrix materialization} \label{sec:materialize}
 Lazy evaluation postpones computation in matrix operations, but we eventually
