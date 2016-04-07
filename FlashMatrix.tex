@@ -451,16 +451,15 @@ FlashMatrix is a matrix-oriented programming framework for general data analysis
 with high-level functional programming interface. It scales matrix operations
 beyond memory capacity by utilizing solid-state drives (SSDs) in a non-uniform
 memory architecture (NUMA). It supports many R matrix operations and executes
-R code in parallel and out of core
-automatically. It provides a small number of generalized matrix operations
-(GenOps) that accept user-defined functions (UDFs) and reimplements a large
+R code in parallel and out of core automatically. It provides a small number
+of generalized matrix operations (GenOps) and reimplements a large
 number of matrix operations in the R framework with GenOps. FlashMatrix
 uses vectorized user-defined functions (VUDF) to reduce the overhead of function
 calls and fuses matrix operations to reduce data movement between CPU and
 SSDs. We implement multiple machine learning algorithms in R to benchmark
 the performance of FlashMatrix. On a large parallel machine, out-of-core execution
 of these R implementations in FlashMatrix has performance comparable to in-memory
-executation while significantly outperforming the in-memory implementations
+execution while significantly outperforming the in-memory implementations
 in Spark MLlib.
 \end{abstract}
 
@@ -483,10 +482,6 @@ in Spark MLlib.
 
 \section{Introduction}
 \input{intro}
-
-\hfill mds
- 
-\hfill August 26, 2015
 
 \section{Related Work}
 \input{relwork}
@@ -602,7 +597,7 @@ in Spark MLlib.
 
 
 % use section* for acknowledgment
-\section*{Acknowledgment}
+%\section*{Acknowledgment}
 
 
 
