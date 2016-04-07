@@ -1,26 +1,41 @@
 % What problem are you going to solve.
 
-In today's big data era, we face the challenges in both the explosion of
-data volume and the increasing complexity of data analysis. Experiments,
-simulations and observations generate terabytes or
-even petabytes in many scientific and business areas. After collecting
-a massive amount of data, we often need to perform complex data analysis
-and machine learning techniques to extract value from the data.
+The National Strategic Computing Initiative (NSCI, \cite{NSCI}) puts forth a critical
+problem as we move to exascale: {\em ``Increasing coherence between the technology base used for 
+modeling and simulation and that used for data analytic computing.''}  
+A key challenge lies in providing statistical analysis and machine learning 
+tools that are simple and efficient.
+Simple tools need to be programmable, interactive, and extensible, 
+allowing scientists to encode and deploy complex algorithms. 
+Successful examples include R, SciPy, and Matlab.  Efficient dictates that tools should 
+leverage modern HPC architectures, including scalable parallelism, high-speed networking,
+and fast I/O from memory and solid-state storage.
+
+
+%In today's big data era, we face the challenges in both the explosion of
+%data volume and the increasing complexity of data analysis. Experiments,
+%simulations and observations generate terabytes or
+%even petabytes in many scientific and business areas. After collecting
+%a massive amount of data, we often need to perform complex data analysis
+%and machine learning techniques to extract value from the data. To handle
+%the increasing volume size and effectively extract value from the data,
+%the field of data mining and machine learning evolves rapidly and the community
+%is developing many new algorithms to process large datasets.
 
 % How have others addressed the problem?
 
 Large-scale data analysis requires a large parallel machine or a cluster to
 gain computation power and memory capacity. Currently,
 there are two approaches of implementing parallel algorithms to process large
-datasets. We can write an efficient implementation with low-level parallel
+datasets. One can write an efficient implementation with low-level parallel
 primitives such as the ones provided by MPI \cite{mpi} or OpenMP \cite{openmp}.
 This approach requires expertise in parallel programming and significant
 effort from programmers. The other approach is to use high-level programming
 frameworks that provide high-level operations to reduce the burden of
 programmers. In general, the second approach is less computationally
 efficient but can significantly increase productivity and lower the barrier
-of writing parallel implementations. As such, the second approach is
-preferred in the rapidly evolving field of machine learning and data mining.
+of writing parallel implementations. The second approach is 
+preferred in the rapidly evolving fields of machine learning and data mining.
 %The high-level programming interface enables non-expert programmers
 %to effectively use computation resources.
 
@@ -28,25 +43,25 @@ preferred in the rapidly evolving field of machine learning and data mining.
 
 It is challenging to provide a programming framework that has a high-level
 programming interface and still achieves both generality and efficiency.
-Some optimized linear algebra libraries \cite{mkl, openblas, elemental,
-trilinos, petsc} provide a matrix programming interface that has a limited
-set of matrix operations with efficient implementations. \dz{TODO}
+Some highly-optimized linear algebra libraries \cite{mkl, openblas, elemental,
+trilinos, petsc} provides a matrix programming interface that has a limited
+set of matrix operations with efficient implementations, e.g.~BLAS provide
+matrix-multiplication only and not XXXX or YYY.
 Users have to parallelize the remaining matrix
-operations themselves that are not supported by the libraries. Other
-high-level programming frameworks such as R and Matlab provide high-level and
-general programming interface for users to express varieties of algorithms.
-However, these programming frameworks are less efficient.
+operations themselves that are not supported by the libraries. 
+High-level programming frameworks, such as R and Matlab, provide a
+general programming interface for users to express varieties of algorithms, but
+do not produce efficient parallel code.
 
 % What is the nature of your solution?
-
-Matrix operations are an intuitive formulation for many computation tasks,
-especially for data analysis. For example, we can store samples
-collected from an experiment in a matrix with rows corresponding to samples
-and columns corresponding to attributes.
-Consequently, we express the computation on the data matrix with a sequence
-of matrix operations. Such a formulation simplifies the implementation of
-data analysis algorithms and is very intuitive for many machine learning
-and data analysis experts.
+%Matrix operations are an intuitive formulation for many computation tasks,
+%especially for many data analysis tasks. For example, we can store samples
+%collected from an experiment in a matrix with rows corresponding to samples
+%and columns corresponding to attributes.
+%Consequently, we express the computation on the data matrix with a sequence
+%of matrix operations. Such a formulation simplifies the implementation of
+%data analysis algorithms and is very intuitive for many machine learning
+%and data analysis experts.
 
 We present FlashMatrix, a programming framework that provides a high-level
 matrix-oriented functional programming interface and supports automatic
@@ -59,7 +74,10 @@ out of core automatically. FlashMatrix focuses on optimizations in
 a single machine and scales matrix operations beyond memory capacity by utilizing
 solid-state drives (SSDs). This design choice conforms with a current trend of
 hardware design that scales up a single machine for high performance computing
-\cite{Ang14}.
+\cite{Ang14}, including analysis of data stored on the 
+solid-state storage devices (SSDs) of I/O burst buffers \cite{bb}.
+% bb = https://scholar.google.com/scholar?cluster=13235278116505344242&hl=en&as_sdt=0,21&sciodt=0,21
+
 %These machines typically have multiple processors with many CPU cores and
 %a large amount of memory. They are also equipped with fast flash
 %memory such as solid-state drives (SSDs) to further extend memory capacity.
