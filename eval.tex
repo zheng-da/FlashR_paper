@@ -1,8 +1,8 @@
 \section{Experimental evaluation}
 We evaluate the performance of FlashMatrix with statistics and machine learning
-applications both in memory and on SSDs. We compare their
-performance with the implementations in Spark MLlib \cite{mllib},
-a high-optimized parallel machine learning library. We further
+applications both in memory and on SSDs. We compare their performance with
+the implementations in Spark MLlib \cite{mllib}, a high-optimized parallel
+machine learning library. We further
 illustrate the effectiveness of the optimizations deployed in FlashMatrix
 when running both in memory and on SSDs.
 
@@ -12,12 +12,14 @@ DDR3-1600. Each processor has 12 cores. The machine has three LSI SAS 9300-8e
 host bus adapters (HBA) connected to a SuperMicro storage chassis, in which
 24 OCZ Intrepid 3000 SSDs are installed. The 24 SSDs together are capable of
 delivering 12 GB/s for read and 10 GB/s for write at maximum. The machine runs
-Linux kernel v3.13.0. We use 48 threads for both in-memory and out-of-core
-execution of FlashMatrix as well as Spark.
+Linux kernel v3.13.0. By default, we use 48 threads for both in-memory and
+out-of-core execution of FlashMatrix.
 
 \subsection{Statistics and Machine learning applications} \label{sec:apps}
 We implement multiple important applications in the field of statistics and
-machine learning. These applications are implemented completely with R and
+machine learning. These applications have various computation complexity but
+have the same I/O complexity (Table \ref{tbl:algs}). We implement these
+applications completely with the R interface of FlashMatrix and
 rely on FlashMatrix to perform computation in parallel and out of core.
 \begin{itemize}
 	\item Multivariant statistical summary: this computes minimum, maximum,
@@ -29,27 +31,21 @@ rely on FlashMatrix to perform computation in parallel and out of core.
 		three matrices: $U$, $\Sigma$ and $V$ such that $A=U \Sigma V^T$, where
 		both $U$ and $V$ are orthonormal matrices and $\Sigma$ is a diagonal
 		matrix with non-negative diagonals in descending order. SVD is commonly
-		used for dimension reduction.
+		used for dimension reduction. In the experiments, we compute 10 left
+		singular vectors and 10 right singular vectors.
 	\item KMeans \cite{kmeans} is an iterative algorithm of partitioning a set
 		of observations into $k$ clusters
 		so that each data point belongs to the cluster with minimal mean. KMeans
 		is one of the most popular clustering algorithms and is identified as
-		one of the top 10 data mining algorithms \cite{top10}.
+		one of the top 10 data mining algorithms \cite{top10}. In the experiments,
+		we run KMeans to split a dataset into 10 clusters by default.
 	\item Gaussian Mixture Model (GMM) \cite{gmm} is an iterative clustering
 		algorithm that assumes observations are sampled from a mixture of
 		Gaussian distributions and use expectation maximization (EM) \cite{gmm}
 		algorithm to fit the model. This algorithm is also identified as one
-		of the top 10 data mining algorithms \cite{top10}.
+		of the top 10 data mining algorithms \cite{top10}. In the experiments,
+		we run GMM to split a dataset into 10 clusters by default.
 \end{itemize}
-
-The algorithms have various computation complexity but have the same I/O
-complexity (Table \ref{tbl:algs}). Computing statistical summary
-has the lowest computation complexity, while GMM has the highest asymptotic
-computation complexity. The first three applications require to read the entire
-dataset once to perform computation and each iteration of KMeans requires to
-read the entire dataset once. Despite lazy evalution, the FlashMatrix
-implementation of GMM requires to read the dataset multiple times and write
-intermediate data in each iteration.
 
 \begin{table}
 \begin{center}
@@ -79,30 +75,167 @@ GMM partition the dataset.}
 \end{table}
 
 KMeans and GMM typically run on a dataset with a small number of features
-due to curse of dimensionality while the other applications may be applied
-to datasets with various numbers
+due to curse of dimensionality \cite{} while the other applications may
+be applied to datasets with various numbers
 of features. For performance evaluation, we run KMeans and GMM on a matrix
-with 65 million rows and 32 columns, constructed from 32 eigenvectors from
+with 64 million rows and 32 columns, constructed from 32 eigenvectors from
 the Friendster graph \cite{friendster}. Running KMeans on eigenvectors is
 an important step of spectral clustering \cite{Luxburg07} to partition vertices
 to clusters. We measure the performance of the other three applications on
-random matrices with 65 million rows and vary the number of columns from 8
+random matrices with 64 million rows and vary the number of columns from 8
 to 512.
 
-\subsection{Performance of FlashMatrix in memory and on SSDs}
+\subsection{Comparative performance of FlashMatrix}
 
-We compare the in-memory and external-memory performance of the FlashMatrix
-implementations of the applications thoroughly with different datasets and
-different parameters. We run the first three applications on datasets with
-the number of features varying from 8 to 512. For KMeans and GMM, we vary
-the number of clusters from 2 to 64.
+We compare the performance of the FlashMatrix implementations of the applications
+with the ones in Spark MLlib \cite{mllib} and R. We run the MLlib implementations
+with their native Scala interface and use a very large heap size to ensure that
+all input data is cached in memory. We use 48 threads for both FlashMatrix and
+MLlib to run on a random matrix with one billion rows and 32 columns.
+The R framework provides C implementations for correlation, SVD and KMeans and
+the R package mclust \cite{mclust} provides a FORTRAN implementation of GMM.
+These implementations run in a single thread. To compare with these implementations,
+we run the FlashMatrix implementations in a single thread on a random matrix
+with 64 million rows and 32 columns.
+
+\begin{figure}
+	\centering
+	\footnotesize
+	\vspace{-15pt}
+	\begin{subfigure}{.5\textwidth}
+		\include{FM.vs.spark}
+		\label{perf:rt}
+		\vspace{-15pt}
+		\caption{Runtime}
+	\end{subfigure}
+
+	%\vspace{-5pt}
+	\begin{subfigure}{.5\textwidth}
+		\include{FM.vs.spark.mem}
+		\label{perf:mem}
+		\vspace{-15pt}
+		\caption{Memory consumption}
+	\end{subfigure}
+	\caption{The performance and memory consumption of FlashMatrix both
+		in memory and on SSDs compared with Spark MLlib on a matrix with
+	one billion rows and 32 columns.}
+	\label{perf:fm}
+\end{figure}
+
+%\begin{figure}
+%	\begin{center}
+%		\footnotesize
+%		\vspace{-15pt}
+%		\include{FM.vs.spark}
+%		\vspace{-15pt}
+%		\caption{The performance of FlashMatrix both in memory and on SSDs
+%			compared with Spark MLlib on a matrix with one billion rows and
+%		32 columns.}
+%		\label{perf:fm}
+%	\end{center}
+%\end{figure}
+
+FlashMatrix both in memory and on SSDs outperforms Spark MLlib significantly
+in most of the applications (Figure \ref{perf:fm} (a)). For some applications
+such as correlation, SVD and GMM,
+even though both FlashMatrix and MLlib implementations heavily rely on BLAS
+for matrix multiplication, FlashMatrix outperforms MLlib significantly
+owing to matrix operation fusion and two-level partitioning to reduce data
+movement between memory and CPU. %SVD is the only application whose FlashMatrix
+%implementation does not outperform the one in MLlib when being executed out of
+%core because this application requires to read the entire matrix multiple times
+%and output a large matrix.
+
+%\begin{figure}
+%	\begin{center}
+%		\footnotesize
+%		\vspace{-15pt}
+%		\include{FM.vs.spark.mem}
+%		\vspace{-15pt}
+%		\caption{The memory consumption of FlashMatrix in memory and on SSDs
+%		as well as Spark MLlib on a matrix with one billion rows and 32 columns.}
+%		\label{perf:mem}
+%	\end{center}
+%\end{figure}
+
+Even though FlashMatrix provides a matrix-oriented functional programming
+interface, the in-memory execution barely increases memory consumption from
+the minimum memory requirement of the applications and the out-of-core
+execution uses a very small memory footprint (Figure \ref{perf:fm} (b)).
+The functional programming interface generates a new matrix in each matrix
+operation and potentially leads to high memory consumption. Lazy evaluation
+in FlashMatrix avoids materializing large matrices and significantly
+reduces its memory consumption.
+%The input matrix of the applications requires memory storage of 256GB and
+%both SVD and GMM need extra memory of 80GB to store the output matrix.
+When being executed on SSDs, FlashMatrix keeps both the input matrix and
+the output matrix of the applications on SSDs and thus leads to a very small
+memory footprint.
 
 \begin{figure}
 	\begin{center}
 		\footnotesize
+		\vspace{-15pt}
+		\include{FM.vs.R}
+		\vspace{-10pt}
+		\caption{The performance of FlashMatrix in a single thread both in
+			memory and on SSDs compared with the C and FORTRAN implementations
+		in the R framework.}
+		\label{fig:fmR}
+	\end{center}
+\end{figure}
+
+FlashMatrix running both in memory and on SSDs significantly outperforms R
+even with a single thread in all of these applications (Figure \ref{fig:fmR}).
+We exclude statistic summary in the experiment because R does not provide
+a C or FORTRAN implementation of computing the same statistics. The performance
+result indicates that FlashMatrix executes R code efficiently to even outperform
+some optimized C and FORTRAN implementations when processing large datasets.
+
+\begin{figure}
+	\begin{center}
+		\footnotesize
+		\vspace{-15pt}
+		\include{speedup}
+		\vspace{-10pt}
+		\caption{The speedup of FlashMatrix with multithreading both in memory
+		and on SSDs.}
+		\label{fig:speedup}
+	\end{center}
+\end{figure}
+
+The in-memory execution of FlashMatrix achieves almost linear speedup in all
+applications while the out-of-core execution of some of the applications only
+starts to flatten out after 32 threads (Figure \ref{fig:speedup}). Owing to
+operation fusion in CPU cache, FlashMatrix significantly reduces data movement
+between CPU and main memory. As such, memory bandwidth is no longer
+the bottleneck and the computation speeds up linearly with more CPU cores
+when the applications run in memory. The SSDs deliver about 10GB/s I/O throughput
+and becomes the bottleneck in the applications with lower computation overhead.
+Applications such as GMM, which have much higher computation complexity, still
+speed up almost linearly even when running on SSDs. The performance results in
+Figure \ref{fig:fmR} and Figure
+\ref{fig:speedup} indicate that the applications executed in FlashMatrix can
+achieve performance comparable to or even outperform parallel C or FORTRAN
+implementations.
+
+\subsection{Performance of FlashMatrix in memory and on SSDs}
+
+We further measure the in-memory and external-memory performance of the FlashMatrix
+implementations of the applications thoroughly with different datasets and
+different parameters. We run the first three applications on random matrices
+with 64 million rows and vary the number of columns from 8 to 512. We run KMeans
+and GMM on the matrix constructed from 32 eigenvectors and vary the number of
+clusters from 2 to 64.
+
+\begin{figure}
+	\begin{center}
+		\footnotesize
+		\vspace{-15pt}
 		\include{IM.vs.EM.stat}
+		\vspace{-10pt}
 		\caption{The relative external-memory performance of FlashMatrix for
-			statistics computation on datasets with 65 million data points
+			statistics computation on datasets with 64 million data points
 			and the number of features varying from 8 to 512, normalized by
 		its in-memory performance.}
 		\label{perf:stat}
@@ -126,95 +259,15 @@ CPU.
 \begin{figure}
 	\begin{center}
 		\footnotesize
+		\vspace{-15pt}
 		\include{IM.vs.EM.clust}
+		\vspace{-10pt}
 		\caption{The relative external-memory performance of FlashMatrix for
 			clustering algorithms with different numbers of clusters, normalized
 		by its in-memory performance.}
 		\label{perf:clust}
 	\end{center}
 \end{figure}
-
-\subsection{Performance of FlashMatrix vs. Spark MLlib}
-
-We further compare the performance of FlashMatrix implementations with the ones
-in Spark MLlib \cite{mllib}. The FlashMatrix implementations of the applications
-use the same algorithms used by Spark MLlib. For fair comparison, we runs the Spark
-implementations with their native Scala interface and use a very large heap size
-to ensure that all input data is cached in memory.
-
-The applications in FlashMatrix significantly outperform Spark MLlib (Figure
-\ref{perf:fm}). When the applications require more computation, the out-of-core
-execution of FlashMatrix significantly outperforms Spark MLlib. Multivariant
-statistical summary is the only application that does not outperform Spark when
-being executed out of core because its out-of-core execution is bottlenecked
-by I/O. For applications such as correlation and GMM, even though both FlashMatrix
-and Spark implementations heavily rely on BLAS for matrix multiplication,
-FlashMatrix can still significantly outperform Spark thanks to matrix operation
-fusion and two-level partitioning to reduce data movement between memory and CPU.
-
-\begin{figure}
-	\begin{center}
-		\footnotesize
-		\include{FM.vs.spark}
-		\caption{The performance of FlashMatrix both in memory and on SSDs
-		compared with Spark.}
-		\label{perf:fm}
-	\end{center}
-\end{figure}
-
-\dz{TODO}
-Array-oriented functional languages can consume a lot of memory. Here we show
-that FlashMatrix actually doesn't consume much memory and the out-of-core
-execution further reduce memory consumption.
-
-\subsection{Performance of FlashMatrix vs. R}
-In this section, we compare the performance of FlashMatrix with R on the matrix
-with 65 million rows and 32 columns. To have a fair comparison, we run
-FlashMatrix in a single thread. In addition, we measure the speedup of
-FlashMatrix with multithreading. The R framework provides C implementations
-for correlation, SVD and KMeans. The R package mclust \cite{mclust} provides
-a FORTRAN implementation of GMM. We use R functions to compute statistic summary
-except minimum and maximum because R does not provide an efficient way of
-computing minimum and maximum of columns of a matrix.
-
-\begin{figure}
-	\begin{center}
-		\footnotesize
-		\include{FM.vs.R}
-		\caption{The performance of FlashMatrix in a single thread both in memory
-		and on SSDs compared with R.}
-		\label{fig:fmR}
-	\end{center}
-\end{figure}
-
-FlashMatrix significantly outperforms R even with a single thread in all of these
-applications (Figure \ref{fig:fmR}). Even though the FlashMatrix implementation
-of statistic summary computes more statistical values, it still outperforms
-the R implementation by a factor of two, which indicates that FlashMatrix is
-able to execute R code more efficiently than the R framework. The performance
-result of the other applications indicates that the FlashMatrix can even
-execute R code efficiently to outperform some C implementations.
-
-\begin{figure}
-	\begin{center}
-		\footnotesize
-		\include{speedup}
-		\caption{The speedup of FlashMatrix with multithreading both in memory
-		and on SSDs.}
-		\label{fig:speedup}
-	\end{center}
-\end{figure}
-
-FlashMatrix also speeds up the execution of all applications almost linearly
-with more CPU cores (Figure \ref{fig:speedup}). The machine has only 48 CPU
-cores, so running the applications with 64 threads does not double their
-performance with 32 threads. Owing to operation fusion in CPU cache,
-FlashMatrix significantly reduce data movement between CPU and main memory.
-As such, memory bandwidth is the bottleneck for the applications and
-the computation speeds up linearly with
-more CPU cores. The performance results in Figure \ref{fig:fmR} and Figure
-\ref{fig:speedup} indicate that the applications executed in FlashMatrix can
-achieve performance comparable to or even outperform parallel C implementations.
 
 \subsection{Effectiveness of optimizations}
 
@@ -248,7 +301,9 @@ performance and almost double the performance for all applications.
 \begin{figure}
 	\begin{center}
 		\footnotesize
+		\vspace{-15pt}
 		\include{opts.EM}
+		\vspace{-10pt}
 		\caption{The effectiveness of memory optimizations on different
 			applications when they are executed on SSDs. The three memory
 		optimizations are applied to FlashMatrix incrementally.}
