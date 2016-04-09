@@ -2,43 +2,45 @@ Basic Linear Algebra Subprograms (BLAS) defines a small set of vector and
 matrix operations commonly used in scientific computing. There exist a few
 high-optimized BLAS implementations such as MKL \cite{mkl}, OpenBLAS
 \cite{openblas}, GotoBLAS \cite{Goto} and ATLAS \cite{atlas}. However, these
-libraries optimizes the vector and matrix operations in shared memory and BLAS
-only provides a small number of vector and matrix operations.
+libraries optimize the vector and matrix operations in shared memory. BLAS
+provides only a small number of vector and matrix operations.
 
-To further speed up computation and scale to larger vector and matrices,
-several distributed memory matrix computation libraries are implemented
-\cite{trilinos, petsc, elemental}. These libraries are in general built on
-top of BLAS libraries and distribute computation with MPI. Like BLAS, these
-libraries provide a limited set of matrix operations.
+Distributed memory matrix computation libraries \cite{trilinos, petsc, elemental}
+speed up computation and scale to larger vector and matrices. These libraries
+in general build on top of BLAS and distribute computation with MPI. Like BLAS,
+these libraries provide a limited set of matrix operations and thus, require users
+to manually parallelize the remaining matrix operations.
 
 There are many distributed data processing frameworks.
 MapReduce \cite{mapreduce} is a general large-scale data processing framework.
-It provides a single primitive with two user-defined functions written with
+It provides a single primitive that takes two user-defined functions written with
 low-level programming languages such as C/C++ and Java. Due to the lack of
 efficient primitives for varieties of data access patterns, algorithms
-implemented in MapReduce is usually less efficient. Dryad \cite{dryad} is
-another general-purpose distributed execution framework for large-scale data
-analysis. It provides more primitives than MapReduce to access various data
-access patterns efficiently. Naaid \cite{naaid} is another distributed execution
-engine that supports efficient batch processing, stream processing and iterative
-and incremental computation in a single system.
+implemented in MapReduce are inefficient. Dryad \cite{dryad} and
+Naiad \cite{naiad} provide more primitives than MapReduce to access various
+data access patterns more efficiently.
 
 Due to complexity of programming in the distributed execution engines, many
-programming frameworks have been developed on top of the execution engines.
-Pig Latin \cite{pig} and FlumeJava \cite{flumejava} are two systems built
-on top of MapReduce to provide users a high-level operations for general-purpose
-data analysis. SystemML \cite{systemml} is a system built on top of MapReduce
-with a focus on large-scale machine learning.
-DryadLINQ \cite{dryadlinq} is built on top of Dryad and exposes a high-level
+programming frameworks have been developed on top of the distributed execution
+engines. Pig Latin \cite{pig} and FlumeJava \cite{flumejava} build
+on top of MapReduce to provide users a high-level operations for
+general-purpose data analysis. SystemML \cite{systemml} builds
+on top of MapReduce with a focus on large-scale machine learning.
+DryadLINQ \cite{dryadlinq} builds on top of Dryad and exposes a high-level
 language to express data analysis tasks.
 
-Spark \cite{spark} and SparkR.
+Spark \cite{spark} is a distributed in-memory data processing frameworks.
+It provides a high-optimized machine learning library called MLlib \cite{mllib}.
+In addition, Spark also provides an R programming interface called SparkR, which
+focuses on computation on data frames.
 
-Array-oriented programming languages such as APL
-Auto-parallelization for APL \cite{Ching12}.
-
-Accelerator \cite{accelerator}
-
-RIOT \cite{riot}
-
-Presto \cite{presto}.
+Both academia and industry make significant effort to bring parallelization to
+array programming languages and scale them to large datasets. Revolution R
+\cite{rre} and parallel computing toolbox in MatLab \cite{matlab} provide
+parallel linear algebra and data analysis rountines as well as explicit
+parallel programming interface such as MPI and MapReduce. Other works bring
+implicit parallelization to programming frameworks. Presto \cite{presto}
+extends R to support sparse matrix operations in distributed memory for graph
+analysis algorithms. Ching et. al \cite{Ching12} parallelizes APL code by
+compiling it to paralllelized C code. Accelerator \cite{accelerator} compiles
+data-parallel operations on the fly to execute programs in GPU.
