@@ -1,13 +1,13 @@
 % What problem are you going to solve.
 
-The National Strategic Computing Initiative (NSCI, \cite{NSCI}) puts forth a critical
+The National Strategic Computing Initiative (NSCI \cite{NSCI}) puts forth a critical
 problem as we move to exascale: {\em ``Increasing coherence between the technology base used for 
 modeling and simulation and that used for data analytic computing.''}  
 A key challenge lies in providing statistical analysis and machine learning 
 tools that are simple and efficient.
 Simple tools need to be programmable, interactive, and extensible, 
 allowing scientists to encode and deploy complex algorithms. 
-Successful examples include R, SciPy, and Matlab.  Efficient dictates that tools should 
+Successful examples include R, SciPy, and Matlab.  Efficiency dictates that tools should 
 leverage modern HPC architectures, including scalable parallelism, high-speed networking,
 and fast I/O from memory and solid-state storage.
 
@@ -46,8 +46,8 @@ programming interface and still achieves both generality and efficiency.
 Some highly-optimized linear algebra libraries \cite{mkl, openblas, elemental,
 trilinos, petsc} provides a matrix programming interface that has a limited
 set of matrix operations with efficient implementations, e.g.~BLAS provide
-matrix-multiplication only and not XXXX or YYY.
-Users have to parallelize the remaining matrix
+matrix-multiplication only and not integer operations or operations on rows
+or columns. Users have to parallelize the remaining matrix
 operations themselves that are not supported by the libraries. 
 High-level programming frameworks, such as R and Matlab, provide a
 general programming interface for users to express varieties of algorithms, but
@@ -67,15 +67,15 @@ We present FlashMatrix, a programming framework that provides a high-level
 matrix-oriented functional programming interface and supports automatic
 parallelization and out-of-core execution for large-scale data analysis.
 Unlike most of the linear algebra libraries, FlashMatrix provides a small
-set of highly-optimized generalized matrix operations (GenOps) that accept
-user-defined functions (UDF) to achieve generality and reimplements many matrix
+set of highly-optimized generalized matrix operations (GenOps) to achieve
+generality and reimplements many matrix
 operations in the R \textit{base} package to execute R code in parallel and
 out of core automatically. FlashMatrix focuses on optimizations in
 a single machine and scales matrix operations beyond memory capacity by utilizing
 solid-state drives (SSDs). This design choice conforms with a current trend of
 hardware design that scales up a single machine for high performance computing
 \cite{Ang14}, including analysis of data stored on the 
-solid-state storage devices (SSDs) of I/O burst buffers \cite{bb}.
+solid-state storage drives (SSDs) of I/O burst buffers \cite{burst}.
 % bb = https://scholar.google.com/scholar?cluster=13235278116505344242&hl=en&as_sdt=0,21&sciodt=0,21
 
 %These machines typically have multiple processors with many CPU cores and
@@ -91,30 +91,31 @@ memory and
 SSDs. The speed disparity of CPU and DRAM has increased exponentially over
 the past decades \cite{Wilkes01}. While SSDs have high IOPS and sequential
 I/O throughput, they are still an order of magnitude slower than DRAM.
-To the contrary, many data analysis tasks are data-intensive and the matrix
-formulation further increases data movement between CPU and SSDs. \dz{TODO}
+To the contrary, many data analysis tasks are data-intensive. Matrix
+formulation further increases data movement between CPU and SSDs because
+a matrix computation framework typically performs an operation
+on the entire input matrices before moving to the next operation.
 % As such,
 %the performance of the data analysis tasks is usually limited by memory
 %bandwidth instead of computing power.
 
-Another challenge in FlashMatrix is to reduce CPU instructions. To support
-the matrix operations in the R \textit{base} package, the GenOps in FlashMatrix
-have to accept pointers to the UDFs at run time. The UDFs are defined to
-operate on individual elements in a matrix. As such, each operation on an element
-in a matrix potentially results in a function call, causing significant
-computation overhead.
+Another challenge in FlashMatrix is to reduce CPU instructions. To achieve
+generality, the GenOps in FlashMatrix rely on user-defined functions to define
+operations on individual elements. To support the matrix operations in the R
+\textit{base} package, the GenOps accept user-defined functions at run time.
+As such, each operation on an element in a matrix potentially results in
+a function call, causing significant computation overhead.
 
 To move data efficiently, FlashMatrix evaluates expressions lazily and fuses
 operations aggressively in a single parallel execution job.
 FlashMatrix builds a directed acyclic graph (DAG) to represent all operations
-in the single execution. When evaluating the computation in the DAG, FlashMatrix
-optimizes data access in memory hierarchy and performs two levels of data
-partitioning to achieve efficient data access and maximize data utilization in
-both main memory and CPU cache and reduce data movement between memory and SSDs
+in a single execution. When evaluating the computation in the DAG, FlashMatrix
+performs two levels of matrix partitioning to improve data utilization in
+memory hierarchy and reduce data movement between memory and SSDs
 as well as between CPU and memory. To access data stored on SSDs, FlashMatrix
 streams data from SSDs to yeild maximal I/O throughput.
 
-\dz{maybe we should say something about optimization on memory allocation?}
+%\dz{maybe we should say something about optimization on memory allocation?}
 
 To reduce CPU instructions, we deploy vectorized user-defined
 functions (VUDFs), which operates on a vector of elements instead of
@@ -122,7 +123,7 @@ an individual element. We define multiple forms for each VUDF and automatically
 select the right form for each GenOp to amortize the function call overhead.
 When invoking UDFs, GenOps choose the right vector length to balance
 the amortization of the function call overhead and CPU cache misses. The use
-of vector CPU instructions, such as AVX \cite{avx}, reduce CPU
+of vector CPU instructions, such as AVX \cite{avx}, reduces CPU
 instructions and improve CPU vectorization with memory alignment.
 
 % What are it's key features?
