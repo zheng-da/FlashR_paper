@@ -219,6 +219,18 @@ Figure \ref{fig:fmR} and Figure
 achieve performance comparable to or even outperform parallel C or FORTRAN
 implementations.
 
+\begin{figure}
+	\begin{center}
+		\footnotesize
+		\vspace{-15pt}
+		\include{scale}
+		\vspace{-10pt}
+		\caption{The scalability and performance of KMeans in different
+		frameworks.}
+		\label{fig:scale}
+	\end{center}
+\end{figure}
+
 \subsection{Performance of FlashMatrix in memory and on SSDs}
 
 We further measure the in-memory and external-memory performance of the FlashMatrix
@@ -252,9 +264,9 @@ in the dataset gets larger, computation in correlation and SVD grows more
 rapidly than I/O and eventually CPU becomes
 the bottleneck. Similarly, the computation of KMeans and GMM increases
 more rapidly than I/O and get dominated by their CPU computation as the number
-of clusters gets larger. Given the I/O throughput of 10 GB/s, it does not
-require many features or clusters to have the applications bottlenecked by
-CPU.
+of clusters gets larger. Given the I/O throughput of 10 GB/s, the applications
+do not require many features or clusters to have their external-memory
+performance close to their in-memory performance.
 
 \begin{figure}
 	\begin{center}
@@ -273,18 +285,18 @@ CPU.
 
 In this section, we illustrate the effectiveness of our memory and CPU
 optimizations in FlashMatrix. To reduce memory overhead, we focus on three
-main optimizations: \textit{(i)} recycling memory chunks to reduce large
+main optimizations: \textit{(i)} reusing memory chunks for new in-memory
+matrices and I/O access to reduce large
 memory allocation, \textit{(ii)} matrix operation fusion in main
 memory to reduce data movement between SSDs and main memory, \textit{(iii)}
 matrix operation fusion in CPU cache to reduce data movement between main
 memory and CPU cache. To reduce computation overhead, we illustrate
-the effectiveness of using VUDF.
-%Due to the space limit, we only illustrate the effectiveness of
-%the optimizations on the applications when they are executed on SSDs.
+the effectiveness of using VUDFs.
 
 Each memory optimization has significant performance improvement on most of
 the applications when they are executed on SSDs (Figure \ref{perf:opts}).
-Operation fusion in main memory achieves
+Due to the space limit, we only illustrate the effectiveness of
+the memory optimizations on SSDs. Operation fusion in main memory achieves
 the highest performance improvement in almost all applications, even in GMM,
 which has the highest asymptotic computation complexity. Even though the SSDs
 deliver 10GB/s I/O throughput, materializing every matrix operation separately
@@ -308,5 +320,28 @@ performance and almost double the performance for all applications.
 			applications when they are executed on SSDs. The three memory
 		optimizations are applied to FlashMatrix incrementally.}
 		\label{perf:opts}
+	\end{center}
+\end{figure}
+
+Using VUDFs improves the performance of the applications that
+rely on GenOps for computation (Figure \ref{perf:opts_CPU}). To remove memory
+as the bottleneck from the system, the base implementations deploy all memory
+optimizations and invoke user-defined functions on individual elements in
+matrices. The FlashMatrix implementations of computing statistical summary
+and KMeans solely rely on GenOps. Therefore, their performance is almost doubled
+when using VUDFs. The main computation in correlation and GMM is matrix
+multiplication, but they still rely on GenOps for the remaining computation.
+As such, using VUDFs help their performance. SVD solely uses matrix
+multiplication, so switching VUDFs has no performance impact.
+
+\begin{figure}
+	\begin{center}
+		\footnotesize
+		\vspace{-15pt}
+		\include{opts.CPU}
+		\vspace{-10pt}
+		\caption{The effectiveness of using VUDFs on different applications
+		when they are executed in memory.}
+		\label{perf:opts_CPU}
 	\end{center}
 \end{figure}
