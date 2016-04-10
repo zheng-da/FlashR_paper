@@ -92,8 +92,8 @@ with the ones in Spark MLlib \cite{mllib} and R. We run the MLlib implementation
 with their native Scala interface and use a very large heap size to ensure that
 all input data is cached in memory. We use 48 threads for both FlashMatrix and
 MLlib to run on a random matrix with one billion rows and 32 columns.
-The R framework provides C implementations for correlation, SVD and KMeans and
-the R package mclust \cite{mclust} provides a FORTRAN implementation of GMM.
+The R framework provides C implementations for correlation, SVD and KMeans.
+The R package mclust \cite{mclust} provides a FORTRAN implementation of GMM.
 These implementations run in a single thread. To compare with these implementations,
 we run the FlashMatrix implementations in a single thread on a random matrix
 with 64 million rows and 32 columns.
@@ -140,7 +140,7 @@ in all applications (Figure \ref{perf:fm} (a)). For some applications
 such as correlation, SVD and GMM, even though both FlashMatrix and MLlib
 implementations heavily rely on BLAS for matrix multiplication, FlashMatrix
 outperforms MLlib significantly owing to matrix operation fusion and two-level
-partitioning to reduce data movement between memory and CPU.
+partitioning, which reduce data movement between memory and CPU.
 %SVD is the only application whose FlashMatrix
 %implementation does not outperform the one in MLlib when being executed out of
 %core because this application requires to read the entire matrix multiple times
@@ -211,7 +211,7 @@ operation fusion in CPU cache, FlashMatrix significantly reduces data movement
 between CPU and main memory. As such, memory bandwidth is no longer
 the bottleneck and the computation speeds up linearly with more CPU cores
 when the applications run in memory. The SSDs deliver about 10GB/s I/O throughput
-and becomes the bottleneck in the applications with lower computation overhead.
+and become the bottleneck in the applications with lower computation overhead.
 Applications such as GMM, which have much higher computation complexity, still
 speed up almost linearly even when running on SSDs. The performance results in
 Figure \ref{fig:fmR} and Figure
@@ -303,12 +303,12 @@ deliver 10GB/s I/O throughput, materializing every matrix operation separately
 causes SSDs to be the main bottleneck in the system.
 Fusing matrix operations in memory significantly reduces the burden on SSDs and
 improves performance by a large factor. Operation fusion in the CPU cache also
-has very positive performance impact in some applications even when
+has very positive performance impact on some applications even when
 the applications run on SSDs. This suggests that with sufficient I/O optimizations,
 many machine learning applications that run on fast SSDs can be bottlenecked by
 the bandwidth of main memory, instead of I/O. Even though it is less noticeable,
-reducing large memory allocation from Linux can significantly improvement I/O
-performance and almost double the performance for all applications.
+reducing large memory allocation improves I/O performance and almost doubles
+the performance for all applications.
 
 \begin{figure}
 	\begin{center}
