@@ -7,13 +7,13 @@ provides only a small number of vector and matrix operations.
 
 Distributed memory matrix computation libraries \cite{trilinos, petsc, elemental}
 speed up computation and scale to larger vectors and matrices. These libraries
-in general build on top of BLAS and distribute computation with MPI. Like BLAS,
-these libraries provide a limited set of predefined matrix operations and thus,
+in general build on top of BLAS and distribute computation with MPI.
+They provide a limited set of predefined matrix operations and
 require users to manually parallelize the remaining matrix operations. Instead
 of providing predefined matrix operations, the core of FlashMatrix provides
 a few GenOps that represent some common data access patterns. By accepting
-different functions that define operations on individual elements of a matrix,
-each GenOp covers a very large number of matrix operations.
+different functions that define operations on individual elements in the input
+matrices, each GenOp covers a very large number of matrix operations.
 
 There are many distributed data processing frameworks.
 MapReduce \cite{mapreduce} is a general large-scale data processing framework.
@@ -26,12 +26,11 @@ data access patterns more efficiently.
 
 Due to complexity of programming in the distributed execution engines, many
 programming frameworks have been developed on top of the distributed execution
-engines. Pig Latin \cite{pig} and FlumeJava \cite{flumejava} build
-on top of MapReduce to provide users high-level operations for
-general-purpose data analysis. SystemML \cite{systemml} builds
-on top of MapReduce with a focus on large-scale machine learning.
+engines. Pig Latin \cite{pig} and FlumeJava \cite{flumejava} build on top of
+MapReduce to provide high-level operations for general data analysis. SystemML
+\cite{systemml} builds on top of MapReduce with a focus on machine learning.
 DryadLINQ \cite{dryadlinq} builds on top of Dryad and exposes a high-level
-language to express data analysis tasks. The performance of the programming
+language to express data analysis tasks. The performance of these programming
 frameworks is bound by the underlying distributed execution engines.
 
 Spark \cite{spark} is a distributed in-memory data processing framework.
@@ -46,6 +45,6 @@ parallel linear algebra and data analysis routines as well as explicit
 parallel programming interface such as MPI and MapReduce. Other works bring
 implicit parallelization to programming frameworks. Presto \cite{presto}
 extends R to support sparse matrix operations in distributed memory for graph
-analysis algorithms. Ching et. al \cite{Ching12} parallelizes APL code by
+analysis. Ching et. al \cite{Ching12} parallelizes APL code by
 compiling it to paralllelized C code. Accelerator \cite{accelerator} compiles
 data-parallel operations on the fly to execute programs in GPU.
