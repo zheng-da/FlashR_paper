@@ -42,12 +42,12 @@ preferred in the rapidly evolving fields of machine learning and data mining.
 % Why is it hard?
 
 It is challenging to provide a programming framework that has a high-level
-programming interface and still achieves both generality and efficiency.
+programming interface and achieves both generality and efficiency.
 Some highly-optimized linear algebra libraries \cite{mkl, openblas, elemental,
 trilinos, petsc} provides a matrix programming interface that has a limited
-set of matrix operations with efficient implementations, e.g.~BLAS provide
-matrix-multiplication only and not integer operations or operations on rows
-or columns. Users have to parallelize the remaining matrix
+set of matrix operations with efficient implementations, e.g.~BLAS provides
+only matrix multiplication and not integer operations or row/column operations.
+Users have to parallelize the remaining matrix
 operations themselves that are not supported by the libraries. 
 High-level programming frameworks, such as R and Matlab, provide a
 general programming interface for users to express varieties of algorithms, but
@@ -68,8 +68,10 @@ matrix-oriented functional programming interface and supports automatic
 parallelization and out-of-core execution for large-scale data analysis.
 Unlike most of the linear algebra libraries, FlashMatrix provides a small
 set of highly-optimized generalized matrix operations (GenOps) to achieve
-generality and reimplements many matrix
-operations in the R \textit{base} package to execute R code in parallel and
+generality. A GenOp takes some functions as additional arguments that
+define operations on individual elements in the input matrices.
+It reimplements many matrix operations in the R \textit{base} package with
+GenOps to execute R code in parallel and
 out of core automatically. FlashMatrix focuses on optimizations in
 a single machine and scales matrix operations beyond memory capacity by utilizing
 solid-state drives (SSDs). This design choice conforms with a current trend of
@@ -99,10 +101,9 @@ on the entire input matrices before moving to the next operation.
 %the performance of the data analysis tasks is usually limited by memory
 %bandwidth instead of computing power.
 
-Another challenge in FlashMatrix is to reduce CPU instructions. To achieve
-generality, the GenOps in FlashMatrix rely on user-defined functions to define
-operations on individual elements. To support the matrix operations in the R
-\textit{base} package, the GenOps accept user-defined functions at run time.
+Another challenge in FlashMatrix is to reduce CPU instructions. To support
+the matrix operations in the R
+\textit{base} package, a GenOp accepts functions at run time.
 As such, each operation on an element in a matrix potentially results in
 a function call, causing significant computation overhead.
 
@@ -113,7 +114,7 @@ in a single execution. When evaluating the computation in the DAG, FlashMatrix
 performs two levels of matrix partitioning to improve data utilization in
 memory hierarchy and reduce data movement between memory and SSDs
 as well as between CPU and memory. To access data stored on SSDs, FlashMatrix
-streams data from SSDs to yeild maximal I/O throughput.
+streams data from SSDs to yield maximal I/O throughput.
 
 %\dz{maybe we should say something about optimization on memory allocation?}
 
@@ -121,7 +122,7 @@ To reduce CPU instructions, we deploy vectorized user-defined
 functions (VUDFs), which operates on a vector of elements instead of
 an individual element. We define multiple forms for each VUDF and automatically
 select the right form for each GenOp to amortize the function call overhead.
-When invoking UDFs, GenOps choose the right vector length to balance
+When invoking VUDFs, GenOps choose the right vector length to balance
 the amortization of the function call overhead and CPU cache misses. The use
 of vector CPU instructions, such as AVX \cite{avx}, reduces CPU
 instructions and improve CPU vectorization with memory alignment.
