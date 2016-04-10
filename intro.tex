@@ -34,7 +34,7 @@ effort from programmers. The other approach is to use high-level programming
 frameworks that provide high-level operations to reduce the burden of
 programmers. In general, the second approach is less computationally
 efficient but can significantly increase productivity and lower the barrier
-of writing parallel implementations. The second approach is 
+to writing parallel implementations. The second approach is 
 preferred in the rapidly evolving fields of machine learning and data mining.
 %The high-level programming interface enables non-expert programmers
 %to effectively use computation resources.
@@ -68,7 +68,7 @@ matrix-oriented functional programming interface and supports automatic
 parallelization and out-of-core execution for large-scale data analysis.
 Unlike most of the linear algebra libraries, FlashMatrix provides a small
 set of highly-optimized generalized matrix operations (GenOps) to achieve
-generality. It reimplements many matrix operations in the R \textit{base}
+generality. It reimplements many matrix operations from the R \textit{base}
 package with GenOps to execute R code in parallel and
 out of core automatically. FlashMatrix focuses on optimizations in
 a single machine and scales matrix operations beyond memory capacity by utilizing
@@ -91,7 +91,7 @@ memory and
 SSDs. The speed disparity of CPU and DRAM has increased exponentially over
 the past decades \cite{Wilkes01}. While SSDs have high IOPS and sequential
 I/O throughput, they are still an order of magnitude slower than DRAM.
-To the contrary, many data analysis tasks are data-intensive. Matrix
+Many analysis tasks are data-intensive. Matrix
 formulation further increases data movement between CPU and SSDs because
 a matrix computation framework typically performs an operation
 on the entire input matrices before moving to the next operation.
@@ -104,7 +104,7 @@ FlashMatrix takes some functions as additional arguments that define operations
 on individual elements in the input matrices. To support the matrix operations
 in the R \textit{base} package, a GenOp accepts functions at run time.
 As such, each operation on an element potentially results in a function call,
-causing significant computation overhead.
+incurring computational overhead.
 
 To move data efficiently, FlashMatrix evaluates expressions lazily and fuses
 operations aggressively in a single parallel execution job.
@@ -113,12 +113,12 @@ in a single execution. When evaluating the computation in a DAG, FlashMatrix
 performs two levels of matrix partitioning to improve data utilization in
 memory hierarchy and reduce data movement between memory and SSDs
 as well as between CPU and memory. To access data stored on SSDs, FlashMatrix
-streams data from SSDs to yield maximal I/O throughput.
+streams data from SSDs to maximize I/O throughput.
 
 %\dz{maybe we should say something about optimization on memory allocation?}
 
 To reduce computation overhead, we deploy vectorized user-defined
-functions (VUDFs), which operates on a vector of elements instead of
+functions (VUDFs), which operates on a vector of elements, instead of
 an individual element. We define multiple forms for each VUDF and automatically
 select the right form for each GenOp to amortize the function call overhead.
 When invoking VUDFs, GenOps choose the right vector length to balance
@@ -128,15 +128,15 @@ to further improve performance.
 
 % What are it's key features?
 
-We implement multiple machine learning algorithms such as KMeans \cite{kmeans}
-and Gaussian Mixture Model \cite{gmm} in FlashMatrix with its R programming
+We implement multiple machine learning algorithms, including KMeans \cite{kmeans}
+and Gaussian Mixture Models \cite{gmm} in FlashMatrix with its R programming
 interface to benchmark its performance. On a large parallel machine with 48
 CPU cores and fast SSDs, the out-of-core execution of these R implementations
 in FlashMatrix achieves performance comparable to the in-memory execution
-while significantly outperforming the ones in Spark MLlib \cite{spark}.
-When running in a single thread, the R implementations outperform the C and
-FORTRAN implementations in the R framework. In addition, FlashMatrix achieves
-almost linear speedup in a multicore NUMA machine for all of the algorithms.
+while significantly outperforming the same algorithms in Spark MLlib \cite{spark}.
+When running in a single thread, the FlashMatrix outperform the C and
+FORTRAN optimized implementations of the R framework. In addition, FlashMatrix achieves
+almost linear speedup in a multicore NUMA machine for all algorithms.
 We believe FlashMatrix significantly lowers the requirements for writing parallel
 and scalable implementations of data analysis algorithms; it also offers new
 design possibilities for data analysis clusters, replacing memory with larger
