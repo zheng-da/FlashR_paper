@@ -163,13 +163,13 @@ non-BLAS operations with Scala.
 %	\end{center}
 %\end{figure}
 
-FlashMatrix provides a matrix-oriented functional programming interface,
-FlashMatrix easily scales to datasets with billions of data points and its
+Even though FlashMatrix provides a matrix-oriented functional programming
+interface, it easily scales to datasets with billions of data points and its
 scalability is bound by the capacity of SSDs (Figure \ref{perf:fm} (b)).
-When being executed on SSDs, FlashMatrix keeps most of the large matrices on
-SSDs and thus leads to a very small memory footprint. The functional programming
-interface generates a new matrix in each matrix operation, potentially leads
-to high memory consumption. Owing to lazy evaluation,
+For out-of-core execution, FlashMatrix keeps most of the large matrices on
+SSDs and has a very small memory footprint. The functional programming
+interface generates a new matrix in each matrix operation, which potentially
+leads to high memory consumption. Owing to lazy evaluation,
 FlashMatrix does not store majority of matrices in the computation physically.
 As such, its in-memory execution barely increases memory consumption from
 the minimum memory requirement of the applications. This indicates that
