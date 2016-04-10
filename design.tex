@@ -300,8 +300,8 @@ the input vector of a VUDF. %Futher increasing the length does not have
 
 We have three types of VUDFs to support the GenOps in FlashMatrix. Each VUDF
 type may have multiple forms to allow GenOps to transform operations to
-increase the length of an input vector to a VUDF and increase amortization
-of function call overhead.
+increase the length of an input vector to a VUDF and reduce function call
+overhead.
 \begin{itemize}
 	\item A \textit{unary} VUDF (denoted with \textit{uVUDF}) takes a vector
 		as input and outputs a vector of the same length.
@@ -326,8 +326,8 @@ of function call overhead.
 \end{itemize}
 
 Figure \ref{fig:DAG} shows an example of using GenOps and VUDFs to compute
-standard deviation on a matrix with missing values. Standard deviation is
-computed with the following
+standard deviation on a matrix with missing values, a common computation in R.
+Standard deviation is computed with the following
 formula: $\sigma = \sqrt{E[X^2] - (E[X])^2}$, where $X$ is the input matrix and
 $E[X]$ is the mean of the matrix $X$. In the presence of missing values, we
 need to exclude the missing values from the matrix. The first step is to apply
@@ -349,13 +349,14 @@ FlashMatrix provides arithmetic operations such as \textit{addition} and
 absolute values and square root. FlashMatrix also provides a set of VUDFs to
 cast primitive element types.
 
-For each basic operation in a VUDF, FlashMatrix provides multiple VUDF
+For each basic operation, FlashMatrix provides multiple VUDF
 implementations to support different element types. To reduce the number
 of binary VUDF implementations, FlashMatrix only provides the ones that take
 two input arguments of the same type. If a GenOp gets two matrices with different
 element types, it first casts the element type of one matrix to match
-the other. Type casting follows the usual arithmetic conversions \cite{}
-commonly seen in many programming languages. Type casting operations are
+the other. %Type casting follows the usual arithmetic conversions \cite{}
+%commonly seen in many programming languages.
+Type casting operations are
 implemented with \textit{sapply} and are performed lazily.
 
 FlashMatrix allows programmers to extend the framework by registering new VUDFs.
@@ -369,19 +370,19 @@ the computation in a VUDF. The current implementation of FlashMatrix heavily
 relies on auto-vectorization of a compiler, such as GCC, to vectorize
 computaion. FlashMatrix provides hints and
 transforms code to help auto-vectorization. For example, a VUDF in FlashMatrix
-frequently operates on vectors with data well aligned in memory and of
+frequently operates on vectors with data aligned in memory and of
 the length defined at compile time, so we inform the compiler of the data alignment
 and the vector length. Some compilers do not automatically vectorize
 aggregation operations well. We manually create a small vector of reduction
 variables, flatten the loop and transform the original aggregation operation
-into aggregation onto the vector of reduction variables.
+into aggregation onto the vector of reduction variables to help auto-vectorization.
 
 \subsection{Lazy evaluation} \label{sec:lazy_eval}
-FlashMatrix evaluates matrix operations lazily. Evaluating individual
+FlashMatrix evaluates matrix operations lazily. Evaluation of individual
 matrix operations results in significant data movement between CPU and SSDs
-and frequent memory allocation in in-memory execution.
+as well as frequent memory allocation in in-memory execution.
 Lazy evaluation enables matrix operation fusion to minimize data movement,
-reduce memory allocation overhead and improve parallelization \cite{Ching12}.
+reduce memory allocation and improve parallelization \cite{Ching12}.
 
 \begin{figure}
 	\centering
@@ -393,17 +394,17 @@ reduce memory allocation overhead and improve parallelization \cite{Ching12}.
 
 FlashMatrix constructs a directed acyclic graph (DAG) to represent a sequence
 of matrix operations evaluated lazily (Figure \ref{fig:DAG} (a)). A lazily
-evaluated GenOp outputs a \textit{virtual matrix}
-to capture the matrix computation and the input matrices. As such, a computation
-DAG is formed with a set of \textit{virtual matrix} nodes (shown as rectangles)
+evaluated GenOp outputs a \textit{virtual matrix} to capture matrix computation
+and the input matrices. A
+DAG comprises a set of \textit{virtual matrix} nodes (shown as rectangles)
 and computation nodes (shown as ellipses). We refer to the input matrices of
 a computation node as the parent matrices and the output matrix as the child matrix.
 The computation nodes may contain some immutable computation state such as
 scalar variables and small matrices involved in the matrix computation.
 A matrix node can be used by multiple computation nodes as
 an input matrix. Although the \textit{virtual matrices} do not need to have
-the same shape, FlashMatrix requires all \textit{virtual matrices} in the DAG
-have the same \textit{long dimension} size (Figure \ref{fig:DAG} (b)) to
+the same shape, FlashMatrix requires all \textit{virtual matrices} in a DAG
+to have the same \textit{long dimension} size (Figure \ref{fig:DAG} (b)) to
 simplify evaluation and data flow of a DAG (a \textit{long dimension}
 refers to the matrix dimension with the larger size).
 
@@ -418,13 +419,13 @@ connected to the same DAG and we refer to these output matrices as
 \textit{sink matrices}.
 
 To enable lazy evaluation, all matrices in FlashMatrix are immutable and every
-matrix operation generates a new matrix. As such, \textit{virtual matrices}
-generate the same result every time when they are materialized. FlashMatrix
+matrix operation generates a new matrix. As such, materialization of
+\textit{virtual matrices} always generates the same result. FlashMatrix
 garbage collects a matrix when there are no references to it.
 
 \subsection{Matrix materialization} \label{sec:materialize}
 Lazy evaluation postpones computation in matrix operations, but we eventually
-have to perform actual computation and materialize some \textit{virtual matrices}.
+have to materialize some \textit{virtual matrices} to perform actual computation.
 
 FlashMatrix allows to materialize any \textit{virtual matrix} in a DAG and
 can materialize multiple \textit{virtual matrices} together. Typically, we
@@ -432,8 +433,8 @@ materialize only \textit{sink matrices} in a DAG. In the example shown in
 Figure \ref{fig:DAG}, we materialize the three \textit{sink matrices} together
 to reduce data movement in memory hierarchy. Many iterative algorithms need
 to materialize some non-\textit{sink matrices} in a DAG to avoid redundant
-computation and I/O if these non-\textit{sink matrices} are used
-in the next iteration. FlashMatrix allows users to set a flag on the
+computation and I/O if these non-\textit{sink matrices} are used across
+iterations. FlashMatrix allows users to set a flag on the
 non-\textit{sink matrices} to inform FlashMatrix to save materialized data
 of these matrices to memory or SSDs during computation.
 
@@ -627,7 +628,7 @@ each row of individual matrices and apply the \textit{combine} function on the p
 aggregation results. When applying \textit{mapply\_row} to a group of tall matrices,
 we break the input vector into parts to match the number of columns in the individual
 matrices in the group and apply \textit{mapply\_row} to individual matrices
-separately. The same strategies are used for \textit{agg\_col} and
+separately. We apply the same strategies to \textit{agg\_col} and
 \textit{mapply\_col} on a group of wide matrices. 
 
 %FlashMatrix decomposes inner product on a matrix group in favor of minimizing
