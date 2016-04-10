@@ -7,16 +7,16 @@ such as solid-state drives (SSDs), in a non-uniform memory architecture (NUMA).
 FlashMatrix uses R as its main programming interface and executes R code
 automatically in parallel and out of core.
 
-Figure \ref{fig:arch} shows the architecture of FlashMatrix. The main programming
-interface comprises a small number of generalized matrix operators (GenOps).
-As such, FlashMatrix only focuses on optimizations on these GenOps
-to greatly simplify the implementation and improve the expressiveness of
+Figure \ref{fig:arch} shows the architecture of FlashMatrix. The core of
+FlashMatrix provides a small number of generalized matrix operators (GenOps)
+to simplify the implementation and improve the expressiveness of
 the framework. The optimizer in FlashMatrix aggressively merges operators to
 reduce CPU cache misses and I/O accesses and achieve better parallelization.
 FlashMatrix stores large matrices on SSDs through SAFS \cite{safs},
 a user-space filesystem for a large SSD array, to fully utilize high I/O
-throughput of the SSDs and deploys a set of I/O optimizations to improve
-its sequential I/O throughput \cite{SEM_SpMM}.
+throughput of the SSDs.
+%and deploys a set of I/O optimizations to improve
+%its sequential I/O throughput %\cite{SEM_SpMM}.
 
 \begin{figure}
 \centering
@@ -27,10 +27,10 @@ its sequential I/O throughput \cite{SEM_SpMM}.
 
 FlashMatrix provides a matrix-oriented functional programming interface.
 It exposes GenOps in its R interface and reimplements many functions
-in the R \textit{base} package with the GenOps. Every function operates on
-one or more matrices and outputs a new matrix. As such, the matrices in
-FlashMatrix are immutable. The functions provided by the R interface are
-categorized into seven classes:
+in the R \textit{base} package with the GenOps. The matrices in FlashMatrix
+are immutable. Each function operates on one or more matrices and outputs
+a new matrix. The functions provided by the R interface are categorized into
+seven classes:
 \begin{itemize}
 	\item The generalized matrix operators (GenOps).
 	\item The construction functions that create vectors and matrices of
@@ -40,7 +40,7 @@ categorized into seven classes:
 		R matrices to enable interaction between FlashMatrix and the R framework.
 	\item The transformation functions that change the shape of a matrix.
 		The commonly used functions include matrix transpose, matrix combination
-		such as \textit{rbind} and \textit{cbind} and submatrix extraction.
+		such as \textit{rbind} and \textit{cbind}, and submatrix extraction.
 	\item Element-wise operations such as matrix addition and subtraction.
 	\item Aggregation operations such as summation.
 	\item BLAS matrix multiplication.
@@ -94,8 +94,9 @@ categorized into seven classes:
 
 \subsection{Dense matrices}
 Dense matrices are the main data types in FlashMatrix. A vector is stored
-as a one-column dense matrix. In FlashMatrix, a dense matrix can be physically
-stored in memory or on SSDs or represented virtually by a sequence of computation.
+as a one-column dense matrix. In FlashMatrix, a dense matrix can be stored
+physically in memory or on SSDs or represented virtually by a sequence of
+computation.
 
 %A matrix has two identifiers: the \textit{matrix identifier} that indicates
 %the matrix itself and the \textit{matrix data identifier} that indicates
@@ -106,23 +107,20 @@ stored in memory or on SSDs or represented virtually by a sequence of computatio
 \subsubsection{Tall-and-skinny matrices} \label{sec:tas_mat}
 
 FlashMatrix optimizes for tall-and-skinny (TAS) dense matrices due to their
-frequent occurrence in many data analysis tasks.
-In data analysis and machine learning, many data matrices contain a large
-number of samples with a relatively few attributes, so the shape
+frequent occurrence in data analysis. In this field, many data matrices contain
+a large number of samples with a relatively few attributes, so the shape
 of the data matrices is usually tall and skinny. If a data matrix has many
-attributes, the first step is usually dimension reduction \cite{}, which
-results in a tall-and-skinny matrix. FlashMatrix specifically
-optimizes for TAS dense matrices with tens of columns or fewer.
-This section describes optimizations on TAS matrices and the same optimizations
-are applied to short-and-wide matrices.
+attributes, the first step is usually dimension reduction \cite{Jain00}, which
+results in a TAS matrix. FlashMatrix specifically optimizes for TAS dense
+matrices with tens of columns or fewer. The same optimizations are applied
+to short-and-wide matrices.
 
 FlashMatrix supports row-major and column-major matrix layout (Figure
 \ref{fig:tas_mat}). As such,
-we avoid data copy for matrix operations such as matrix transpose.
+we avoid data copy for common matrix operations such as matrix transpose.
 Furthermore, each GenOp has its own preferred matrix layout. FlashMatrix
 optimizes matrix operations for both data layouts. The layout of an output
-matrix is generally determined by a GenOp. Columns in a column-major TAS matrix
-are not stored contiguously.
+matrix is generally determined by a GenOp.
 
 \begin{figure}
 	\centering
@@ -132,13 +130,13 @@ are not stored contiguously.
 \end{figure}
 
 FlashMatrix uses two-level horizontal partitioning on TAS matrices for efficient
-data access to SSDs and main memory (Figure \ref{fig:tas_mat}). Both in-memory
-and external-memory TAS matrices are first partitioned horizontally into
-I/O-level partitions. All elements in an I/O-level partition are stored
+data access to SSDs and main memory (Figure \ref{fig:tas_mat}). FlashMatrix
+first partitions both in-memory and external-memory TAS matrices horizontally
+into I/O-level partitions. All elements in an I/O-level partition are stored
 contiguously regardless of the data layout in the matrix. For an in-memory matrix,
 the partition size determines the size of contiguous memory required in memory
 allocation (see Section \ref{sec:mem}). For an external-memory matrix, each I/O
-access reads the entire I/O-level partition. The partition size determines an I/O
+access reads the entire I/O-level partition, so the partition size determines an I/O
 size, usually in the order of megabytes. The number of rows in an I/O-level
 partition is always $2^i$. This produces column-major TAS matrices whose data
 are well aligned in memory to help CPU vectorization.
@@ -161,7 +159,7 @@ of rows in a CPU-level partition based on the number of columns in a matrix.
 
 \subsubsection{Virtual matrices} \label{virt_mat}
 In many cases, we do not need to store the data of a matrix physically. Instead,
-we compute and generate its data on the fly. \textit{virtual matrices} store
+we compute and generate its data on the fly. \textit{Virtual matrices} store
 computation and potentially the reference
 to some other matrices required by the computation. A simple example is a matrix
 with all elements having the same value. For such a matrix, we only need to store
@@ -170,10 +168,10 @@ a single value and construct its matrix partitions during computation.
 \textit{Virtual matrices} are essential for lazy evaluation (Section
 \ref{sec:lazy_eval}). All GenOps may output \textit{virtual matrices} that
 represent the computation results and store only the computation of the GenOps
-and the references to the input matrices of the GenOps. This strategy is
+and the references to the input matrices. This strategy is
 essential for both in-memory and external-memory optimizations to improve
 performance. It significantly reduces data access to memory and SSDs as well as
-memory allocation overhead.
+memory allocation overhead for creating new matrices.
 
 %\subsubsection{Cached matrix}
 %Memory cache is necessary for external-memory matrices on a machine with
@@ -227,17 +225,16 @@ or CPU cache.
 \subsection{Generalized computation operations} \label{sec:genop}
 To improve generality and simplify the implementation, FlashMatrix provides
 only four generalized operators (GenOps) on matrices: \textit{inner product},
-\textit{apply}, \textit{aggregation} and \textit{groupby}. Each of the operators
+\textit{apply}, \textit{aggregation} and \textit{groupby}. Each operator
 represents a data access pattern and accepts some functions as additional
 arguments that define computation
 on individual elements in matrices (Section \ref{sec:vudf}).
 
 \textit{Inner product} is a generalized matrix multiplication. It replaces
 multiplication and addition in matrix multiplication with two functions.
-We define many operations
-with inner product. For example, we use inner product to compute various
-pair-wise distances between samples such as Euclidean distance and
-Hamming distance. For dense matrices, we mainly focus on
+We define many operations with inner product. For example, we use inner product
+to compute various pair-wise distances, such as Euclidean distance and Hamming
+distance, between data points. For dense matrices, we mainly focus on
 optimizing two cases: inner product of a wide matrix and a tall matrix (denoted
 with \textit{inner\_prod\_wide}) and inner product of a tall matrix and a small
 matrix (denoted with \textit{inner\_prod\_tall}). It is impractical to
@@ -411,10 +408,10 @@ simplify evaluation and data flow of a DAG (a \textit{long dimension}
 refers to the matrix dimension with the larger size).
 
 FlashMatrix allows lazy evaluation on all GenOps. There are two types of GenOps
-in a DAG. The first type of GenOps, such as \textit{sapply} and \textit{mapply},
-output matrices with the same \textit{long dimension} size as the input matrices.
-The second type of GenOps, such as \textit{agg} and \textit{groupby}, output
-matrices with different \textit{long dimension} sizes. The output matrices of the first
+in a DAG. The first type, such as \textit{sapply} and \textit{mapply}, generates
+matrices with the same \textit{long dimension} size as the input matrices.
+The second type, such as \textit{agg} and \textit{groupby}, generates matrices
+with different \textit{long dimension} sizes. The output matrices of the first
 type of GenOps can be easily connected to other nodes in a DAG. Any computation
 that uses the output matrices of the second type of GenOps as input cannot be
 connected to the same DAG and we refer to these output matrices as
