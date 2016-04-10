@@ -6,7 +6,7 @@ libraries optimize the vector and matrix operations in shared memory. BLAS
 provides only a small number of vector and matrix operations.
 
 Distributed memory matrix computation libraries \cite{trilinos, petsc, elemental}
-speed up computation and scale to larger vector and matrices. These libraries
+speed up computation and scale to larger vectors and matrices. These libraries
 in general build on top of BLAS and distribute computation with MPI. Like BLAS,
 these libraries provide a limited set of predefined matrix operations and thus,
 require users to manually parallelize the remaining matrix operations. Instead
@@ -27,14 +27,14 @@ data access patterns more efficiently.
 Due to complexity of programming in the distributed execution engines, many
 programming frameworks have been developed on top of the distributed execution
 engines. Pig Latin \cite{pig} and FlumeJava \cite{flumejava} build
-on top of MapReduce to provide users a high-level operations for
+on top of MapReduce to provide users high-level operations for
 general-purpose data analysis. SystemML \cite{systemml} builds
 on top of MapReduce with a focus on large-scale machine learning.
 DryadLINQ \cite{dryadlinq} builds on top of Dryad and exposes a high-level
 language to express data analysis tasks. The performance of the programming
 frameworks is bound by the underlying distributed execution engines.
 
-Spark \cite{spark} is a distributed in-memory data processing frameworks.
+Spark \cite{spark} is a distributed in-memory data processing framework.
 It provides a high-optimized machine learning library called MLlib \cite{mllib}.
 In addition, Spark also provides an R programming interface called SparkR, which
 focuses on computation on data frames.
