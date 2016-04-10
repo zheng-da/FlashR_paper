@@ -25,7 +25,7 @@ its sequential I/O throughput \cite{SEM_SpMM}.
 \label{fig:arch}
 \end{figure}
 
-FlashMatrix provides an matrix-oriented functional programming interface.
+FlashMatrix provides a matrix-oriented functional programming interface.
 It exposes GenOps in its R interface and reimplements many functions
 in the R \textit{base} package with the GenOps. Every function operates on
 one or more matrices and outputs a new matrix. As such, the matrices in
@@ -110,11 +110,11 @@ frequent occurrence in many data analysis tasks.
 In data analysis and machine learning, many data matrices contain a large
 number of samples with a relatively few attributes, so the shape
 of the data matrices is usually tall and skinny. If a data matrix has many
-attributes, the first step is usually dimension reduction \cite{} and
-the operation results in a tall-and-skinny matrix. FlashMatrix specifically
+attributes, the first step is usually dimension reduction \cite{}, which
+results in a tall-and-skinny matrix. FlashMatrix specifically
 optimizes for TAS dense matrices with tens of columns or fewer.
 This section describes optimizations on TAS matrices and the same optimizations
-is applied to short-and-wide matrices.
+are applied to short-and-wide matrices.
 
 FlashMatrix supports row-major and column-major matrix layout (Figure
 \ref{fig:tas_mat}). As such,
@@ -169,10 +169,10 @@ a single value and construct its matrix partitions during computation.
 
 \textit{Virtual matrices} are essential for lazy evaluation (Section
 \ref{sec:lazy_eval}). All GenOps may output \textit{virtual matrices} that
-represent the computation result and only store the computation of the GenOps
+represent the computation results and store only the computation of the GenOps
 and the references to the input matrices of the GenOps. This strategy is
 essential for both in-memory and external-memory optimizations to improve
-performance. It significantly reduces data access to memory and SSDs and
+performance. It significantly reduces data access to memory and SSDs as well as
 memory allocation overhead.
 
 %\subsubsection{Cached matrix}
@@ -260,7 +260,7 @@ element-wise binary operation. We use it to implement many binary
 matrix operations such as matrix addition and subtraction. The third
 (denoted with \textit{mapply\_row}) and the fourth variants (denoted with
 \textit{mapply\_col}) perform element-wise
-binary operation on the input vector with every row or column of the input
+binary operations on the input vector with every row or column of the input
 matrix and output a matrix with the same shape as the input matrix.
 %Although
 %\textit{mapply\_row} and \textit{mapply\_col} can also be implemented by
@@ -278,7 +278,7 @@ and \textit{colSums} in R are examples.
 
 \textit{Groupby} on a matrix groups rows (\textit{groupby\_row}) or columns
 (\textit{groupby\_col}) of a matrix based on a vector of categorical values
-and perform aggregation on the rows or
+and performs aggregation on the rows or
 columns associated with the same categorical value. Matrix \textit{groupby}
 is used in classification and clustering algorithms that compute
 aggregation on the data points in a class or in a cluster.
@@ -394,9 +394,9 @@ reduce memory allocation overhead and improve parallelization \cite{Ching12}.
 	\label{fig:DAG}
 \end{figure}
 
-FlashMatrix constructs a directed acyclic graph (DAG) to represent
-computation formed by a sequence of matrix operations evaluated lazily
-(Figure \ref{fig:DAG} (a)). A lazily evaluated GenOp outputs a \textit{virtual matrix}
+FlashMatrix constructs a directed acyclic graph (DAG) to represent a sequence
+of matrix operations evaluated lazily (Figure \ref{fig:DAG} (a)). A lazily
+evaluated GenOp outputs a \textit{virtual matrix}
 to capture the matrix computation and the input matrices. As such, a computation
 DAG is formed with a set of \textit{virtual matrix} nodes (shown as rectangles)
 and computation nodes (shown as ellipses). We refer to the input matrices of
@@ -406,15 +406,15 @@ scalar variables and small matrices involved in the matrix computation.
 A matrix node can be used by multiple computation nodes as
 an input matrix. Although the \textit{virtual matrices} do not need to have
 the same shape, FlashMatrix requires all \textit{virtual matrices} in the DAG
-has the same \textit{long dimension} size (Figure \ref{fig:DAG} (b)) to
+have the same \textit{long dimension} size (Figure \ref{fig:DAG} (b)) to
 simplify evaluation and data flow of a DAG (a \textit{long dimension}
 refers to the matrix dimension with the larger size).
 
 FlashMatrix allows lazy evaluation on all GenOps. There are two types of GenOps
-in a DAG: the ones such as \textit{sapply} and \textit{mapply} that output
-matrices with the same \textit{long dimension} size as the input matrices
-and the ones such as \textit{agg} and \textit{groupby} that output matrices
-with different \textit{long dimension} sizes. The output matrices of the first
+in a DAG. The first type of GenOps, such as \textit{sapply} and \textit{mapply},
+output matrices with the same \textit{long dimension} size as the input matrices.
+The second type of GenOps, such as \textit{agg} and \textit{groupby}, output
+matrices with different \textit{long dimension} sizes. The output matrices of the first
 type of GenOps can be easily connected to other nodes in a DAG. Any computation
 that uses the output matrices of the second type of GenOps as input cannot be
 connected to the same DAG and we refer to these output matrices as
@@ -422,7 +422,7 @@ connected to the same DAG and we refer to these output matrices as
 
 To enable lazy evaluation, all matrices in FlashMatrix are immutable and every
 matrix operation generates a new matrix. As such, \textit{virtual matrices}
-generate the same result every time they are materialized. FlashMatrix
+generate the same result every time when they are materialized. FlashMatrix
 garbage collects a matrix when there are no references to it.
 
 \subsection{Matrix materialization} \label{sec:materialize}
@@ -431,7 +431,7 @@ have to perform actual computation and materialize some \textit{virtual matrices
 
 FlashMatrix allows to materialize any \textit{virtual matrix} in a DAG and
 can materialize multiple \textit{virtual matrices} together. Typically, we
-materializes only \textit{sink matrices} in a DAG. In the example shown in
+materialize only \textit{sink matrices} in a DAG. In the example shown in
 Figure \ref{fig:DAG}, we materialize the three \textit{sink matrices} together
 to reduce data movement in memory hierarchy. Many iterative algorithms need
 to materialize some non-\textit{sink matrices} in a DAG to avoid redundant
@@ -452,8 +452,8 @@ evaluated independently. %By default, FlashMatrix discards data in a partition
 %Owing to the storage scheme for
 %in-memory matrices, the data of all in-memory matrices in a partition are stored
 %on the same NUMA node to minimize remote memory access.
-A \textit{sink matrix} is an output of some form of aggregation on its parent
-matrix. When materializing a \textit{sink matrix}, each thread computes partial
+%A \textit{sink matrix} is an output of some form of aggregation on its parent matrix.
+When materializing a \textit{sink matrix}, each thread computes partial
 aggregation results on the partitions of the parent matrix assigned to the thread.
 In the end of computation, FlashMatrix merges the partial aggregation results to
 construct the \textit{sink matrix}.
@@ -502,7 +502,7 @@ frequent memory allocation because each matrix operation generates a new matrix.
 Large memory allocation is expensive in Linux because Linux uses \textit{mmap}
 to allocate large memory and relies on page fault to populate the memory.
 Frequent page faults prevent computation from fully utilizing CPUs in a large
-parallel machine and causes significant performance degradation.
+parallel machine and cause significant performance degradation.
 
 \begin{figure}
 	\centering
@@ -525,7 +525,7 @@ memory utilization. We use 64MB as the default memory chunk size.
 
 FlashMatrix maintains per-thread memory buffer pools to access I/O-level
 partitions of a matrix on SSDs. These memory buffers have the same size as
-I/O-level partitions, which is in the order of megabytes to maximize I/O
+I/O-level partitions, which are in the order of megabytes to maximize I/O
 throughput of an SSD. Because all partitions of a matrix have the same size,
 the memory buffers are reused.
 
@@ -541,7 +541,7 @@ the input matrices and the output matrix to have the same data layout. For tall
 column-major matrices and wide row-major matrices, each CPU-level partition has
 long columns and long rows, respectively. As such, these GenOps invoke a VUDF
 on the long columns and rows. For tall row-major matrices and wide column-major
-matrices, all rows and columns in a CPU-level partition is stored in a single
+matrices, all rows and columns in a CPU-level partition are stored in a single
 piece of memory. As such, these GenOps invoke a VUDF only once on all
 elements in a partition. %A similar strategy is applicable to \textit{agg}.
 
