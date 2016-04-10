@@ -1,6 +1,6 @@
 Basic Linear Algebra Subprograms (BLAS) defines a small set of vector and
 matrix operations commonly used in scientific computing. There exist a few
-high-optimized BLAS implementations such as MKL \cite{mkl}, OpenBLAS
+highly-optimized BLAS implementations such as MKL \cite{mkl}, OpenBLAS
 \cite{openblas}, GotoBLAS \cite{Goto} and ATLAS \cite{atlas}. However, these
 libraries optimize the vector and matrix operations in shared memory. BLAS
 provides only a small number of vector and matrix operations.
@@ -17,8 +17,10 @@ matrices, each GenOp covers a very large number of matrix operations.
 
 There are many distributed data processing frameworks.
 MapReduce \cite{mapreduce} is a general large-scale data processing framework.
-It provides a single primitive that takes two user-defined functions written with
-low-level programming languages such as C/C++ and Java. Due to the lack of
+It provides a single primitive that takes two user-defined functions. 
+% RB not true
+%written in low-level programming languages such as C/C++ and Java. 
+Due to the lack of
 efficient primitives for varieties of data access patterns, algorithms
 implemented in MapReduce are inefficient. Dryad \cite{dryad} and
 Naiad \cite{naiad} provide more primitives than MapReduce to support various
@@ -34,11 +36,12 @@ language to express data analysis tasks. The performance of these programming
 frameworks is bound by the underlying distributed execution engines.
 
 Spark \cite{spark} is a distributed in-memory data processing framework.
-It provides a high-optimized machine learning library called MLlib \cite{mllib}.
+It provides a highly-optimized machine learning library called MLlib \cite{mllib}.
 In addition, Spark also provides an R programming interface called SparkR, which
 focuses on computation on data frames.
+% DZTODO  what are data frames?
 
-Both academia and industry make significant effort to bring parallelization to
+Both academia and industry are making significant effort to bring parallelization to
 array programming languages and scale them to large datasets. Revolution R
 \cite{rre} and parallel computing toolbox in MatLab \cite{matlab} provide
 parallel linear algebra and data analysis routines as well as explicit
