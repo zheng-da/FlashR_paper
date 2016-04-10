@@ -24,14 +24,14 @@ also achieve linear speedup with multithreading.
 
 Even though SSDs are still an order of magnitude slower than DRAM, the external-memory
 execution of many data analysis algorithms in FlashMatrix can achieve performance
-comparable to their in-memory execution. We demonstrate that the I/O throughput
-of 10 GB/s is able to saturate CPU for many applications even in a large parallel
-machine. As such, the external-memory execution also benefits from many in-memory
+comparable to their in-memory execution. We demonstrate that an I/O throughput
+of 10 GB/s is able to saturate CPU for many applications, even in a large parallel
+NUMA machine. As such, the external-memory execution also benefits from many in-memory
 optimizations.
 
-FlashMatrix significantly simplifies the programming effort of writing
+FlashMatrix simplifies significantly the programming effort of writing
 parallel and out-of-core implementations for large-scale data analysis. It
-provides domain experts a familiar programming environment for experimenting
+provides domain experts a familiar programming environment for implementing
 their algorithms designed to process large datasets. It also significantly
 increases productivity of writing an efficient implementation with performance
 comparable to low-level programming languages. We believe FlashMatrix opens
