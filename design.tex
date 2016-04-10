@@ -106,19 +106,19 @@ stored in memory or on SSDs or represented virtually by a sequence of computatio
 \subsubsection{Tall-and-skinny matrices} \label{sec:tas_mat}
 
 FlashMatrix optimizes for tall-and-skinny (TAS) dense matrices due to their
-frequent occurrence in many data analysis tasks \cite{}.
+frequent occurrence in many data analysis tasks.
 In data analysis and machine learning, many data matrices contain a large
 number of samples with a relatively few attributes, so the shape
 of the data matrices is usually tall and skinny. If a data matrix has many
 attributes, the first step is usually dimension reduction \cite{} and
-the operation results in a tall-and-skinny matrix.
-FlashMatrix specifically optimizes for TAS dense matrices with tens of columns.
+the operation results in a tall-and-skinny matrix. FlashMatrix specifically
+optimizes for TAS dense matrices with tens of columns or fewer.
 This section describes optimizations on TAS matrices and the same optimizations
 is applied to short-and-wide matrices.
 
 FlashMatrix supports row-major and column-major matrix layout (Figure
 \ref{fig:tas_mat}). As such,
-we avoid physical data copy for matrix operations such as matrix transpose.
+we avoid data copy for matrix operations such as matrix transpose.
 Furthermore, each GenOp has its own preferred matrix layout. FlashMatrix
 optimizes matrix operations for both data layouts. The layout of an output
 matrix is generally determined by a GenOp. Columns in a column-major TAS matrix
@@ -228,22 +228,24 @@ or CPU cache.
 To improve generality and simplify the implementation, FlashMatrix provides
 only four generalized operators (GenOps) on matrices: \textit{inner product},
 \textit{apply}, \textit{aggregation} and \textit{groupby}. Each of the operators
-represents a data access pattern and accepts functions that define computation
+represents a data access pattern and accepts some functions as additional
+arguments that define computation
 on individual elements in matrices (Section \ref{sec:vudf}).
 
 \textit{Inner product} is a generalized matrix multiplication. It replaces
 multiplication and addition in matrix multiplication with two functions.
 We define many operations
 with inner product. For example, we use inner product to compute various
-pair-wise distance matrices of vectors such as Euclidean distance and
+pair-wise distances between samples such as Euclidean distance and
 Hamming distance. For dense matrices, we mainly focus on
 optimizing two cases: inner product of a wide matrix and a tall matrix (denoted
 with \textit{inner\_prod\_wide}) and inner product of a tall matrix and a small
 matrix (denoted with \textit{inner\_prod\_tall}). It is impractical to
 materialize inner product of a large tall matrix and a large wide matrix owing
-to space complexity. This holds for all matrix algebra frameworks. Common
-practice transforms computation that requires this form of inner product to
-the other two forms to reduce space complexity \cite{}.
+to space complexity. This holds for all matrix algebra frameworks.
+%Common
+%practice transforms computation that requires this form of inner product to
+%the other two forms to reduce space complexity \cite{}.
 Even though we can implement matrix multiplication with inner product,
 FlashMatrix relies on BLAS to implement matrix multiplication for
 floating-point matrices to achieve speed and precision required by
@@ -392,7 +394,7 @@ reduce memory allocation overhead and improve parallelization \cite{Ching12}.
 	\label{fig:DAG}
 \end{figure}
 
-FlashMatrix constructs a directed acyclic graph (DAG) \cite{} to represent
+FlashMatrix constructs a directed acyclic graph (DAG) to represent
 computation formed by a sequence of matrix operations evaluated lazily
 (Figure \ref{fig:DAG} (a)). A lazily evaluated GenOp outputs a \textit{virtual matrix}
 to capture the matrix computation and the input matrices. As such, a computation
@@ -445,7 +447,7 @@ size. To simplify materialization, they all share the same partition size in
 the \textit{long dimension}.
 As such, a partition $i$ of a \textit{virtual matrix} only requires data from
 partitions $i$ of the parent matrices and partitions in a matrix are
-evaluated independantly. %By default, FlashMatrix discards data in a partition
+evaluated independently. %By default, FlashMatrix discards data in a partition
 %immediately once the data is used by all children matrices.
 %Owing to the storage scheme for
 %in-memory matrices, the data of all in-memory matrices in a partition are stored
@@ -472,7 +474,7 @@ It assigns I/O-level partitions (Section \ref{sec:tas_mat}) to a thread as
 computation tasks for parallelization. We choose a relatively small partition
 size to balance the overhead of accessing a partition, parallelization skew
 and memory consumption. A thread further splits an I/O-level partition into
-CPU-level partitions at runtime and materializes one CPU-level partition at
+CPU-level partitions at run time and materializes one CPU-level partition at
 a time. When a CPU-level partition is materialized, it is passed to the
 subsequent operation in the DAG. A CPU-level partition is sufficiently small
 to fit in the CPU cache so that the partition still resides in CPU cache when
@@ -618,7 +620,7 @@ individual matrices in a group of wide matrices directly. %\textit{mapply}
 %can be decomposed in a similar fashion.
 
 Applying other GenOps to a group of matrices requires transformation. If an aggregation
-operation provides a \textit{combine} function, applying \textit{agg\_row} to a group of
+VUDF provides a \textit{combine} function, applying \textit{agg\_row} to a group of
 tall matrices is transformed into two steps: apply the \textit{aggregate} function on
 each row of individual matrices and apply the \textit{combine} function on the partial
 aggregation results. When applying \textit{mapply\_row} to a group of tall matrices,
