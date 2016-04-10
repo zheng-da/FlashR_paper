@@ -136,12 +136,12 @@ with 64 million rows and 32 columns.
 %\end{figure}
 
 FlashMatrix both in memory and on SSDs outperforms Spark MLlib significantly
-in most of the applications (Figure \ref{perf:fm} (a)). For some applications
-such as correlation, SVD and GMM,
-even though both FlashMatrix and MLlib implementations heavily rely on BLAS
-for matrix multiplication, FlashMatrix outperforms MLlib significantly
-owing to matrix operation fusion and two-level partitioning to reduce data
-movement between memory and CPU. %SVD is the only application whose FlashMatrix
+in all applications (Figure \ref{perf:fm} (a)). For some applications
+such as correlation, SVD and GMM, even though both FlashMatrix and MLlib
+implementations heavily rely on BLAS for matrix multiplication, FlashMatrix
+outperforms MLlib significantly owing to matrix operation fusion and two-level
+partitioning to reduce data movement between memory and CPU.
+%SVD is the only application whose FlashMatrix
 %implementation does not outperform the one in MLlib when being executed out of
 %core because this application requires to read the entire matrix multiple times
 %and output a large matrix.
