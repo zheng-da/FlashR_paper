@@ -22,25 +22,26 @@ have the same I/O complexity (Table \ref{tbl:algs}). We implement these
 applications completely with the R interface of FlashMatrix and
 rely on FlashMatrix to perform computation in parallel and out of core.
 \begin{itemize}
-	\item Multivariant statistical summary: this computes minimum, maximum,
-		mean, L1 norm, L2 norm, the number of non-zero values and variance
-		of each random variable for a given set of observations.
-	\item Correlation: this computes Pearson's correlation \cite{} between
-		two series of observations and is commonly used in statistics.
+	\item Multivariate statistical summary: this computes column-wise minimum,
+		maximum, mean, L1 norm, L2 norm, the number of non-zero values and
+		variance on a data matrix.
+	\item Correlation: this computes pair-wise Pearson's correlation \cite{}
+		among multiple series of data and is commonly used in statistics.
 	\item Singular value decomposition (SVD) factorizes a matrix into
 		three matrices: $U$, $\Sigma$ and $V$ such that $A=U \Sigma V^T$, where
 		both $U$ and $V$ are orthonormal matrices and $\Sigma$ is a diagonal
 		matrix with non-negative diagonals in descending order. SVD is commonly
 		used for dimension reduction. In the experiments, we compute 10 left
 		singular vectors and 10 right singular vectors.
-	\item KMeans \cite{kmeans} is an iterative algorithm of partitioning a set
-		of observations into $k$ clusters
-		so that each data point belongs to the cluster with minimal mean. KMeans
+	\item K-means \cite{kmeans} is an iterative algorithm of partitioning a set
+		of data points into $k$ clusters so that each cluster has minimal mean
+		of distances between the data points in the cluster and the cluster
+		center. K-means
 		is one of the most popular clustering algorithms and is identified as
 		one of the top 10 data mining algorithms \cite{top10}. In the experiments,
-		we run KMeans to split a dataset into 10 clusters by default.
-	\item Gaussian Mixture Model (GMM) \cite{gmm} is an iterative clustering
-		algorithm that assumes observations are sampled from a mixture of
+		we run k-means to split a dataset into 10 clusters by default.
+	\item Gaussian Mixture Model (GMM) \cite{gmm} is another iterative clustering
+		algorithm that assumes data points are sampled from a mixture of
 		Gaussian distributions and use expectation maximization (EM) \cite{gmm}
 		algorithm to fit the model. This algorithm is also identified as one
 		of the top 10 data mining algorithms \cite{top10}. In the experiments,
@@ -60,7 +61,7 @@ Correlation & $O(n \times p^2)$ & $O(n \times p)$ \\
 \hline
 SVD & $O(n \times p^2)$ & $O(n \times p)$ \\
 \hline
-KMeans (1 iteration) & $O(n \times p \times k)$ & $O(n \times p)$ \\
+K-means (1 iteration) & $O(n \times p \times k)$ & $O(n \times p)$ \\
 \hline
 GMM (1 iteration) & $O(n \times p^2 \times k)$ & $O(n \times p + n \times k)$ \\
 \hline
@@ -69,21 +70,23 @@ GMM (1 iteration) & $O(n \times p^2 \times k)$ & $O(n \times p + n \times k)$ \\
 \end{center}
 \caption{The computation and I/O complexity of the algorithms for the five
 	applications. $n$ is the number of data points in the dataset, $p$ is
-	the number of the features and $k$ is the number of clusters KMeans and
+	the number of the attributes and $k$ is the number of clusters k-means and
 GMM partition the dataset.}
 \label{tbl:algs}
 \end{table}
 
-KMeans and GMM typically run on a dataset with a small number of features
+K-means and GMM typically run on a dataset with a small number of attributes
 due to curse of dimensionality \cite{} while the other applications may
-be applied to datasets with various numbers
-of features. For performance evaluation, we run KMeans and GMM on a matrix
+be applied to datasets with various numbers of attributes. For performance
+evaluation, we run k-means and GMM on a matrix
 with 64 million rows and 32 columns, constructed from 32 eigenvectors from
-the Friendster graph \cite{friendster}. Running KMeans on eigenvectors is
+the Friendster graph \cite{friendster}. Running k-means on eigenvectors is
 an important step of spectral clustering \cite{Luxburg07} to partition vertices
-to clusters. We measure the performance of the other three applications on
-random matrices with 64 million rows and vary the number of columns from 8
-to 512.
+to clusters. In addition, we generate a random dataset with one billion data
+points and 32 attributes, sampled from 10 mixtures of Gaussian distributions
+with the same covariance matrix and different means. We measure the performance
+of the other three applications on random matrices with 64 million rows
+and vary the number of columns from 8 to 512.
 
 \subsection{Comparative performance of FlashMatrix}
 
@@ -92,7 +95,7 @@ with the ones in Spark MLlib \cite{mllib} and R. We run the MLlib implementation
 with their native Scala interface and use a very large heap size to ensure that
 all input data is cached in memory. We use 48 threads for both FlashMatrix and
 MLlib to run on a random matrix with one billion rows and 32 columns.
-The R framework provides C implementations for correlation, SVD and KMeans.
+The R framework provides C implementations for correlation, SVD and k-means.
 The R package mclust \cite{mclust} provides a FORTRAN implementation of GMM.
 These implementations run in a single thread. To compare with these implementations,
 we run the FlashMatrix implementations in a single thread on a random matrix
@@ -225,7 +228,7 @@ implementations.
 		\vspace{-15pt}
 		\include{scale}
 		\vspace{-10pt}
-		\caption{The scalability and performance of KMeans in different
+		\caption{The scalability and performance of k-means in different
 		frameworks.}
 		\label{fig:scale}
 	\end{center}
@@ -236,7 +239,7 @@ implementations.
 We further measure the in-memory and external-memory performance of the FlashMatrix
 implementations of the applications thoroughly with different datasets and
 different parameters. We run the first three applications on random matrices
-with 64 million rows and vary the number of columns from 8 to 512. We run KMeans
+with 64 million rows and vary the number of columns from 8 to 512. We run k-means
 and GMM on the matrix constructed from 32 eigenvectors and vary the number of
 clusters from 2 to 64.
 
@@ -248,24 +251,24 @@ clusters from 2 to 64.
 		\vspace{-10pt}
 		\caption{The relative external-memory performance of FlashMatrix for
 			statistics computation on datasets with 64 million data points
-			and the number of features varying from 8 to 512, normalized by
+			and the number of attributes varying from 8 to 512, normalized by
 		its in-memory performance.}
 		\label{perf:stat}
 	\end{center}
 \end{figure}
 
-As the number of features in the datasets or the number of clusters increases,
+As the number of attributes in the datasets or the number of clusters increases,
 the performance gap between in-memory and external-memory execution
 narrows and eventually the external-memory performance gets almost 100\%
 of in-memory performance (Figure \ref{perf:stat} and \ref{perf:clust}).
 This observation conforms with the computation and I/O complexity of
-the applications in Table \ref{tbl:algs}. When the number of features
+the applications in Table \ref{tbl:algs}. When the number of attributes
 in the dataset gets larger, computation in correlation and SVD grows more
 rapidly than I/O and eventually CPU becomes
-the bottleneck. Similarly, the computation of KMeans and GMM increases
+the bottleneck. Similarly, the computation of k-means and GMM increases
 more rapidly than I/O and get dominated by their CPU computation as the number
 of clusters gets larger. Given the I/O throughput of 10 GB/s, the applications
-do not require many features or clusters to have their external-memory
+do not require many attributes or clusters to have their external-memory
 performance close to their in-memory performance.
 
 \begin{figure}
@@ -328,7 +331,7 @@ rely on GenOps for computation (Figure \ref{perf:opts_CPU}). To remove memory
 as the bottleneck from the system, the base implementations deploy all memory
 optimizations and invoke user-defined functions on individual elements in
 matrices. The FlashMatrix implementations of computing statistical summary
-and KMeans solely rely on GenOps. Therefore, their performance is almost doubled
+and k-means solely rely on GenOps. Therefore, their performance is almost doubled
 when using VUDFs. The main computation in correlation and GMM is matrix
 multiplication, but they still rely on GenOps for the remaining computation.
 As such, using VUDFs help their performance. SVD solely uses matrix
