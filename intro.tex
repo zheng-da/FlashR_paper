@@ -68,10 +68,8 @@ matrix-oriented functional programming interface and supports automatic
 parallelization and out-of-core execution for large-scale data analysis.
 Unlike most of the linear algebra libraries, FlashMatrix provides a small
 set of highly-optimized generalized matrix operations (GenOps) to achieve
-generality. A GenOp takes some functions as additional arguments that
-define operations on individual elements in the input matrices.
-It reimplements many matrix operations in the R \textit{base} package with
-GenOps to execute R code in parallel and
+generality. It reimplements many matrix operations in the R \textit{base}
+package with GenOps to execute R code in parallel and
 out of core automatically. FlashMatrix focuses on optimizations in
 a single machine and scales matrix operations beyond memory capacity by utilizing
 solid-state drives (SSDs). This design choice conforms with a current trend of
@@ -101,16 +99,17 @@ on the entire input matrices before moving to the next operation.
 %the performance of the data analysis tasks is usually limited by memory
 %bandwidth instead of computing power.
 
-Another challenge in FlashMatrix is to reduce CPU instructions. To support
-the matrix operations in the R
-\textit{base} package, a GenOp accepts functions at run time.
-As such, each operation on an element in a matrix potentially results in
-a function call, causing significant computation overhead.
+Another challenge in FlashMatrix is to reduce computation overhead. A GenOp in
+FlashMatrix takes some functions as additional arguments that define operations
+on individual elements in the input matrices. To support the matrix operations
+in the R \textit{base} package, a GenOp accepts functions at run time.
+As such, each operation on an element potentially results in a function call,
+causing significant computation overhead.
 
 To move data efficiently, FlashMatrix evaluates expressions lazily and fuses
 operations aggressively in a single parallel execution job.
 FlashMatrix builds a directed acyclic graph (DAG) to represent all operations
-in a single execution. When evaluating the computation in the DAG, FlashMatrix
+in a single execution. When evaluating the computation in a DAG, FlashMatrix
 performs two levels of matrix partitioning to improve data utilization in
 memory hierarchy and reduce data movement between memory and SSDs
 as well as between CPU and memory. To access data stored on SSDs, FlashMatrix
@@ -118,14 +117,14 @@ streams data from SSDs to yield maximal I/O throughput.
 
 %\dz{maybe we should say something about optimization on memory allocation?}
 
-To reduce CPU instructions, we deploy vectorized user-defined
+To reduce computation overhead, we deploy vectorized user-defined
 functions (VUDFs), which operates on a vector of elements instead of
 an individual element. We define multiple forms for each VUDF and automatically
 select the right form for each GenOp to amortize the function call overhead.
 When invoking VUDFs, GenOps choose the right vector length to balance
-the amortization of the function call overhead and CPU cache misses. The use
-of vector CPU instructions, such as AVX \cite{avx}, reduces CPU
-instructions and improve CPU vectorization with memory alignment.
+the amortization of the function call overhead and CPU cache misses.
+Inside VUDFs, we use vector CPU instructions, such as AVX \cite{avx},
+to further improve performance.
 
 % What are it's key features?
 
@@ -135,6 +134,9 @@ interface to benchmark its performance. On a large parallel machine with 48
 CPU cores and fast SSDs, the out-of-core execution of these R implementations
 in FlashMatrix achieves performance comparable to the in-memory execution
 while significantly outperforming the ones in Spark MLlib \cite{spark}.
+When running in a single thread, the R implementations outperform the C and
+FORTRAN implementations in the R framework. In addition, FlashMatrix achieves
+almost linear speedup in a multicore NUMA machine for all of the algorithms.
 We believe FlashMatrix significantly lowers the requirements for writing parallel
 and scalable implementations of data analysis algorithms; it also offers new
 design possibilities for data analysis clusters, replacing memory with larger
