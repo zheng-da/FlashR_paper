@@ -246,7 +246,7 @@ to space complexity. This holds for all matrix algebra frameworks.
 When evaluating an inner product expression, FlashMatrix uses the BLAS 
 implementation of matrix multiplication for floating-point matrices.
 This achieves the speed and precision required by
-numeric libraries, such as eigensolvers \cite{anasazi, FlashEigen}.
+numeric libraries, such as eigensolvers \cite{anasazi}.%, FlashEigen}.
 
 \textit{Apply} is a generalized form of element-wise operations and has
 multiple variants. The simplest variant (\textit{sapply}) is
@@ -413,8 +413,8 @@ matrices with the same \textit{long dimension} size as the input matrices.
 The second type, such as \textit{agg} and \textit{groupby}, generates matrices
 with different \textit{long dimension} sizes. The output matrices of the first
 type of GenOps can be easily connected to other nodes in a DAG. Any computation
-that changes the long dimension
- % uses the output matrices of the second type of GenOps as input 
+that %changes the long dimension
+uses the output matrices of the second type of GenOps
 cannot be connected to the same DAG.  We refer to these output matrices as
 \textit{sink matrices}.
 
