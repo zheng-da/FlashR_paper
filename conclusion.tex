@@ -17,10 +17,10 @@ algorithms. We implement multiple statistics and
 machine learning algorithms in R and compare their performance with Spark
 MLlib, a high-optimized parallel machine learning library, on large datasets.
 The R implementations executed in FlashMatrix significantly outperforms
-the implementations in Spark MLlib. We further demonstrate that the performance
-of the FlashMatrix implementations running in a single thread can outperform
-the C implementations in the R framework. The FlashMatrix implementations
-also achieve linear speedup with multithreading.
+the implementations in Spark MLlib. We further demonstrate that
+the FlashMatrix implementations running in a single thread can outperform
+the C and FORTRAN implementations in the R framework. The FlashMatrix
+implementations also achieve linear speedup with multithreading.
 
 Even though SSDs are still an order of magnitude slower than DRAM, the external-memory
 execution of many data analysis algorithms in FlashMatrix can achieve performance
