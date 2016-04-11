@@ -1,7 +1,7 @@
 \section{Experimental evaluation}
 We evaluate the performance of FlashMatrix with statistics and machine learning
 applications both in memory and on SSDs. We compare their performance with
-the implementations in Spark MLlib \cite{mllib}, a high-optimized parallel
+the implementations in Spark MLlib \cite{mllib}, a highly-optimized parallel
 machine learning library, and the C and FORTRAN implementations in the R framework.
 We further illustrate the effectiveness of the optimizations deployed in
 FlashMatrix when running both in memory and on SSDs.
@@ -75,18 +75,37 @@ GMM partition the dataset.}
 \label{tbl:algs}
 \end{table}
 
+\begin{table}
+\begin{center}
+\footnotesize
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+Data Matrix & n & p & size \\
+\hline
+Friendster-32 \cite{friendster} & 65M & 32 & 16GB \\
+\hline
+MixGaussian-1B & 1B & 32 & 251GB \\
+\hline
+Random-65M & 65M & 8-512 & 4-248GB \\
+\hline
+\end{tabular}
+\normalsize
+\end{center}
+\caption{Datasets for performance evaluation.}
+\label{tbl:data}
+\end{table}
+
 K-means and GMM typically run on a dataset with a small number of attributes
 due to curse of dimensionality \cite{Jain00} while the other applications may
-be applied to datasets with various numbers of attributes. For performance
-evaluation, we run k-means and GMM on a matrix
-with 64 million rows and 32 columns, constructed from 32 eigenvectors from
-the Friendster graph \cite{friendster}. Running k-means on eigenvectors is
-an important step of spectral clustering \cite{Luxburg07} to partition vertices
-to clusters. In addition, we generate a random dataset with one billion data
+be applied to datasets with various numbers of attributes. We use the datasets
+in Table \ref{tbl:data} for performance evaluation. We run k-means and GMM on
+the Friendster-32 matrix, constructed from 32 eigenvectors of the Friendster
+graph \cite{friendster}, as well as the MixGaussian-1B matrix with one billion data
 points and 32 attributes, sampled from 10 mixtures of Gaussian distributions
 with the identity covariance matrix and different means. We measure the performance
-of the other three applications on random matrices with 64 million rows
-and vary the number of columns from 8 to 512.
+of the other three applications on all of the matrices in Table \ref{tbl:data},
+including the random matrices with 65 million rows and the number of columns
+varying from 8 to 512.
 
 \subsection{Comparative performance of FlashMatrix}
 
@@ -94,12 +113,12 @@ We compare the performance of the FlashMatrix implementations with the ones in
 Spark MLlib \cite{mllib} and the R framework. We run the MLlib implementations
 with their native Scala interface and use a very large heap size to ensure that
 all input data is cached in memory. We use 48 threads for both FlashMatrix and
-MLlib to run on the random matrix with one billion rows and 32 columns.
+MLlib to run on the MixGaussian-1B matrix.
 The R framework provides C implementations for correlation, SVD and k-means.
 The R package mclust \cite{mclust} provides a FORTRAN implementation of GMM.
-These implementations run in a single thread. To have a fair comparison,
-we run the FlashMatrix implementations in a single thread on the eigenvector
-matrix with 64 million rows and 32 columns.
+These implementations run in a single thread. We run the FlashMatrix
+implementations in a single thread and compare their performance with the C and
+FORTRAN implementations on the Friendster-32 matrix.
 
 \begin{figure}
 	\centering
@@ -121,7 +140,7 @@ matrix with 64 million rows and 32 columns.
 	\end{subfigure}
 	\caption{The performance and memory consumption of FlashMatrix both
 		in memory (FM-IM) and on SSDs (FM-EM) compared with Spark MLlib
-		on a matrix with one billion rows and 32 columns.}
+		on the MixGaussian-1B matrix.}
 	\label{perf:fm}
 \end{figure}
 
@@ -144,7 +163,7 @@ such as correlation, SVD and GMM, even though both FlashMatrix and MLlib
 implementations heavily rely on BLAS for matrix multiplication, FlashMatrix
 outperforms MLlib significantly owing to our heavy optimizations on GenOps
 such as aggressive matrix operation fusion and VUDFs. In contrast, MLlib
-materializes some operations such as aggregation separately and implements
+materializes operations such as aggregation separately and implements
 non-BLAS operations with Scala.
 %SVD is the only application whose FlashMatrix
 %implementation does not outperform the one in MLlib when being executed out of
@@ -166,7 +185,7 @@ non-BLAS operations with Scala.
 Even though FlashMatrix provides a matrix-oriented functional programming
 interface, it easily scales to datasets with billions of data points and its
 scalability is bound by the capacity of SSDs (Figure \ref{perf:fm} (b)).
-For out-of-core execution, FlashMatrix keeps most of the large matrices on
+For out-of-core execution, FlashMatrix keeps large matrices on
 SSDs and has a very small memory footprint. The functional programming
 interface generates a new matrix in each matrix operation, which potentially
 leads to high memory consumption. Owing to lazy evaluation,
@@ -184,7 +203,7 @@ very high scalability.
 		\vspace{-10pt}
 		\caption{The performance of FlashMatrix in a single thread both in
 			memory (FM-IM) and on SSDs (FM-EM) compared with the C and FORTRAN
-		implementations in the R framework.}
+		implementations in the R framework on the Friendster-32 matrix.}
 		\label{fig:fmR}
 	\end{center}
 \end{figure}
@@ -193,7 +212,7 @@ FlashMatrix running both in memory and on SSDs significantly outperforms R
 even with a single thread in all of these applications (Figure \ref{fig:fmR}).
 We exclude statistic summary in the experiment because R does not provide
 a C or FORTRAN implementation of computing the same statistics. The performance
-result indicates that FlashMatrix executes R code efficiently to even outperform
+results indicate that FlashMatrix executes R code efficiently to even outperform
 some optimized C and FORTRAN implementations when processing large datasets.
 
 \begin{figure}
@@ -218,8 +237,8 @@ when the applications run in memory. The SSDs deliver about 10GB/s I/O throughpu
 and are the bottleneck for the applications with lower computation complexity.
 GMM still speeds up almost linearly even when running on SSDs, due to its high
 computation complexity. The performance results in Figure \ref{fig:fmR} and Figure
-\ref{fig:speedup} indicate that FlashMatrix executes R code with performance
-comparable to or even higher than parallel C or FORTRAN implementations.
+\ref{fig:speedup} indicate that FlashMatrix can potentially execute R code with
+performance comparable to parallel C or FORTRAN implementations.
 
 %\begin{figure}
 %	\begin{center}
@@ -238,9 +257,8 @@ comparable to or even higher than parallel C or FORTRAN implementations.
 We further measure the in-memory and external-memory performance of FlashMatrix
 thoroughly with different datasets and
 different parameters. We run the first three applications on random matrices
-with 64 million rows and vary the number of columns from 8 to 512. We run k-means
-and GMM on the eigenvector matrix, which has 64 million rows and 32 columns, and
-vary the number of clusters from 2 to 64.
+with the number of columns varying from 8 to 512. We run k-means
+and GMM on the Friendster-32 matrix and vary the number of clusters from 2 to 64.
 
 \begin{figure}
 	\begin{center}
@@ -249,9 +267,9 @@ vary the number of clusters from 2 to 64.
 		\include{IM.vs.EM.stat}
 		\vspace{-10pt}
 		\caption{The relative performance of FlashMatrix on SSDs for
-			statistics computation on datasets with 64 million data points
-			and the number of attributes varying from 8 to 512, normalized by
-		its performance in memory.}
+			statistics computation on random-65M matrices with the number of
+			columns varying from 8 to 512, normalized by its performance
+		in memory.}
 		\label{perf:stat}
 	\end{center}
 \end{figure}
@@ -262,8 +280,11 @@ narrows and eventually the external-memory performance gets almost 100\%
 of in-memory performance (Figure \ref{perf:stat} and \ref{perf:clust}).
 This observation conforms with the computation and I/O complexity of
 the applications in Table \ref{tbl:algs}. When the number of attributes
-in the dataset gets larger, computation in correlation and SVD grows more
-rapidly than I/O and eventually CPU becomes the bottleneck. Similarly,
+in the dataset gets larger, the computation of matrix multiplication in
+correlation and SVD grows more rapidly than I/O and eventually CPU becomes
+the bottleneck. The current implementation of correlation requires an additional
+pass on the input matrix to compute column-wise mean values, which results in
+lower external-memory performance. Similarly,
 the computation of k-means and GMM increases more rapidly than I/O and
 these applications are dominated by their CPU computation as the number
 of clusters gets larger. Given the I/O throughput of 10 GB/s, the applications
