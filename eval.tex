@@ -231,10 +231,10 @@ The in-memory execution of FlashMatrix achieves almost linear speedup in all
 applications while the out-of-core execution only
 starts to flatten out after 32 threads (Figure \ref{fig:speedup}). Owing to
 operation fusion in CPU cache, FlashMatrix significantly reduces data movement
-between CPU and main memory. As such, memory bandwidth is no longer
-the bottleneck and the computation speeds up linearly with more CPU cores
-when the applications run in memory. The SSDs deliver about 10GB/s I/O throughput
-and are the bottleneck for the applications with lower computation complexity.
+between CPU and main memory. As such, memory bandwidth is no longer the bottleneck
+for in-memory execution and the applications speed up linearly with more CPU cores.
+For out-of-core execution, I/O is the bottleneck for the applications with
+lower computation complexity when they run with 48 threads. However,
 GMM still speeds up almost linearly even when running on SSDs, due to its high
 computation complexity. The performance results in Figure \ref{fig:fmR} and Figure
 \ref{fig:speedup} indicate that FlashMatrix can potentially execute R code with
@@ -255,8 +255,8 @@ performance comparable to parallel C or FORTRAN implementations.
 \subsection{Performance of FlashMatrix in memory and on SSDs}
 
 We further measure the in-memory and external-memory performance of FlashMatrix
-thoroughly with different datasets and
-different parameters. We run the first three applications on random matrices
+thoroughly with different datasets and different parameters. We run the first
+three applications on random-65M matrices
 with the number of columns varying from 8 to 512. We run k-means
 and GMM on the Friendster-32 matrix and vary the number of clusters from 2 to 64.
 
@@ -277,7 +277,8 @@ and GMM on the Friendster-32 matrix and vary the number of clusters from 2 to 64
 As the number of attributes in the datasets or the number of clusters increases,
 the performance gap between in-memory and external-memory execution
 narrows and eventually the external-memory performance gets almost 100\%
-of in-memory performance (Figure \ref{perf:stat} and \ref{perf:clust}).
+of in-memory performance for some applications (Figure \ref{perf:stat} and
+\ref{perf:clust}).
 This observation conforms with the computation and I/O complexity of
 the applications in Table \ref{tbl:algs}. When the number of attributes
 in the dataset gets larger, the computation of matrix multiplication in
@@ -287,7 +288,7 @@ pass on the input matrix to compute column-wise mean values, which results in
 lower external-memory performance. Similarly,
 the computation of k-means and GMM increases more rapidly than I/O and
 these applications are dominated by their CPU computation as the number
-of clusters gets larger. Given the I/O throughput of 10 GB/s, the applications
+of clusters gets larger. Given an I/O throughput of 10 GB/s, the applications
 do not require many attributes or clusters to have their external-memory
 performance close to their in-memory performance.
 
@@ -322,9 +323,9 @@ Due to the space limit, we only illustrate the effectiveness of the memory
 optimizations in out-of-core execution. Operation fusion in main memory achieves
 the highest performance improvement in almost all applications, even in GMM,
 which has the highest asymptotic computation complexity. Even though the SSDs
-deliver 10GB/s I/O throughput, materializing every matrix operation separately
-causes SSDs to be the main bottleneck in the system.
-Fusing matrix operations in memory significantly reduces the burden on SSDs and
+deliver an I/O throughput of 10GB/s, materializing every matrix operation
+separately causes SSDs to be the main bottleneck in the system.
+Fusing matrix operations in memory significantly reduces I/O access to SSDs and
 improves performance by a large factor. Operation fusion in the CPU cache also
 has very positive performance impact on some applications even when
 the applications run on SSDs. This suggests that with sufficient I/O optimizations,
@@ -346,17 +347,16 @@ the overall performance of all applications.
 	\end{center}
 \end{figure}
 
-Using VUDFs improves the performance of the applications that rely on GenOps
+VUDFs improve the performance of the applications that rely on GenOps
 for computation (Figure \ref{perf:opts_CPU}). In this experiment, the base
 implementations deploy all memory optimizations to avoid memory from being
-the bottleneck of the system,
-and invoke functions on individual elements in
-matrices. The FlashMatrix implementations of computing statistical summary
-and k-means solely rely on GenOps. Therefore, their performance is almost doubled
-when using VUDFs. The main computation in correlation and GMM is matrix
+the bottleneck of the system, and invoke functions on individual elements.
+The FlashMatrix implementations of statistical summary and k-means solely
+rely on GenOps. Therefore, their performance is almost doubled
+when we use VUDFs. The main computation in correlation and GMM is matrix
 multiplication, but they still rely on GenOps for the remaining computation.
-As such, using VUDFs help their performance. SVD solely uses matrix
-multiplication, so switching VUDFs has no performance impact.
+As such, the use of VUDFs helps their performance. SVD solely uses matrix
+multiplication, so switching to VUDFs has no performance impact.
 
 \begin{figure}
 	\begin{center}
