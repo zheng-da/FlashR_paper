@@ -133,12 +133,16 @@ We implement multiple machine learning algorithms, including KMeans \cite{kmeans
 and Gaussian Mixture Models \cite{gmm} in FlashMatrix with its R programming
 interface to benchmark its performance. On a large parallel machine with 48
 CPU cores and fast SSDs, the out-of-core execution of these R implementations
-in FlashMatrix achieves performance comparable to the in-memory execution
-while significantly outperforming the same algorithms in Spark MLlib \cite{spark}.
-When running in a single thread, the FlashMatrix implementations outperform the C and
-FORTRAN optimized implementations of the R framework. In addition, FlashMatrix achieves
-almost linear speedup in a multicore NUMA machine for all algorithms.
-We believe FlashMatrix significantly lowers the requirements for writing parallel
+in FlashMatrix achieves performance comparable to the in-memory execution,
+while significantly outperforming the same algorithms in Spark MLlib
+\cite{spark}. FlashMatrix effortlessly scales to datasets with billions
+of data points and its out-of-core execution uses a small fraction of
+resources required by in-memory implementations. When
+running in a single thread, the FlashMatrix implementations
+outperform the C and FORTRAN optimized implementations of the R framework.
+In addition, FlashMatrix achieves almost linear speedup in a multicore NUMA
+machine for all algorithms. We believe
+FlashMatrix significantly lowers the requirements for writing parallel
 and scalable implementations of data analysis algorithms; it also offers new
 design possibilities for data analysis clusters, replacing memory with larger
 and cheaper SSDs and processing bigger problems on fewer nodes.
