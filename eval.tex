@@ -13,7 +13,7 @@ host bus adapters (HBA) connected to a SuperMicro storage chassis, in which
 24 OCZ Intrepid 3000 SSDs are installed. The 24 SSDs together are capable of
 delivering 12 GB/s for read and 10 GB/s for write at maximum. The machine runs
 Linux kernel v3.13.0. By default, we use 48 threads for both in-memory and
-out-of-core execution of FlashMatrix.
+out-of-core execution of FlashMatrix. We use Spark v1.5.0 and R v3.2.4.
 
 \subsection{Statistics and Machine learning applications} \label{sec:apps}
 We implement multiple important applications in the field of statistics and
@@ -70,8 +70,8 @@ GMM (1 iteration) & $O(n \times p^2 \times k)$ & $O(n \times p + n \times k)$ \\
 \end{center}
 \caption{The computation and I/O complexity of the algorithms for the five
 	applications. $n$ is the number of data points in the dataset, $p$ is
-	the number of the attributes and $k$ is the number of clusters k-means and
-GMM partition the dataset.}
+	the number of the attributes in a data point and $k$ is the number of
+clusters k-means and GMM partition the dataset.}
 \label{tbl:algs}
 \end{table}
 
@@ -91,17 +91,19 @@ Random-65M & 65M & 8-512 & 4-248GB \\
 \end{tabular}
 \normalsize
 \end{center}
-\caption{Datasets for performance evaluation.}
+\caption{Datasets ($n \times p$ matrices) for performance evaluation.}
 \label{tbl:data}
 \end{table}
 
 K-means and GMM typically run on a dataset with a small number of attributes
+in each data point
 due to curse of dimensionality \cite{Jain00} while the other applications may
 be applied to datasets with various numbers of attributes. We use the datasets
 in Table \ref{tbl:data} for performance evaluation. We run k-means and GMM on
 the Friendster-32 matrix, constructed from 32 eigenvectors of the Friendster
-graph \cite{friendster}, as well as the MixGaussian-1B matrix with one billion data
-points and 32 attributes, sampled from 10 mixtures of Gaussian distributions
+graph \cite{friendster}, as well as the MixGaussian-1B matrix with one billion
+data points and 32 attributes in each data point, sampled from 10 mixtures of
+multivariate Gaussian distributions
 with the identity covariance matrix and different means. We measure the performance
 of the other three applications on all of the matrices in Table \ref{tbl:data},
 including the random matrices with 65 million rows and the number of columns
@@ -274,19 +276,19 @@ and GMM on the Friendster-32 matrix and vary the number of clusters from 2 to 64
 	\end{center}
 \end{figure}
 
-As the number of attributes in the datasets or the number of clusters increases,
+As the number of attributes or the number of clusters increases,
 the performance gap between in-memory and external-memory execution
 narrows and eventually the external-memory performance gets almost 100\%
 of in-memory performance for some applications (Figure \ref{perf:stat} and
 \ref{perf:clust}).
 This observation conforms with the computation and I/O complexity of
 the applications in Table \ref{tbl:algs}. When the number of attributes
-in the dataset gets larger, the computation of matrix multiplication in
+gets larger, the computation of matrix multiplication in
 correlation and SVD grows more rapidly than I/O and eventually CPU becomes
 the bottleneck. The current implementation of correlation requires an additional
 pass on the input matrix to compute column-wise mean values, which results in
-lower external-memory performance. Similarly,
-the computation of k-means and GMM increases more rapidly than I/O and
+lower external-memory performance. Similarly, as the number of clusters
+increases, the computation of k-means and GMM increases rapidly and
 these applications are dominated by their CPU computation as the number
 of clusters gets larger. Given an I/O throughput of 10 GB/s, the applications
 do not require many attributes or clusters to have their external-memory
