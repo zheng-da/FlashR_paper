@@ -103,6 +103,7 @@
 \usepackage{algpseudocode}
 \usepackage{graphicx}
 \usepackage{color,soul}
+\usepackage{authblk}
 \definecolor{lbcolor}{rgb}{0.9,0.9,0.9}
 
 
@@ -390,6 +391,14 @@
 Operations using Commodity SSDs}
 
 
+\author[1]{\rm Da Zheng}
+\author[1]{\rm Disa Mhembere}
+\author[3]{\rm Joshua T. Vogelstein}
+\author[2]{\rm Carey E. Priebe}
+\author[1]{\rm Randal Burns}
+\affil[1]{Department of Computer Science, Johns Hopkins University}
+\affil[2]{Department of Applied Mathematics and Statistics, Johns Hopkins University}
+\affil[3]{Institute for Computational Medicine, Department of Biomedical Engineering, Johns Hopkins University}
 % author names and affiliations
 % use a multiple column layout for up to three different
 % affiliations
@@ -460,7 +469,7 @@ SSDs. We implement multiple machine learning algorithms in R to benchmark
 the performance of FlashMatrix. On a large parallel machine, out-of-core
 execution of these R implementations in FlashMatrix has performance comparable
 to in-memory execution on a billion-scale dataset while significantly
-outperforming the in-memory implementations of Spark MLlib.
+outperforming the in-memory execution of Spark MLlib.
 \end{abstract}
 
 % no keywords
@@ -597,7 +606,10 @@ outperforming the in-memory implementations of Spark MLlib.
 
 
 % use section* for acknowledgment
-%\section*{Acknowledgment}
+\section*{Acknowledgment}
+This work is partially supported by NSF ACI-1261715,
+DARPA GRAPHS N66001-14-1-4028 and
+DARPA SIMPLEX program through SPAWAR contract N66001-15-C-4041.
 
 
 
