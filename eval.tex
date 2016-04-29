@@ -312,17 +312,16 @@ performance close to their in-memory performance.
 In this section, we illustrate the effectiveness of our memory and CPU
 optimizations in FlashMatrix. To reduce memory overhead, we focus on three
 main optimizations: \textit{(i)} reusing memory chunks for new in-memory
-matrices and I/O access to reduce large
-memory allocation, \textit{(ii)} matrix operation fusion in main
-memory to reduce data movement between SSDs and main memory, \textit{(iii)}
-matrix operation fusion in CPU cache to reduce data movement between main
-memory and CPU cache. To reduce computation overhead, we illustrate
-the effectiveness of using VUDFs.
+matrices and I/O access to reduce large memory allocation (mem-alloc),
+\textit{(ii)} matrix operation fusion in main memory to reduce data movement
+between SSDs and main memory (mem-fuse), \textit{(iii)} matrix operation
+fusion in CPU cache to reduce data movement between main memory and CPU cache
+(cache-fuse). To reduce computation overhead, we illustrate the effectiveness
+of using VUDFs.
 
 Each memory optimization has significant performance improvement on most of
-the applications when they are executed on SSDs (Figure \ref{perf:opts}).
-Due to the space limit, we only illustrate the effectiveness of the memory
-optimizations in out-of-core execution. Operation fusion in main memory achieves
+the applications when FlashMatrix runs on SSDs (Figure \ref{perf:opts} (a)).
+Operation fusion in main memory achieves
 the highest performance improvement in almost all applications, even in GMM,
 which has the highest asymptotic computation complexity. Even though the SSDs
 deliver an I/O throughput of 10GB/s, materializing every matrix operation
@@ -336,17 +335,40 @@ the bandwidth of main memory, instead of I/O. Even though it is less noticeable,
 reducing large memory allocation improves I/O performance and almost doubles
 the overall performance of all applications.
 
+The same memory optimizations also have very positive impact on the performance
+of most of the applications when FlashMatrix runs in memory (Figure
+\ref{perf:opts} (b)). Operation fusion in CPU cache has performance improvement
+on all applications because reducing data movement between main memory and CPU
+cache in a sequence of matrix operations always improves performance.
+Operation fusion in main memory further reduces memory allocation overhead when
+FlashMatrix runs in memory. Thus, like the optimization of reducing large
+memory allocation, its effectiveness heavily depend on the computation patterns
+in the applications. Both of the optimizations are more effective for
+the applications such as statistical summary and k-means, which require to
+generate new large matrices but do not have very heavy computation.
+
 \begin{figure}
-	\begin{center}
-		\footnotesize
-		\vspace{-15pt}
+	\centering
+	\footnotesize
+	\vspace{-15pt}
+	\begin{subfigure}{.5\textwidth}
 		\include{FlashMatrix_figs/opts.EM}
-		\vspace{-10pt}
-		\caption{The effectiveness of memory optimizations on different
+		\label{perf:em_opts}
+		\vspace{-15pt}
+		\caption{on SSDs}
+	\end{subfigure}
+
+	%\vspace{-5pt}
+	\begin{subfigure}{.5\textwidth}
+		\include{FlashMatrix_figs/opts.IM}
+		\label{perf:im_opts}
+		\vspace{-15pt}
+		\caption{in memory}
+	\end{subfigure}
+	\caption{The effectiveness of memory optimizations on different
 			applications running on SSDs. The three memory optimizations are
 		applied to FlashMatrix incrementally.}
-		\label{perf:opts}
-	\end{center}
+	\label{perf:opts}
 \end{figure}
 
 VUDFs improve the performance of the applications that rely on GenOps
