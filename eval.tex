@@ -127,7 +127,7 @@ FORTRAN implementations on the Friendster-32 matrix.
 	\footnotesize
 	\vspace{-15pt}
 	\begin{subfigure}{.5\textwidth}
-		\include{FM.vs.spark}
+		\include{FlashMatrix_figs/FM.vs.spark}
 		\label{perf:rt}
 		\vspace{-15pt}
 		\caption{Runtime}
@@ -135,7 +135,7 @@ FORTRAN implementations on the Friendster-32 matrix.
 
 	%\vspace{-5pt}
 	\begin{subfigure}{.5\textwidth}
-		\include{FM.vs.spark.mem}
+		\include{FlashMatrix_figs/FM.vs.spark.mem}
 		\label{perf:mem}
 		\vspace{-15pt}
 		\caption{Memory consumption}
@@ -201,7 +201,7 @@ very high scalability.
 	\begin{center}
 		\footnotesize
 		\vspace{-15pt}
-		\include{FM.vs.R}
+		\include{FlashMatrix_figs/FM.vs.R}
 		\vspace{-10pt}
 		\caption{The performance of FlashMatrix in a single thread both in
 			memory (FM-IM) and on SSDs (FM-EM) compared with the C and FORTRAN
@@ -221,7 +221,7 @@ some optimized C and FORTRAN implementations when processing large datasets.
 	\begin{center}
 		\footnotesize
 		\vspace{-15pt}
-		\include{speedup}
+		\include{FlashMatrix_figs/speedup}
 		\vspace{-10pt}
 		\caption{The speedup of FlashMatrix with multithreading both in memory (IM)
 		and on SSDs (EM).}
@@ -266,7 +266,7 @@ and GMM on the Friendster-32 matrix and vary the number of clusters from 2 to 64
 	\begin{center}
 		\footnotesize
 		\vspace{-15pt}
-		\include{IM.vs.EM.stat}
+		\include{FlashMatrix_figs/IM.vs.EM.stat}
 		\vspace{-10pt}
 		\caption{The relative performance of FlashMatrix on SSDs for
 			statistics computation on random-65M matrices with the number of
@@ -298,7 +298,7 @@ performance close to their in-memory performance.
 	\begin{center}
 		\footnotesize
 		\vspace{-15pt}
-		\include{IM.vs.EM.clust}
+		\include{FlashMatrix_figs/IM.vs.EM.clust}
 		\vspace{-10pt}
 		\caption{The relative performance of FlashMatrix on SSDs for
 			clustering algorithms with different numbers of clusters, normalized
@@ -340,7 +340,7 @@ the overall performance of all applications.
 	\begin{center}
 		\footnotesize
 		\vspace{-15pt}
-		\include{opts.EM}
+		\include{FlashMatrix_figs/opts.EM}
 		\vspace{-10pt}
 		\caption{The effectiveness of memory optimizations on different
 			applications running on SSDs. The three memory optimizations are
@@ -364,7 +364,7 @@ multiplication, so switching to VUDFs has no performance impact.
 	\begin{center}
 		\footnotesize
 		\vspace{-15pt}
-		\include{opts.CPU}
+		\include{FlashMatrix_figs/opts.CPU}
 		\vspace{-10pt}
 		\caption{The effectiveness of using VUDFs on different applications
 		running in memory.}
