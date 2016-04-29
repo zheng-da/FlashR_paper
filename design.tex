@@ -1,9 +1,11 @@
 \section{Design}
 
 FlashMatrix is a matrix-oriented programming framework for general data analysis.
-This work mainly focuses on dense matrices and scales
-dense matrix operations beyond memory capacity by utilizing fast I/O devices,
+This work mainly focuses on dense matrices and scales dense matrix operations
+beyond memory capacity by utilizing fast I/O devices,
 such as solid-state drives (SSDs), in a non-uniform memory architecture (NUMA).
+The implementation and optimization of sparse matrix multiplication is described
+in \cite{SEM_SpMM}.
 FlashMatrix uses R as its main programming interface and executes R code
 automatically in parallel and out of core.
 
@@ -14,13 +16,12 @@ the framework. The optimizer in FlashMatrix aggressively merges operators to
 reduce CPU cache misses and I/O accesses and achieve better parallelization.
 FlashMatrix stores large matrices on SSDs through SAFS \cite{safs},
 a user-space filesystem for a large SSD array, to fully utilize high I/O
-throughput of the SSDs.
-%and deploys a set of I/O optimizations to improve
-%its sequential I/O throughput %\cite{SEM_SpMM}.
+throughput of the SSDs and deploys a set of I/O optimizations to improve
+its sequential I/O throughput \cite{SEM_SpMM}.
 
 \begin{figure}
 \centering
-\includegraphics[scale=0.3]{./architecture.pdf}
+\includegraphics[scale=0.3]{FlashMatrix_figs/architecture.pdf}
 \caption{The architecture of FlashMatrix.}
 \label{fig:arch}
 \end{figure}
@@ -96,7 +97,17 @@ seven classes:
 Dense matrices are the main data types in FlashMatrix. A vector is stored
 as a one-column dense matrix. In FlashMatrix, a dense matrix can be stored
 physically in memory or on SSDs or represented virtually by a sequence of
-computation.
+computation. FlashMatrix supports dense matrices of different shapes
+(Figure \ref{fig:mat}). It specifically optimizes tall-and-skinny matrices
+and short-and-wide matrices, and view tall matrices and wide matrices
+as groups of tall-and-skinny matrices and short-and-wide matrices, respectively.
+
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.5]{FlashMatrix_figs/matrix.pdf}
+	\caption{Dense matrices of different shapes.}
+	\label{fig:mat}
+\end{figure}
 
 %A matrix has two identifiers: the \textit{matrix identifier} that indicates
 %the matrix itself and the \textit{matrix data identifier} that indicates
@@ -106,14 +117,15 @@ computation.
 
 \subsubsection{Tall-and-skinny matrices} \label{sec:tas_mat}
 
-FlashMatrix optimizes for tall-and-skinny (TAS) dense matrices due to their
+FlashMatrix optimizes for tall-and-skinny (TAS) dense matrices (Figure
+\ref{fig:mat} (a)) due to their
 frequent occurrence in data analysis. In this field, many data matrices contain
 a large number of samples with a relatively few attributes, so 
 data matrices are usually tall and skinny. If a data matrix has many
 attributes, the first step is often dimension reduction \cite{Jain00}, which
 results in a TAS matrix. FlashMatrix specifically optimizes for TAS dense
 matrices with tens of columns or fewer. The same optimizations are applied
-to short-and-wide matrices.
+to short-and-wide matrices (Figure \ref{fig:mat} (b)).
 
 FlashMatrix supports row-major and column-major matrix layout (Figure
 \ref{fig:tas_mat}). As such,
@@ -124,7 +136,7 @@ matrix is generally determined by a GenOp.
 
 \begin{figure}
 	\centering
-	\includegraphics[scale=0.5]{./dense_matrix.pdf}
+	\includegraphics[scale=0.5]{FlashMatrix_figs/dense_matrix.pdf}
 	\caption{The format of a tall-and-skinny dense matrix.}
 	\label{fig:tas_mat}
 \end{figure}
@@ -198,7 +210,8 @@ memory allocation overhead for creating new matrices.
 \subsubsection{A group of dense matrices} \label{sec:mat_group}
 FlashMatrix represents a tall matrix with many columns with a group of
 tall-and-skinny matrices and a wide matrix with a group of short-and-wide
-matrices. We construct a special \textit{virtual matrix} to represent
+matrices (Figure \ref{fig:mat} (c) and (d)). We construct a special
+\textit{virtual matrix} to represent
 a group of dense matrices. To take advantage of the optimizations on matrix
 operations on TAS matrices, we decompose a matrix operation on a group of
 matrices into operations on individual matrices in the group (Section
@@ -246,7 +259,7 @@ to space complexity. This holds for all matrix algebra frameworks.
 When evaluating an inner product expression, FlashMatrix uses the BLAS 
 implementation of matrix multiplication for floating-point matrices.
 This achieves the speed and precision required by
-numeric libraries, such as eigensolvers \cite{anasazi}.%, FlashEigen}.
+numeric libraries, such as eigensolvers \cite{anasazi, FlashEigen}.
 
 \textit{Apply} is a generalized form of element-wise operations and has
 multiple variants. The simplest variant (\textit{sapply}) is
@@ -385,7 +398,7 @@ reduce memory allocation and improve parallelization \cite{Ching12}.
 
 \begin{figure}
 	\centering
-	\includegraphics[scale=0.7]{./sd.pdf}
+	\includegraphics[scale=0.7]{FlashMatrix_figs/sd.pdf}
 	\caption{A directed acyclic graph of computing standard deviation on
 	a matrix with missing values.}
 	\label{fig:DAG}
@@ -507,7 +520,7 @@ parallel machine and cause significant performance degradation.
 
 \begin{figure}
 	\centering
-	\includegraphics[scale=0.5]{./matrix_mem.pdf}
+	\includegraphics[scale=0.5]{FlashMatrix_figs/matrix_mem.pdf}
 	\caption{Memory layout of a tall-and-skinny dense matrix.}
 	\label{fig:mat_mem}
 \end{figure}
@@ -568,18 +581,17 @@ for a tall column-major matrix, \textit{mapply\_col} invokes the \textit{bVUDF1}
 form of the binary VUDF on a column from the input matrix and the input vector;
 for a wide row-major matrix, \textit{mapply\_col} invokes the \textit{bVUDF2}
 form on a row from the input matrix and an element from the vector. We apply
-the similar strategy to other GenOps.
-%When applying \textit{inner\_prod\_tall}
-%on a tall column-major matrix, FlashMatrix uses the \textit{bVUDF2} form of
-%the first VUDF to computes the outer product of a column from the left matrix
-%and a row from the right matrix, and uses the \textit{aVUDF2} of the second VUDF
-%to compute the final result. Because \textit{inner\_prod\_tall} operates on
-%a CPU-level partition, all intermediate results in the computation reside
-%in CPU cache. \textit{inner\_prod\_wide} invokes the
-%\textit{bVUDF1} form of the first VUDF on a row from the left matrix and a column
-%from the right matrix, and invokes the \textit{aVUDF1} form of the second VUDF
-%on the output from the first VUDF to compute an element in the output matrix for
-%the input partitions.
+the similar strategy to other GenOps. When applying \textit{inner\_prod\_tall}
+on a tall column-major matrix, FlashMatrix uses the \textit{bVUDF2} form of
+the first VUDF to computes the outer product of a column from the left matrix
+and a row from the right matrix, and uses the \textit{aVUDF2} of the second VUDF
+to compute the final result. Because \textit{inner\_prod\_tall} operates on
+a CPU-level partition, all intermediate results in the computation reside
+in CPU cache. \textit{inner\_prod\_wide} invokes the
+\textit{bVUDF1} form of the first VUDF on a row from the left matrix and a column
+from the right matrix, and invokes the \textit{aVUDF1} form of the second VUDF
+on the output from the first VUDF to compute an element in the output matrix for
+the input partitions.
 
 %Both \textit{agg\_row} and \textit{agg\_col} work better on the preferred data
 %layout if the aggregation VUDF has the same \textit{aggregate} and \textit{combine}
@@ -633,29 +645,29 @@ matrices in the group and apply \textit{mapply\_row} to individual matrices
 separately. We apply the same strategies to \textit{agg\_col} and
 \textit{mapply\_col} on a group of wide matrices. 
 
-%FlashMatrix decomposes inner product on a matrix group in favor of minimizing
-%the amount of data written to SSDs (Figure \ref{fig:inner_prod}).
-%For \textit{inner\_prod\_tall}, we first partition the right matrix vertically
-%so that the inner product of the left matrix and a vertical partition outputs
-%part of a final output matrix. The number of vertical partitions determines
-%the number of runs required to complete the inner product on the group of matrices.
-%If the left matrix is stored on SSDs, the number of vertical partitions on
-%the right matrix determines the amount of data read from SSDs. The vertical
-%partition size determines the output matrix size in each run and affect
-%the memory size. As such, we need to select the vertical partition size of
-%the right matrix to balance I/O and memory consumption. We horizontally partition
-%each vertical partition of the right matrix to further decompose the inner
-%product. We construct a directed acyclic graph (DAG) to evalute the inner
-%product lazily (Section \ref{sec:lazy_eval}). Similarly, we partition the right
-%matrix and make a similar choice to balance I/O and memory consumption for
-%\textit{inner\_prod\_wide}. We also construct a DAG and lazily evaluate
-%the computation.
+FlashMatrix decomposes inner product on a matrix group in favor of minimizing
+the amount of data written to SSDs (Figure \ref{fig:inner_prod}).
+For \textit{inner\_prod\_tall}, we first partition the right matrix vertically
+so that the inner product of the left matrix and a vertical partition outputs
+part of a final output matrix. The number of vertical partitions determines
+the number of runs required to complete the inner product on the group of matrices.
+If the left matrix is stored on SSDs, the number of vertical partitions on
+the right matrix determines the amount of data read from SSDs. The vertical
+partition size determines the output matrix size in each run and affect
+the memory size. As such, we need to select the vertical partition size of
+the right matrix to balance I/O and memory consumption. We horizontally partition
+each vertical partition of the right matrix to further decompose the inner
+product. We construct a directed acyclic graph (DAG) to evalute the inner
+product lazily (Section \ref{sec:lazy_eval}). Similarly, we partition the right
+matrix and make a similar choice to balance I/O and memory consumption for
+\textit{inner\_prod\_wide}. We also construct a DAG and lazily evaluate
+the computation.
 
-%\begin{figure}
-%\centering
-%\includegraphics[scale=0.4]{./inner_prod_tall.pdf}
-%\vspace{-5pt}
-%\caption{Decomposition inner product on a group of dense matrix.}
-%\vspace{-5pt}
-%\label{fig:inner_prod}
-%\end{figure}
+\begin{figure}
+\centering
+\includegraphics[scale=0.4]{FlashMatrix_figs/inner_prod_tall.pdf}
+\vspace{-5pt}
+\caption{Decomposition inner product on a group of dense matrix.}
+\vspace{-5pt}
+\label{fig:inner_prod}
+\end{figure}
