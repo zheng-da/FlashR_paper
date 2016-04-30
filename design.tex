@@ -47,40 +47,51 @@ seven classes:
 	\item BLAS matrix multiplication.
 \end{itemize}
 
-\subsection{SAFS}
+%\subsection{SAFS}
 
-SAFS \cite{safs} is a user-space filesystem for a high-speed SSD array in
-a NUMA machine. It is implemented as
-a library and runs in the address space of its application. It is deployed
-on top of the Linux native filesystem. SAFS was originally designed for
-optimizing small I/O accesses. However, FlashMatrix accesses data in matrices
-sequentially and
-generates much fewer but much larger I/O. We provide additional
-optimizations to maximize sequential I/O throughput from a large SSD array.
+%SAFS \cite{safs} is a user-space filesystem for a high-speed SSD array in
+%a NUMA machine. It is implemented as
+%a library and runs in the address space of its application. It is deployed
+%on top of the Linux native filesystem. SAFS was originally designed for
+%optimizing small I/O accesses. However, FlashMatrix accesses data in matrices
+%sequentially and
+%generates much fewer but much larger I/O. Therefore, we provide additional
+%optimizations to maximize sequential I/O throughput from a large SSD array.
 
-The first optimization is to enable polling for I/O to reduce thread context
-switches. On a high-speed SSD array, the latency caused by a thread context
-switch becomes noticeable under a sequential I/O workload and it becomes
-critical to avoid thread
-context switch to gain I/O performance. If the computation in application
-threads does not saturate CPU, SAFS will put the application threads into
-sleep while they are waiting for I/O. This results in many thread context
-switches and underutilization of both CPU and SSDs. To saturate I/O,
-an application thread issues asynchronous I/O to SAFS and poll for I/O
-completion after completing all computation available to it. Polling avoids
-a thread from being switched out during I/O access and effectively maximizes
-I/O throughput of a high-speed SSD array.
+%The first optimization is to enable polling for I/O to reduce thread context
+%switches. On a high-speed SSD array, the latency caused by a thread context
+%switch becomes noticeable under a sequential I/O workload and it becomes
+%critical to avoid thread
+%context switch to gain I/O performance. If the computation in application
+%threads does not saturate CPU, SAFS will put the application threads into
+%sleep while they are waiting for I/O. This results in many thread context
+%switches and underutilization of both CPU and SSDs. To saturate I/O,
+%an application thread issues asynchronous I/O to SAFS and poll for I/O
+%completion after completing all computation available to it. Polling avoids
+%a thread from being switched out during I/O access and effectively maximizes
+%I/O throughput of a high-speed SSD array.
 
-To better support access to many files simultaneously, SAFS stripes data in
-a file across SSDs with a different striping order for each file. Due to
-the sequential I/O workload, FlashMatrix stripes data across SSDs with a large
-block size, on the order of megabytes, to increase I/O throughput and reduce
-write amplification on SSDs \cite{Tang15}. Such a large block size may cause
-storage skew for small files on a large SSD array if every file stripes data
-in the same order. Using the same striping order also causes skew in I/O access.
-Therefore, SAFS generates a random striping order for each file to evenly
-distribute I/O among SSDs. SAFS stores the striping order with a file for
-future data retrieval.
+%To better support access to many files simultaneously, SAFS stripes data in
+%a file across SSDs with a different striping order for each file. Due to
+%the sequential I/O workload, FlashMatrix stripes data across SSDs with a large
+%block size, on the order of megabytes, to increase I/O throughput and reduce
+%write amplification on SSDs \cite{Tang15}. Such a large block size may cause
+%storage skew for small files on a large SSD array if every file stripes data
+%in the same order. Using the same striping order also causes skew in I/O access.
+%Therefore, SAFS generates a random striping order for each file to evenly
+%distribute I/O among SSDs. SAFS stores the striping order with a file for
+%future data retrieval.
+
+%When accessing a file sequentially from SSDs, we maintain a set of memory buffers
+%for I/O access to reduce the overhead of memory allocation.
+%We use large I/O to increase I/O throughput. As such, we need to allocate
+%a large memory buffer for I/O access.
+%The operating system usually allocates a large memory buffer with \textit{mmap()}
+%and populates the buffer with physical pages when it is used. It is
+%computationally expensive to populate
+%large memory buffers frequently. When accessing high-throughput I/O devices,
+%such overhead can cause substantial performance loss. Therefore, we keep a set
+%of memory buffers allocated previously and reuse them for new I/O requests.
 
 \subsection{Dense matrices}
 Dense matrices are the main data types in FlashMatrix. A vector is stored
