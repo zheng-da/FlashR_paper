@@ -120,11 +120,11 @@ as groups of tall-and-skinny matrices and short-and-wide matrices, respectively.
 FlashMatrix optimizes for tall-and-skinny (TAS) dense matrices (Figure
 \ref{fig:mat} (a)) due to their
 frequent occurrence in data analysis. In this field, many data matrices contain
-a large number of samples with a relatively few attributes, so 
+a large number of samples with a relatively few features, so
 data matrices are usually tall and skinny. If a data matrix has many
-attributes, the first step is often dimension reduction \cite{Jain00}, which
+features, the first step is often dimension reduction \cite{Jain00}, which
 results in a TAS matrix. FlashMatrix specifically optimizes for TAS dense
-matrices with tens of columns or fewer. The same optimizations are applied
+matrices with tens of columns or fewer. The similar optimizations are applied
 to short-and-wide matrices (Figure \ref{fig:mat} (b)).
 
 FlashMatrix supports row-major and column-major matrix layout (Figure
