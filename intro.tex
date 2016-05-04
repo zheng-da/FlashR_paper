@@ -69,7 +69,10 @@ parallelization and out-of-core execution for large-scale data analysis;
 \emph{users write R programs and FlashMatrix executes them efficiently.}
 Unlike most of the linear algebra libraries, FlashMatrix provides a small
 set of highly-optimized generalized matrix operations (GenOps) to achieve
-generality. It reimplements many matrix operations from the R \textit{base}
+generality. GenOps represent common data access patterns. By accepting
+different functions that define operations on individual elements in the input
+matrices, each GenOp covers a very large number of matrix operations.
+FlashMatrix reimplements many matrix operations from the R \textit{base}
 package with GenOps to execute R code in parallel and
 out of core automatically. FlashMatrix focuses on optimizations in
 a single machine and scales matrix operations beyond memory capacity by utilizing
