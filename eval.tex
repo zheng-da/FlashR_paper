@@ -1,6 +1,6 @@
 \section{Experimental evaluation}
 We evaluate the performance of FlashMatrix with statistics and machine learning
-applications both in memory and on SSDs. We compare their performance with
+algorithms both in memory and on SSDs. We compare their performance with
 the implementations in Spark MLlib \cite{mllib}, a highly-optimized parallel
 machine learning library, and the C and FORTRAN implementations in the R framework.
 We further illustrate the effectiveness of the optimizations deployed in
@@ -15,11 +15,11 @@ delivering 12 GB/s for read and 10 GB/s for write at maximum. The machine runs
 Linux kernel v3.13.0. By default, we use 48 threads for both in-memory and
 out-of-core execution of FlashMatrix. We use Spark v1.5.0 and R v3.2.4.
 
-\subsection{Statistics and Machine learning applications} \label{sec:apps}
-We implement multiple important applications in the field of statistics and
-machine learning. These applications have various computation complexity but
+\subsection{Statistics and Machine learning algorithms} \label{sec:apps}
+We implement multiple important algorithms in the field of statistics and
+machine learning. These algorithms have various computation complexity but
 have the same I/O complexity (Table \ref{tbl:algs}). We implement these
-applications completely with the R interface of FlashMatrix and
+algorithms completely with the R interface of FlashMatrix and
 rely on FlashMatrix to perform computation in parallel and out of core.
 \begin{itemize}
 	\item Multivariate statistical summary: this computes column-wise minimum,
@@ -30,7 +30,10 @@ rely on FlashMatrix to perform computation in parallel and out of core.
 	\item Singular value decomposition (SVD) factorizes a matrix into
 		three matrices: $U$, $\Sigma$ and $V$ such that $A=U \Sigma V^T$, where
 		$U$ and $V$ are orthonormal matrices and $\Sigma$ is a diagonal
-		matrix with non-negative diagonals in descending order. SVD is commonly
+		matrix with non-negative diagonals in descending order. To compute SVD
+		on a $n \times p$ matrix $A$ ($n \gg p$), we first compute Gramian
+		matrix $A^T A$ and compute eigenvalues and eigenvectors to derive singular
+		values and singular vectors of the matrix $A$. SVD is commonly
 		used for dimension reduction. In the experiments, we compute 10 singular
 		values.
 	\item K-means \cite{kmeans} is an iterative algorithm of partitioning a set
@@ -53,7 +56,7 @@ rely on FlashMatrix to perform computation in parallel and out of core.
 \footnotesize
 \begin{tabular}{|c|c|c|c|c|}
 \hline
-Application & Computation & I/O \\
+Algorithm & Computation & I/O \\
 \hline
 Summary & $O(n \times p)$ & $O(n \times p)$ \\
 \hline
@@ -69,9 +72,9 @@ GMM (1 iteration) & $O(n \times p^2 \times k)$ & $O(n \times p + n \times k)$ \\
 \normalsize
 \end{center}
 \caption{The computation and I/O complexity of the algorithms for the five
-	applications. $n$ is the number of data points in the dataset, $p$ is
-	the number of the attributes in a data point and $k$ is the number of
-clusters k-means and GMM partition the dataset.}
+	algorithms. $n$ is the number of data points in the dataset, $p$ is
+	the number of the features in a data point and $k$ is the number of
+clusters k-means and GMM partition the dataset. We assume $n \gg p$.}
 \label{tbl:algs}
 \end{table}
 
@@ -95,17 +98,17 @@ Random-65M & 65M & 8-512 & 4-248GB \\
 \label{tbl:data}
 \end{table}
 
-K-means and GMM typically run on a dataset with a small number of attributes
+K-means and GMM typically run on a dataset with a small number of features
 in each data point
-due to curse of dimensionality \cite{Jain00} while the other applications may
-be applied to datasets with various numbers of attributes. We use the datasets
+due to curse of dimensionality \cite{Jain00} while the other algorithms may
+be applied to datasets with various numbers of features. We use the datasets
 in Table \ref{tbl:data} for performance evaluation. We run k-means and GMM on
 the Friendster-32 matrix, constructed from 32 eigenvectors of the Friendster
 graph \cite{friendster}, as well as the MixGaussian-1B matrix with one billion
-data points and 32 attributes in each data point, sampled from 10 mixtures of
+data points and 32 features in each data point, sampled from 10 mixtures of
 multivariate Gaussian distributions
 with the identity covariance matrix and different means. We measure the performance
-of the other three applications on all of the matrices in Table \ref{tbl:data},
+of the other three algorithms on all of the matrices in Table \ref{tbl:data},
 including the random matrices with 65 million rows and the number of columns
 varying from 8 to 512.
 
@@ -160,7 +163,7 @@ FORTRAN implementations on the Friendster-32 matrix.
 %\end{figure}
 
 FlashMatrix both in memory and on SSDs outperforms Spark MLlib significantly
-in all applications (Figure \ref{perf:fm} (a)). For some applications
+in all algorithms (Figure \ref{perf:fm} (a)). For some algorithms
 such as correlation, SVD and GMM, even though both FlashMatrix and MLlib
 implementations heavily rely on BLAS for matrix multiplication, FlashMatrix
 outperforms MLlib significantly owing to our heavy optimizations on GenOps
@@ -193,7 +196,7 @@ interface generates a new matrix in each matrix operation, which potentially
 leads to high memory consumption. Owing to lazy evaluation,
 FlashMatrix does not store majority of matrices in the computation physically.
 As such, its in-memory execution barely increases memory consumption from
-the minimum memory requirement of the applications. This indicates that
+the minimum memory requirement of the algorithms. This indicates that
 the out-of-core execution consumes small space on SSDs, which leads to
 very high scalability.
 
@@ -211,7 +214,7 @@ very high scalability.
 \end{figure}
 
 FlashMatrix running both in memory and on SSDs significantly outperforms R
-even with a single thread in all of these applications (Figure \ref{fig:fmR}).
+even with a single thread in all of these algorithms (Figure \ref{fig:fmR}).
 We exclude statistic summary in the experiment because R does not provide
 a C or FORTRAN implementation of computing the same statistics. The performance
 results indicate that FlashMatrix executes R code efficiently to even outperform
@@ -230,12 +233,12 @@ some optimized C and FORTRAN implementations when processing large datasets.
 \end{figure}
 
 The in-memory execution of FlashMatrix achieves almost linear speedup in all
-applications while the out-of-core execution only
+algorithms while the out-of-core execution only
 starts to flatten out after 32 threads (Figure \ref{fig:speedup}). Owing to
 operation fusion in CPU cache, FlashMatrix significantly reduces data movement
 between CPU and main memory. As such, memory bandwidth is no longer the bottleneck
-for in-memory execution and the applications speed up linearly with more CPU cores.
-For out-of-core execution, I/O is the bottleneck for the applications with
+for in-memory execution and the algorithms speed up linearly with more CPU cores.
+For out-of-core execution, I/O is the bottleneck for the algorithms with
 lower computation complexity when they run with 48 threads. However,
 GMM still speeds up almost linearly even when running on SSDs, due to its high
 computation complexity. The performance results in Figure \ref{fig:fmR} and Figure
@@ -258,7 +261,7 @@ performance comparable to parallel C or FORTRAN implementations.
 
 We further measure the in-memory and external-memory performance of FlashMatrix
 thoroughly with different datasets and different parameters. We run the first
-three applications on random-65M matrices
+three algorithms on random-65M matrices
 with the number of columns varying from 8 to 512. We run k-means
 and GMM on the Friendster-32 matrix and vary the number of clusters from 2 to 64.
 
@@ -276,22 +279,22 @@ and GMM on the Friendster-32 matrix and vary the number of clusters from 2 to 64
 	\end{center}
 \end{figure}
 
-As the number of attributes or the number of clusters increases,
+As the number of features or the number of clusters increases,
 the performance gap between in-memory and external-memory execution
 narrows and eventually the external-memory performance gets almost 100\%
-of in-memory performance for some applications (Figure \ref{perf:stat} and
+of in-memory performance for some algorithms (Figure \ref{perf:stat} and
 \ref{perf:clust}).
 This observation conforms with the computation and I/O complexity of
-the applications in Table \ref{tbl:algs}. When the number of attributes
+the algorithms in Table \ref{tbl:algs}. When the number of features
 gets larger, the computation of matrix multiplication in
 correlation and SVD grows more rapidly than I/O and eventually CPU becomes
 the bottleneck. The current implementation of correlation requires an additional
 pass on the input matrix to compute column-wise mean values, which results in
 lower external-memory performance. Similarly, as the number of clusters
 increases, the computation of k-means and GMM increases rapidly and
-these applications are dominated by their CPU computation as the number
-of clusters gets larger. Given an I/O throughput of 10 GB/s, the applications
-do not require many attributes or clusters to have their external-memory
+these algorithms are dominated by their CPU computation as the number
+of clusters gets larger. Given an I/O throughput of 10 GB/s, the algorithms
+do not require many features or clusters to have their external-memory
 performance close to their in-memory performance.
 
 \begin{figure}
@@ -320,31 +323,31 @@ fusion in CPU cache to reduce data movement between main memory and CPU cache
 of using VUDFs.
 
 Each memory optimization has significant performance improvement on most of
-the applications when FlashMatrix runs on SSDs (Figure \ref{perf:opts} (a)).
+the algorithms when FlashMatrix runs on SSDs (Figure \ref{perf:opts} (a)).
 Operation fusion in main memory achieves
-the highest performance improvement in almost all applications, even in GMM,
+the highest performance improvement in almost all algorithms, even in GMM,
 which has the highest asymptotic computation complexity. Even though the SSDs
 deliver an I/O throughput of 10GB/s, materializing every matrix operation
 separately causes SSDs to be the main bottleneck in the system.
 Fusing matrix operations in memory significantly reduces I/O access to SSDs and
 improves performance by a large factor. Operation fusion in the CPU cache also
-has very positive performance impact on some applications even when
-the applications run on SSDs. This suggests that with sufficient I/O optimizations,
-many machine learning applications that run on fast SSDs can be bottlenecked by
+has very positive performance impact on some algorithms even when
+the algorithms run on SSDs. This suggests that with sufficient I/O optimizations,
+many machine learning algorithms that run on fast SSDs can be bottlenecked by
 the bandwidth of main memory, instead of I/O. Even though it is less noticeable,
 reducing large memory allocation improves I/O performance and almost doubles
-the overall performance of all applications.
+the overall performance of all algorithms.
 
 The same memory optimizations also have very positive impact on the performance
-of most of the applications when FlashMatrix runs in memory (Figure
+of most of the algorithms when FlashMatrix runs in memory (Figure
 \ref{perf:opts} (b)). Operation fusion in CPU cache has performance improvement
-on all applications because reducing data movement between main memory and CPU
+on all algorithms because reducing data movement between main memory and CPU
 cache in a sequence of matrix operations always improves performance.
 Operation fusion in main memory further reduces memory allocation overhead when
 FlashMatrix runs in memory. Thus, like the optimization of reducing large
 memory allocation, its effectiveness heavily depend on the computation patterns
-in the applications. Both of the optimizations are more effective for
-the applications such as statistical summary and k-means, which require to
+in the algorithms. Both of the optimizations are more effective for
+the algorithms such as statistical summary and k-means, which require to
 generate new large matrices but do not have very heavy computation.
 
 \begin{figure}
@@ -366,12 +369,12 @@ generate new large matrices but do not have very heavy computation.
 		\caption{in memory}
 	\end{subfigure}
 	\caption{The effectiveness of memory optimizations on different
-			applications running on SSDs. The three memory optimizations are
+			algorithms running on SSDs. The three memory optimizations are
 		applied to FlashMatrix incrementally.}
 	\label{perf:opts}
 \end{figure}
 
-VUDFs improve the performance of the applications that rely on GenOps
+VUDFs improve the performance of the algorithms that rely on GenOps
 for computation (Figure \ref{perf:opts_CPU}). In this experiment, the base
 implementations deploy all memory optimizations to avoid memory from being
 the bottleneck of the system, and invoke functions on individual elements.
@@ -388,7 +391,7 @@ multiplication, so switching to VUDFs has no performance impact.
 		\vspace{-15pt}
 		\include{FlashMatrix_figs/opts.CPU}
 		\vspace{-10pt}
-		\caption{The effectiveness of using VUDFs on different applications
+		\caption{The effectiveness of using VUDFs on different algorithms
 		running in memory.}
 		\label{perf:opts_CPU}
 	\end{center}
