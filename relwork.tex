@@ -11,9 +11,8 @@ in general build on top of BLAS and distribute computation with MPI.
 They provide a limited set of predefined matrix operations and
 require users to manually parallelize the remaining matrix operations. Instead
 of providing predefined matrix operations, the core of FlashMatrix provides
-a few GenOps that represent some common data access patterns. By accepting
-different functions that define operations on individual elements in the input
-matrices, each GenOp covers a very large number of matrix operations.
+a few GenOps that represent some common data access patterns. Thus,
+each GenOp covers a very large number of matrix operations.
 
 There are many distributed data processing frameworks.
 MapReduce \cite{mapreduce} is a general large-scale data processing framework.
