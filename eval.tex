@@ -17,8 +17,7 @@ out-of-core execution of FlashMatrix. We use Spark v1.5.0 and R v3.2.4.
 
 \subsection{Statistics and Machine learning algorithms} \label{sec:apps}
 We implement multiple important algorithms in the field of statistics and
-machine learning. These algorithms have various computation complexity but
-have the same I/O complexity (Table \ref{tbl:algs}). We implement these
+machine learning. We implement these
 algorithms completely with the R interface of FlashMatrix and
 rely on FlashMatrix to perform computation in parallel and out of core.
 \begin{itemize}
@@ -66,7 +65,7 @@ SVD & $O(n \times p^2)$ & $O(n \times p)$ \\
 \hline
 K-means (1 iteration) & $O(n \times p \times k)$ & $O(n \times p)$ \\
 \hline
-GMM (1 iteration) & $O(n \times p^2 \times k)$ & $O(n \times p + n \times k)$ \\
+GMM (1 iteration) & $O(n \times p^2 \times k + p^3 \times k)$ & $O(n \times p + n \times k)$ \\
 \hline
 \end{tabular}
 \normalsize
@@ -77,6 +76,16 @@ GMM (1 iteration) & $O(n \times p^2 \times k)$ & $O(n \times p + n \times k)$ \\
 clusters k-means and GMM partition the dataset. We assume $n \gg p$.}
 \label{tbl:algs}
 \end{table}
+
+These algorithms have various ratios of computation complexity and I/O complexity
+(Table \ref{tbl:algs}), which helps to evaluate the perforamnce of FlashMatrix
+on SSDs thoroughly. The first three algorithms only require a constant number
+of passes over the input matrix. K-means and GMM run iteratively and we show
+their computation and I/O complexity in a single iteration. GMM typically run
+on a dataset with a small number of features. Therefore, the first term of its
+computation complexity dominates the computation. Although correlation and SVD
+have lower asymptotic complexity than GMM, they may run on datasets with many
+features and, thus, may have very high computation overhead.
 
 \begin{table}
 \begin{center}
@@ -99,10 +108,11 @@ Random-65M & 65M & 8-512 & 4-248GB \\
 \end{table}
 
 K-means and GMM typically run on a dataset with a small number of features
-in each data point
-due to curse of dimensionality \cite{Jain00} while the other algorithms may
-be applied to datasets with various numbers of features. We use the datasets
-in Table \ref{tbl:data} for performance evaluation. We run k-means and GMM on
+in each data point due to curse of dimensionality \cite{Jain00} while
+the other algorithms may be applied to datasets with various numbers of
+features. We use the datasets in Table \ref{tbl:data} for performance
+evaluation. In all datasets, the number of data points is far more than
+the number of features. We run k-means and GMM on
 the Friendster-32 matrix, constructed from 32 eigenvectors of the Friendster
 graph \cite{friendster}, as well as the MixGaussian-1B matrix with one billion
 data points and 32 features in each data point, sampled from 10 mixtures of
@@ -274,7 +284,9 @@ and GMM on the Friendster-32 matrix and vary the number of clusters from 2 to 64
 		\caption{The relative performance of FlashMatrix on SSDs for
 			statistics computation on random-65M matrices with the number of
 			columns varying from 8 to 512, normalized by its performance
-		in memory.}
+			in memory. As the number of columns increases, the external-memory
+			performance of these implementations approach to its in-memory
+		performance.}
 		\label{perf:stat}
 	\end{center}
 \end{figure}
@@ -305,7 +317,9 @@ performance close to their in-memory performance.
 		\vspace{-10pt}
 		\caption{The relative performance of FlashMatrix on SSDs for
 			clustering algorithms with different numbers of clusters, normalized
-		by its performance in memory.}
+			by its performance in memory. As the number of clusters increases,
+			the external-memory performance of these implementations approach
+			to their in-memory performance.}
 		\label{perf:clust}
 	\end{center}
 \end{figure}
