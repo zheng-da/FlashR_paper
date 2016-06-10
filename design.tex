@@ -669,16 +669,17 @@ separately. We apply the same strategies to \textit{fm.agg.col} and
 %\end{figure}
 
 \subsection{Reduce data movement in memory hierarchy}
-Although GenOps coupled with VUDFs achieves efficiency on a single matrix
-operation, they alone cannot achieve the overall performance of users' code,
-especially when matrices are stored on SSDs. Evaluation of individual matrix
-operations results in significant data movement between CPU and SSDs
-as well as frequent memory allocation. To achieve performance, it is essential
+Although GenOps coupled with VUDFs achieves efficiency in a single matrix
+operation, they alone cannot achieve the overall performance of users' code
+that contains a set of matrix operations, especially when matrices are stored
+on SSDs. Evaluation of individual matrix operations results in significant
+data movement between CPU and SSDs. To achieve performance, it is essential
 to reduce data movement in the memory hierarchy when evaluating a sequence
 of matrix operations. The first step is to evaluate individual matrix operations
-lazily so that we can merge them into a single execution. When materializing
-these matrix operations, we take advantage of two-level partitioning
-on matrices to reuse data in memory and in CPU cache as much as possible.
+lazily so that we can materialize them in a single execution. In matrix
+materialization, we take advantage of two-level partitioning on matrices to
+reuse data in memory and in CPU cache and reduce data movement in memory
+hierarchy.
 
 \subsubsection{Lazy evaluation} \label{sec:lazy_eval}
 FlashMatrix allows to evaluate many matrix operations lazily, which includes
@@ -695,22 +696,25 @@ movement, FlashMatrix grows a DAG as large as possible.
 	\label{fig:DAG}
 \end{figure}
 
-Figure \ref{fig:DAG} (a) shows the DAG for the R code of k-means in Figure
-\ref{fig:kmeans}, which comprises a set of \textit{virtual matrix} nodes
-(shown as rectangles) and computation nodes (shown as ellipses).
+Figure \ref{fig:DAG} (a) shows a DAG for the R code of k-means in Figure
+\ref{fig:kmeans}. A DAG comprises a set of matrix nodes (shown as rectangles)
+and computation nodes (shown as ellipses). Majority of matrix nodes represent
+\textit{virtual matrices}, shown as dashed line rectangles, which only contains
+the corresponding matrix operations and input matrices. In the case of k-means,
+only the input matrix \textit{X} contains materialized data.
 A computation node references to a matrix operation and input matrices and
 may contain some immutable computation state, such as scalar variables and
 small matrices involved in the matrix computation. 
 
-FlashMatrix does not require that all \textit{virtual matrices} in a DAG have
+\textit{Virtual matrices} in a DAG do not need to have
 the same shape (Figure \ref{fig:DAG} (b)). All \textit{virtual matrices} in
 the internal matrix nodes need to have the same \textit{long dimension} to
-simplify evaluation and data flow when we materialize all computation in a DAG.
-However, the other dimension of the internal matrices can vary. The GenOps
-that generate the same \textit{long dimension} as the input matrices include
+simplify evaluation and data flow in matrix materialization. The other dimension
+of the internal matrices can vary. The GenOps that generate matrices with
+the same \textit{long dimension} as the input matrices include
 \textit{fm.sapply} and \textit{fm.mapply}. In addition, FlashMatrix allows
 \textit{virtual matrices} of different sizes in both dimensions, such as
-node \textit{CNT} and \textit{C} (Figure \ref{fig:DAG} (b)), in a DAG.
+matrices \textit{CNT} and \textit{C} (Figure \ref{fig:DAG} (b)), in a DAG.
 These \textit{virtual matrices} usually form the edge node of a DAG because
 any computation that uses these \textit{virtual matrices} cannot be connected
 to the same DAG.  We refer to them as \textit{sink matrices}. The GenOps that
@@ -729,12 +733,11 @@ When materializing the computation in a DAG, FlashMatrix utilizes the two-level
 partitioning in dense matrices to bring data from SSDs to CPU efficiently.
 
 FlashMatrix allows users to materialize any \textit{virtual matrix} in a DAG.
-By default, FlashMatrix
-materializes only \textit{sink matrices} in a DAG. \textit{Sink matrices}
-are small and are always kept in memory. As such, this strategy minimizes
-data written to SSDs. In the example of k-means (Figure \ref{fig:DAG}),
-we materialize the two \textit{sink matrices} together to reduce data movement
-in the memory hierarchy. In some cases, especially in iterative algorithms,
+By default, FlashMatrix materializes only \textit{sink matrices} in a DAG to
+minimize data written to SSDs because \textit{sink matrices} are small and
+are always kept in memory. In the example of k-means (Figure \ref{fig:DAG}),
+we materialize the two \textit{sink matrices} together. In some cases,
+especially in iterative algorithms,
 we need to materialize some non-\textit{sink matrices} in a DAG to avoid
 redundant computation and I/O across iterations. In the current implementation,
 FlashMatrix allows users to set a flag on the
@@ -750,16 +753,17 @@ of these matrices to memory or SSDs during computation.
 
 FlashMatrix partitions matrices in a DAG in the \textit{long dimension} and
 materializes partitions separately (Figure \ref{fig:mater}). This is realized
-because all \textit{virtual matrices} except \textit{sink matrices} on a DAG
-have the same \textit{long dimension} size and share the same partition size
-in the \textit{long dimension}. As such, a partition $i$ of a \textit{virtual
-matrix} only requires data from partitions $i$ of the parent matrices. Owing to
-the storage scheme of in-memory matrices, partitions $i$ of all in-memory
-matrices are stored on the same NUMA node, which minimizes remote memory access.
+because all \textit{virtual matrices} except \textit{sink matrices} in a DAG
+share the same \textit{long dimension} size and partition size. As such,
+a partition $i$ of a \textit{virtual matrix} only requires data from partitions
+$i$ of the parent matrices.
+%Owing to
+%the storage scheme of in-memory matrices, partitions $i$ of all in-memory
+%matrices are stored on the same NUMA node, which minimizes remote memory access.
 When materializing a \textit{sink matrix}, each thread first computes partial
 aggregation results independently on the partitions of the parent matrix
-assigned to the thread and FlashMatrix merges the partial aggregation results
-to construct the \textit{sink matrix}.
+assigned to the thread. In the end, FlashMatrix merges per-thread partial
+aggregation results to construct the \textit{sink matrix}.
 
 %\textit{sink matrices} are usually small and are materialized in memory.
 %For example, \textit{agg\_row} on a wide matrix and
@@ -774,22 +778,24 @@ to construct the \textit{sink matrix}.
 FlashMatrix takes advantage of the two-level partitioning on dense matrices
 to reduce data movement between SSDs and CPU. It assigns I/O-level partitions
 to a thread as computation tasks for parallelization. We choose a relatively
-small partition size to balance the overhead of accessing a partition from
-SSDs, computation skew and memory consumption. A thread further splits
+small partition size to balance the overhead of accessing a partition,
+computation skew and memory consumption. A thread further splits
 an I/O-level partition into CPU-level partitions at run time and materializes
 one CPU-level partition at a time. Materialization of a CPU-level partition
 is triggered recursively. As shown in Figure \ref{fig:mater}, materializing
 matrix \textit{CNT} triggers materialization of CPU-level partitions of matrices
 \textit{I} and \textit{one}, which in turn triggers materialization of
 partitions of matrix \textit{D}, and so on. Eventually, it triggers data access
-to an I/O-level partition of external-memory matrix \textit{X} from SSDs.
+to an I/O-level partition of input matrix \textit{X} from SSDs.
 After materializing a CPU-level partition, the thread passes it to the subsequent
 operation, instead of materializing the next CPU-level partition in the same matrix.
 A CPU-level partition is sufficiently small to fit in the CPU cache so that
 the partition still resides in the CPU cache when the subsequent operation consumes
-it. This significantly reduces data movement between CPU and memory. To reduce
-CPU cache polution, a CPU-level partition is discarded once it is used by all
-children matrices.
+it. This significantly reduces data movement between CPU and memory. In each
+thread, all intermediate matrices have only one CPU-level partitions materialized
+at any time to reduce CPU cache pollution and thus increase CPU cache hits.
+%To reduce CPU cache polution, a CPU-level partition is discarded once it is
+%used by all children matrices.
 
 %In a DAG, a matrix may be
 %required by multiple GenOps. As such, each matrix always buffers one materialized
