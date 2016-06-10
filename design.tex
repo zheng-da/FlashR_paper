@@ -673,14 +673,19 @@ Although GenOps coupled with VUDFs achieves efficiency on a single matrix
 operation, they alone cannot achieve the overall performance of users' code,
 especially when matrices are stored on SSDs. Evaluation of individual matrix
 operations results in significant data movement between CPU and SSDs
-as well as frequent memory allocation. A very important optimization
-is to reduce data movement in the memory hierarchy when evaluating a sequence
-of matrix operations. The first step of reducing data movement is to evaluate
-individual matrix operations lazily so that we can merge them into a single
-execution. When evaluating them, we take advantage of two-level partitioning
+as well as frequent memory allocation. To achieve performance, it is essential
+to reduce data movement in the memory hierarchy when evaluating a sequence
+of matrix operations. The first step is to evaluate individual matrix operations
+lazily so that we can merge them into a single execution. When materializing
+these matrix operations, we take advantage of two-level partitioning
 on matrices to reuse data in memory and in CPU cache as much as possible.
 
 \subsubsection{Lazy evaluation} \label{sec:lazy_eval}
+FlashMatrix allows to evaluate many matrix operations lazily, which includes
+all GenOps in Table \ref{tbl:genops} and some utility functions in Table
+\ref{tbl:utility}. The lazily evaluated matrices are put together to construct
+a directed acyclic graph (DAG) to represent the computation. To help reduce data
+movement, FlashMatrix grows a DAG as large as possible.
 
 \begin{figure}
 	\centering
@@ -690,73 +695,71 @@ on matrices to reuse data in memory and in CPU cache as much as possible.
 	\label{fig:DAG}
 \end{figure}
 
-FlashMatrix constructs a directed acyclic graph (DAG) to represent a sequence
-of matrix operations evaluated lazily (Figure \ref{fig:DAG} (a)). A lazily
-evaluated GenOp outputs a \textit{virtual matrix} to capture matrix computation
-and the input matrices. A
-DAG comprises a set of \textit{virtual matrix} nodes (shown as rectangles)
-and computation nodes (shown as ellipses). We refer to the input matrices of
-a computation node as the parent matrices and the output matrix as the child matrix.
-The computation nodes may contain some immutable computation state, such as
-scalar variables and small matrices involved in the matrix computation.
-A matrix node can be used by multiple computation nodes as
-an input matrix. Although the \textit{virtual matrices} do not need to have
-the same shape, FlashMatrix requires all \textit{virtual matrices} in
-the internal matrix nodes of a DAG to have the same \textit{long dimension}
-(Figure \ref{fig:DAG} (b)). A \textit{long dimension} refers to the matrix
-dimension with the larger size. This design simplifies evaluation and data flow
-of a DAG when we materialize the computation in the DAG.
+Figure \ref{fig:DAG} (a) shows the DAG for the R code of k-means in Figure
+\ref{fig:kmeans}, which comprises a set of \textit{virtual matrix} nodes
+(shown as rectangles) and computation nodes (shown as ellipses).
+A computation node references to a matrix operation and input matrices and
+may contain some immutable computation state, such as scalar variables and
+small matrices involved in the matrix computation. 
 
-FlashMatrix allows lazy evaluation on all GenOps. There are two types of GenOps
-in a DAG. The first type, such as \textit{fm.sapply} and \textit{fm.mapply}, generates
-matrices with the same \textit{long dimension} size as the input matrices.
-The second type, such as \textit{fm.agg} and all variants of \textit{groupby},
-generates matrices
-with different \textit{long dimension} sizes. The output matrices of the first
-type of GenOps can be easily connected to other nodes in a DAG. Any computation
-that uses the output matrices of the second type of GenOps
-cannot be connected to the same DAG.  We refer to these output matrices as
-\textit{sink matrices}.
+FlashMatrix does not require that all \textit{virtual matrices} in a DAG have
+the same shape (Figure \ref{fig:DAG} (b)). All \textit{virtual matrices} in
+the internal matrix nodes need to have the same \textit{long dimension} to
+simplify evaluation and data flow when we materialize all computation in a DAG.
+However, the other dimension of the internal matrices can vary. The GenOps
+that generate the same \textit{long dimension} as the input matrices include
+\textit{fm.sapply} and \textit{fm.mapply}. In addition, FlashMatrix allows
+\textit{virtual matrices} of different sizes in both dimensions, such as
+node \textit{CNT} and \textit{C} (Figure \ref{fig:DAG} (b)), in a DAG.
+These \textit{virtual matrices} usually form the edge node of a DAG because
+any computation that uses these \textit{virtual matrices} cannot be connected
+to the same DAG.  We refer to them as \textit{sink matrices}. The GenOps that
+generate \textit{sink matrices} include \textit{fm.agg} and the variants of
+\textit{groupby}.
 
 To enable lazy evaluation, all matrices in FlashMatrix are immutable and every
 matrix operation generates a new matrix. As such, materialization of
 \textit{virtual matrices} always generates the same result. FlashMatrix
 garbage collects a matrix when there are no references to it.
 
-\subsubsection{Matrix materialization} \label{sec:materialize}
+\subsubsection{Matrix materialization in the memory hierarchy} \label{sec:materialize}
 Lazy evaluation postpones computation in matrix operations, but we eventually
 have to materialize some \textit{virtual matrices} to perform actual computation.
 When materializing the computation in a DAG, FlashMatrix utilizes the two-level
 partitioning in dense matrices to bring data from SSDs to CPU efficiently.
 
-FlashMatrix can materialize any \textit{virtual matrix} in a DAG and
-can materialize multiple \textit{virtual matrices} together. Typically, we
-materialize only \textit{sink matrices} in a DAG. In the example shown in
-Figure \ref{fig:DAG}, we materialize the two \textit{sink matrices} together
-to reduce data movement in the memory hierarchy. Many iterative algorithms need
-to materialize some non-\textit{sink matrices} in a DAG to avoid redundant
-computation and I/O if these non-\textit{sink matrices} are used across
-iterations. FlashMatrix allows programmers to set a flag on the
+FlashMatrix allows users to materialize any \textit{virtual matrix} in a DAG.
+By default, FlashMatrix
+materializes only \textit{sink matrices} in a DAG. \textit{Sink matrices}
+are small and are always kept in memory. As such, this strategy minimizes
+data written to SSDs. In the example of k-means (Figure \ref{fig:DAG}),
+we materialize the two \textit{sink matrices} together to reduce data movement
+in the memory hierarchy. In some cases, especially in iterative algorithms,
+we need to materialize some non-\textit{sink matrices} in a DAG to avoid
+redundant computation and I/O across iterations. In the current implementation,
+FlashMatrix allows users to set a flag on the
 non-\textit{sink matrices} to inform FlashMatrix to save materialized data
 of these matrices to memory or SSDs during computation.
 
-We partition matrices on a DAG in the \textit{long dimension} for materialization
-and parallelization (Figure \ref{fig:DAG} (b)). All \textit{virtual matrices}
-except \textit{sink matrices} on a DAG have the same \textit{long dimension}
-size. To simplify materialization, they all share the same partition size in
-the \textit{long dimension}.
-As such, a partition $i$ of a \textit{virtual matrix} only requires data from
-partitions $i$ of the parent matrices and FlashMatrix materializes partitions
-in a matrix independently. %By default, FlashMatrix discards data in a partition
-%immediately once the data is used by all children matrices.
-%Owing to the storage scheme for
-%in-memory matrices, the data of all in-memory matrices in a partition are stored
-%on the same NUMA node to minimize remote memory access.
-%A \textit{sink matrix} is an output of some form of aggregation on its parent matrix.
-When materializing a \textit{sink matrix}, each thread computes partial
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.6]{FlashMatrix_figs/materialize.pdf}
+	\caption{Materialization of partitions of matrices in a DAG.}
+	\label{fig:mater}
+\end{figure}
+
+FlashMatrix partitions matrices in a DAG in the \textit{long dimension} and
+materializes partitions separately (Figure \ref{fig:mater}). This is realized
+because all \textit{virtual matrices} except \textit{sink matrices} on a DAG
+have the same \textit{long dimension} size and share the same partition size
+in the \textit{long dimension}. As such, a partition $i$ of a \textit{virtual
+matrix} only requires data from partitions $i$ of the parent matrices. Owing to
+the storage scheme of in-memory matrices, partitions $i$ of all in-memory
+matrices are stored on the same NUMA node, which minimizes remote memory access.
+When materializing a \textit{sink matrix}, each thread first computes partial
 aggregation results independently on the partitions of the parent matrix
-assigned to the thread. In the end of computation, FlashMatrix merges
-the partial aggregation results to construct the \textit{sink matrix}.
+assigned to the thread and FlashMatrix merges the partial aggregation results
+to construct the \textit{sink matrix}.
 
 %\textit{sink matrices} are usually small and are materialized in memory.
 %For example, \textit{agg\_row} on a wide matrix and
@@ -768,20 +771,26 @@ the partial aggregation results to construct the \textit{sink matrix}.
 %in memory because the long dimension of these matrices is usually much larger
 %than the short dimension in these tasks.
 
-FlashMatrix takes advantage of the two-level
-partitioning on dense matrices to reduce data movement between SSDs and CPU.
-It assigns I/O-level partitions (Section \ref{sec:tas_mat}) to a thread as
-computation tasks for parallelization. We choose a relatively small partition
-size to balance the overhead of accessing a partition, skew
-and memory consumption. A thread further splits an I/O-level partition into
-CPU-level partitions at run time and materializes one CPU-level partition at
-a time. After materializing a CPU-level partition, the thread passes
-the partition to the subsequent operation in the DAG, instead of materializing
-the next CPU-level
-partition in the same matrix. A CPU-level partition is sufficiently small
-to fit in the CPU cache so that the partition still resides in CPU cache when
-the subsequent operation consumes it. This significantly reduces data movement
-between CPU and memory.
+FlashMatrix takes advantage of the two-level partitioning on dense matrices
+to reduce data movement between SSDs and CPU. It assigns I/O-level partitions
+to a thread as computation tasks for parallelization. We choose a relatively
+small partition size to balance the overhead of accessing a partition from
+SSDs, computation skew and memory consumption. A thread further splits
+an I/O-level partition into CPU-level partitions at run time and materializes
+one CPU-level partition at a time. Materialization of a CPU-level partition
+is triggered recursively. As shown in Figure \ref{fig:mater}, materializing
+matrix \textit{CNT} triggers materialization of CPU-level partitions of matrices
+\textit{I} and \textit{one}, which in turn triggers materialization of
+partitions of matrix \textit{D}, and so on. Eventually, it triggers data access
+to an I/O-level partition of external-memory matrix \textit{X} from SSDs.
+After materializing a CPU-level partition, the thread passes it to the subsequent
+operation, instead of materializing the next CPU-level partition in the same matrix.
+A CPU-level partition is sufficiently small to fit in the CPU cache so that
+the partition still resides in the CPU cache when the subsequent operation consumes
+it. This significantly reduces data movement between CPU and memory. To reduce
+CPU cache polution, a CPU-level partition is discarded once it is used by all
+children matrices.
+
 %In a DAG, a matrix may be
 %required by multiple GenOps. As such, each matrix always buffers one materialized
 %CPU-level partition in each thread to avoid redundant computation.
