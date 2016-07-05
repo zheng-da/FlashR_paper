@@ -30,17 +30,16 @@ its sequential I/O throughput \cite{SEM_SpMM}.
 Dense matrices are the main data types in FlashMatrix. A vector is stored
 as a one-column dense matrix. In FlashMatrix, a dense matrix can be stored
 physically in memory or on SSDs or represented virtually by a sequence of
-computation. FlashMatrix supports dense matrices of different shapes
-(Figure \ref{fig:mat}). It specifically optimizes tall-and-skinny matrices
-and short-and-wide matrices, and view tall matrices and wide matrices
+computation. FlashMatrix specifically optimizes for tall-and-skinny matrices
+and short-and-wide matrices, and views tall matrices and wide matrices
 as groups of tall-and-skinny matrices and short-and-wide matrices, respectively.
 
-\begin{figure}
-	\centering
-	\includegraphics[scale=0.5]{FlashMatrix_figs/matrix.pdf}
-	\caption{Dense matrices of different shapes.}
-	\label{fig:mat}
-\end{figure}
+%\begin{figure}
+%	\centering
+%	\includegraphics[scale=0.5]{FlashMatrix_figs/matrix.pdf}
+%	\caption{Dense matrices of different shapes.}
+%	\label{fig:mat}
+%\end{figure}
 
 %A matrix has two identifiers: the \textit{matrix identifier} that indicates
 %the matrix itself and the \textit{matrix data identifier} that indicates
@@ -50,8 +49,7 @@ as groups of tall-and-skinny matrices and short-and-wide matrices, respectively.
 
 \subsubsection{Tall-and-skinny matrices} \label{sec:tas_mat}
 
-FlashMatrix optimizes for tall-and-skinny (TAS) dense matrices (Figure
-\ref{fig:mat} (a)) due to their
+FlashMatrix optimizes for tall-and-skinny (TAS) dense matrices due to their
 frequent occurrence in data analysis. In this field, many data matrices contain
 a large number of samples with a relatively few features, so
 data matrices are usually tall and skinny. If a data matrix has many
@@ -116,7 +114,7 @@ Memory cache is necessary for external-memory matrices on a machine with
 substantial memory.
 Even though SSDs have substantial I/O performance, they are still
 an order of magnitude slower than DRAM. Unfortunately, we cannot rely on
-the page cache in SAFS \cite{sa-cache} to buffer some portion of a dense matrix
+the page cache in SAFS \cite{SA-cache} to buffer some portion of a dense matrix
 because streaming an entire matrix to memory evicts existing data in the page
 cache and generates zero cache hits. Therefore, FlashMatrix allows users to
 explicitly cache part of a dense matrix.
@@ -136,8 +134,7 @@ a dense matrix is created, and avoids I/O latency when removing the cache.
 \subsubsection{A group of dense matrices} \label{sec:mat_group}
 FlashMatrix represents a tall matrix with a group of
 tall-and-skinny matrices and a wide matrix with a group of short-and-wide
-matrices (Figure \ref{fig:mat} (c) and (d)). We construct a special
-\textit{virtual matrix} to represent
+matrices. We construct a special \textit{virtual matrix} to represent
 a group of dense matrices. To take advantage of the optimizations on matrix
 operations on TAS matrices, we decompose a matrix operation on a group of
 matrices into operations on individual matrices in the group (Section
@@ -189,13 +186,13 @@ memory utilization. We use 64MB as the default memory chunk size.
 \subsection{Programming interface}
 
 FlashMatrix provides a matrix-oriented functional programming interface.
-The main interface is a small set of GenOps, implemented with C++. These
-operators take matrices and
-functions that define computation on individual elements in input matrices,
-and output new matrices that store computation results. As such, matrices in
-FlashMatrix are immutable. FlashMatrix exposes
-GenOps in its R interface and reimplements many functions from the R
-\textit{base} package with GenOps.
+The main interface is a small set of GenOps that take matrices and some
+element functions (EleFuns) as input and output new matrices that store
+computation results. EleFuns define computation on individual elements
+in input matrices. We implement both GenOps and EleFuns with C++ and provides
+a large set of built-in EleFuns. FlashMatrix
+exposes GenOps and the built-in EleFuns in its R interface
+and reimplements many functions from the R \textit{base} package with GenOps.
 
 The R interface provides many functions to support varieties of data analysis
 algorithms. We categorize the functions into three classes.
@@ -265,8 +262,8 @@ Class & Function & Description \\
 & $fm.conv.R2FM$ & Convert an R matrix to a FM matrix \\
 \hline
 \multirow{3}{*}{Reshape} & $t$ & Matrix transpose \\
-& $fm.rbind$ & Bine matrices by rows \\
-& $fm.cbind$ & Bine matrices by columns \\
+& $fm.rbind$ & Bind matrices by rows \\
+& $fm.cbind$ & Bind matrices by columns \\
 \hline
 \multirow{4}{*}{Control} & $fm.conv.layout$ & Convert the data layout of a matrix \\
 & $fm.set.mate.level$ & Set the materialization level of \\ & & a \textit{virtual matrix} \\
@@ -341,7 +338,7 @@ kmeans.iter <- function(X, C)
 \end{figure}
 
 Figure \ref{fig:kmeans} shows an example of computing an iteration of k-means
-\cite{kmeans} using GenOps and VUDFs. It first uses \textit{fm.inner.prod} to
+\cite{kmeans} using GenOps. It first uses \textit{fm.inner.prod} to
 compute the Euclidean distance between every data point and every cluster center,
 and outputs a matrix with each row representing the distances from a data
 point to every cluster center. It uses \textit{fm.agg.row} to find the closest
@@ -396,7 +393,7 @@ the number of data points in each cluster and compute the mean of each cluster.
 %of memory buffers allocated previously and reuse them for new I/O requests.
 
 \subsection{Efficient generalized operations}
-FlashMatrix aims to providing efficient implementations of a small number of
+FlashMatrix provides efficient implementations of a small number of
 generialized matrix operations (GenOps) to achieve both generality and
 efficiency. For generality, FlashMatrix allows users to pass functions to
 GenOps to define actual matrix computation. For efficiency, FlashMatrix
@@ -404,10 +401,11 @@ requires the functions passed to GenOps to be vectorized.
 
 \subsubsection{Generalized matrix operations} \label{sec:genop}
 FlashMatrix provides only four GenOps on matrices: \textit{inner product},
-\textit{apply}, \textit{aggregation} and \textit{groupby}. Each operator
-represents a data access pattern and accepts some functions as additional
+\textit{apply}, \textit{aggregation} and \textit{groupby} (Table
+\ref{tbl:genops}). Each operator represents a data access pattern and
+accepts some element functions as additional
 arguments that define computation on individual elements in matrices (Section
-\ref{sec:vudf}).
+\ref{sec:vef}).
 
 \textit{Inner product} is a generalized matrix multiplication (\textit{fm.inner.prod}).
 It replaces multiplication and addition in matrix multiplication with two functions.
@@ -425,7 +423,7 @@ owing to space complexity. This holds for all matrix algebra frameworks.
 When evaluating an \textit{inner product} expression, FlashMatrix uses the BLAS
 implementation of matrix multiplication for floating-point matrices.
 This achieves the speed and precision required by
-numeric libraries, such as eigensolvers \cite{anasazi, FlashEigen}.
+numeric libraries, such as eigensolvers \cite{anasazi, flasheigen}.
 
 \textit{Apply} is a generalized form of element-wise operations and has
 multiple variants. The simplest variant (\textit{fm.sapply}) is
@@ -456,64 +454,61 @@ columns associated with the same categorical value. Matrix \textit{groupby}
 is used in classification and clustering algorithms that compute
 aggregation on the data points in a class or in a cluster.
 
-\subsubsection{Vectorized user-defined function} \label{sec:vudf}
-GenOps take functions that define computation on individual elements.
-Computing on each element individually would
+\subsubsection{Vectorized element functions} \label{sec:vef}
+Invoking a function on each element individually would
 result in significant function call overheads. Instead, all of
-the GenOps take vectorized user-defined functions (VUDFs) that operate on
+the GenOps take vectorized element functions (VEleFuns) that operate on
 a vector of elements instead of an individual element. By transforming
 the operations on individual elements to the ones on a vector, we amortize
 the overhead of function calls significantly.
-%GenOps accept the pointers to VUDFs at runtime to support
-%dynamic programming languages such as R.
 
 We balance the amortization of function call overhead and CPU cache misses.
-To reduce latency of accessing data in VUDFs,
+To reduce latency of accessing data in VEleFuns,
 the input data has to be small enough to fit in the CPU L1 cache. On the
-other hand, passing a longer vector to a VUDF amortizes the overhead of
+other hand, passing a longer vector to a VEleFun amortizes the overhead of
 function calls more aggressively. We use 128 as the maximum length of
-the input vector of a VUDF. %Futher increasing the length does not have
+the input vector of a VEleFun. %Futher increasing the length does not have
 %noticeable performance improvement.
 
-We have three types of VUDFs to support the GenOps in FlashMatrix. Each VUDF
+We have three types of VEleFuns to support the GenOps in FlashMatrix. Each VEleFun
 type may have multiple forms to allow GenOps to transform operations to
-increase the length of an input vector to a VUDF and reduce function call
+increase the length of an input vector to a VEleFun and reduce function call
 overhead.
 \begin{itemize}
-	\item A \textit{unary} VUDF (\textit{uVUDF}) takes a vector
+	\item A \textit{unary} VEleFun (\textit{uVEleFun}) takes a vector
 		as input and outputs a vector of the same length.
-	\item A \textit{binary} VUDF has three forms: the first form (\textit{bVUDF1}) 
+	\item A \textit{binary} VEleFun has three forms: the first form (\textit{bVEleFun1}) 
     takes two vectors of the same length and outputs
-		a vector of the same length as the input vectors; the second form (\textit{bVUDF2}) 
+		a vector of the same length as the input vectors; the second form (\textit{bVEleFun2}) 
     takes a vector as the left argument and a scalar
 		as the right argument and outputs a vector with the same length as
-		the input vector; the third form (\textit{bVUDF3}) takes a scalar
+		the input vector; the third form (\textit{bVEleFun3}) takes a scalar
 		as the left argument and a vector as the right argument and outputs
 		a vector. The second and third forms support non-commutative binary
 		operations such as division and subtraction.
-	\item An \textit{aggregation} VUDF consists of two functions:
+	\item An \textit{aggregation} VEleFun consists of two functions:
 		\textit{aggregate} and \textit{combine}. Both functions may have two
-		forms: the first one (\textit{aVUDF1}) takes a vector and
-		outputs a scalar; the second one (\textit{aVUDF2}) takes
+		forms: the first one (\textit{aVEleFun1}) takes a vector and
+		outputs a scalar; the second one (\textit{aVEleFun2}) takes
 		two vectors of the same length and outputs a vector. For many
-		aggregation VUDFs such as summation, \textit{aggregate} and
-		\textit{combine} are the same and have both \textit{aVUDF1} and
-		\textit{aVUDF2} forms. For some aggregation such as \textit{count},
+		aggregation VEleFuns such as summation, \textit{aggregate} and
+		\textit{combine} are the same and have both \textit{aVEleFun1} and
+		\textit{aVEleFun2} forms. For some aggregation such as \textit{count},
 		\textit{aggregate} and \textit{combine} are different.
 \end{itemize}
 
-FlashMatrix provides many commonly used VUDFs. These VUDFs wrap
-basic operations built in many programming languages and libraries. For example,
+FlashMatrix provides many commonly used VEleFuns that wrap basic operations
+built in many programming languages and libraries. For example,
 FlashMatrix provides arithmetic operations (\textit{addition} and
 \textit{subtraction}), relational operations (\textit{equal to} and
 \textit{less than}), logical operations (\textit{logical AND} and
-\textit{logical OR}), as well as commonly used math functions (absolute value and square root). 
-FlashMatrix also provides a set of VUDFs to
+\textit{logical OR}), as well as commonly used math functions (\textit{absolute
+value} and \textit{square root}). FlashMatrix also provides a set of VEleFuns to
 cast primitive element types.
 
-For each basic operation, FlashMatrix provides multiple VUDF
+For each basic operation, FlashMatrix provides multiple VEleFun
 implementations to support different element types. To reduce the number
-of binary VUDF implementations, FlashMatrix only provides the ones that take
+of binary VEleFun implementations, FlashMatrix only provides the ones that take
 two input arguments of the same type. If a GenOp gets two matrices with different
 element types, it first casts the element type of one matrix to match
 the other. %Type casting follows the usual arithmetic conversions \cite{}
@@ -521,17 +516,17 @@ the other. %Type casting follows the usual arithmetic conversions \cite{}
 Type casting operations are
 implemented with \textit{fm.sapply} and are performed lazily.
 
-FlashMatrix allows programmers to extend the framework by registering new VUDFs.
-Like built-in VUDFs, a new VUDF needs to provide multiple
+FlashMatrix allows programmers to extend the framework by registering new VEleFuns.
+Like built-in VEleFuns, a new VEleFun needs to provide multiple
 implementations to support different element types; based on the type of
-the VUDF, it may need to provide different forms as described above.
-FlashMatrix currently requires a VUDF to be implemented with C/C++.
+the VEleFun, it may need to provide different forms as described above.
+FlashMatrix currently requires a VEleFun to be implemented with C/C++.
 
 We use CPU vector instructions such as AVX \cite{avx} to accelerate
-the computation in a VUDF. The current implementation of FlashMatrix heavily
+the computation in a VEleFun. The current implementation of FlashMatrix heavily
 relies on auto-vectorization of a compiler, such as GCC, to vectorize
 computaion. FlashMatrix provides hints and
-transforms code to help auto-vectorization. For example, a VUDF in FlashMatrix
+transforms code to help auto-vectorization. For example, a VEleFun in FlashMatrix
 frequently operates on vectors with data aligned in memory and of
 the length defined at compile time, so we inform the compiler of the data alignment
 and the vector length. Some compilers do not automatically vectorize
@@ -539,29 +534,29 @@ aggregation operations well. In this case, we manually create a small vector of 
 variables, flatten the loop and transform the original aggregation operation
 into aggregation onto the vector of reduction variables to help auto-vectorization.
 
-\subsubsection{Implementation of GenOps with VUDF}
+\subsubsection{Implementation of GenOps with VEleFun}
 
-GenOps invoke VUDFs on the elements of CPU-level partitions intelligently
+GenOps invoke VEleFuns on the elements of CPU-level partitions intelligently
 to increase the length of vectors passed and to reduce the overhead of
 function calls. Different GenOps choose different
-forms of VUDFs based on the data layout and the shape of the input matrices.
+forms of VEleFuns based on the data layout and the shape of the input matrices.
 
-Some GenOps invoke VUDFs on the elements of matrices efficiently regardless of
+Some GenOps invoke VEleFuns on the elements of matrices efficiently regardless of
 data layout and matrix shape.
 For example, \textit{fm.sapply} and \textit{fm.mapply} only require
 the input matrices and the output matrix to have the same data layout. For tall
 column-major matrices and wide row-major matrices, each CPU-level partition has
-long columns and long rows, respectively. These GenOps invoke a VUDF
+long columns and long rows, respectively. These GenOps invoke a VEleFun
 on the long columns and rows. For tall row-major matrices and wide column-major
 matrices, all rows and columns in a CPU-level partition are stored in a single
-piece of memory. These GenOps invoke a VUDF only once on all
+piece of memory. These GenOps invoke a VEleFun only once on all
 elements in a partition. %A similar strategy is applicable to \textit{agg}.
 
 Most of the GenOps require a matrix with a specific data layout to reduce
 function call overhead.
 Many of the GenOps favor the column-major order for a tall-and-skinny matrix
 and the row-major order for a short-and-wide matrix. These data layouts increase
-the length of a vector passed to a VUDF and align data in memory. For example,
+the length of a vector passed to a VEleFun and align data in memory. For example,
 the column-major order ensures that each column in a partition of a tall matrix
 is aligned in memory, regardless of the number of columns in the matrix. A GenOp,
 such as inner product, converts the data layout of a CPU-level partition to
@@ -570,41 +565,41 @@ the preferred layout if an input matrix does not have the preferred layout.
 %does not increase data access to main memory. 
 
 Given a matrix with the preferred data layout, a GenOp selects different forms
-of a VUDF automatically based on the shape of the input matrix. For example,
-for a tall column-major matrix, \textit{fm.mapply.col} invokes the \textit{bVUDF1}
-form of the binary VUDF on a column from the input matrix and the input vector;
-for a wide row-major matrix, \textit{fm.mapply.col} invokes the \textit{bVUDF2}
+of a VEleFun automatically based on the shape of the input matrix. For example,
+for a tall column-major matrix, \textit{fm.mapply.col} invokes the \textit{bVEleFun1}
+form of the binary VEleFun on a column from the input matrix and the input vector;
+for a wide row-major matrix, \textit{fm.mapply.col} invokes the \textit{bVEleFun2}
 form on a row from the input matrix and an element from the vector. We apply
 the similar strategy to other GenOps. When applying \textit{inner product}
-on a tall column-major matrix, FlashMatrix uses the \textit{bVUDF2} form of
-the first VUDF to computes the outer product of a column from the left matrix
-and a row from the right matrix, and uses the \textit{aVUDF2} of the second VUDF
+on a tall column-major matrix, FlashMatrix uses the \textit{bVEleFun2} form of
+the first VEleFun to computes the outer product of a column from the left matrix
+and a row from the right matrix, and uses the \textit{aVEleFun2} of the second VEleFun
 to compute the final result. Because \textit{inner product} operates on
 a CPU-level partition, all intermediate results in the computation reside
 in CPU cache. Inner product on a wide matrix and a tall matrix invokes the
-\textit{bVUDF1} form of the first VUDF on a row from the left matrix and a column
-from the right matrix, and invokes the \textit{aVUDF1} form of the second VUDF
-on the output from the first VUDF to compute an element in the output matrix for
+\textit{bVEleFun1} form of the first VEleFun on a row from the left matrix and a column
+from the right matrix, and invokes the \textit{aVEleFun1} form of the second VEleFun
+on the output from the first VEleFun to compute an element in the output matrix for
 the input partitions.
 
 %Both \textit{agg\_row} and \textit{agg\_col} work better on the preferred data
-%layout if the aggregation VUDF has the same \textit{aggregate} and \textit{combine}
-%function with both \textit{aVUDF1} and \textit{aVUDF2} forms. For these aggregation
-%VUDFs, we can transform \textit{agg\_row} on a column-major matrix to applying
-%\textit{aVUDF2} to columns of a partition. Similar transformation is applied
+%layout if the aggregation VEleFun has the same \textit{aggregate} and \textit{combine}
+%function with both \textit{aVEleFun1} and \textit{aVEleFun2} forms. For these aggregation
+%VEleFuns, we can transform \textit{agg\_row} on a column-major matrix to applying
+%\textit{aVEleFun2} to columns of a partition. Similar transformation is applied
 %to \textit{agg\_col} on a row-major matrix.
 
-%Inner product chooses different forms of VUDFs for input matrices with different
+%Inner product chooses different forms of VEleFuns for input matrices with different
 %shapes. The first UDF of inner product is a binary UDF and the second one is an
 %aggregation UDF. For the sake of efficiency, inner product requires the second
 %UDF to have the same \textit{aggregate} and \textit{combine} function with both
-%\textit{aVUDF1} and \textit{aVUDF2} forms.
+%\textit{aVEleFun1} and \textit{aVEleFun2} forms.
 
 %Unlike other GenOps, \textit{groupby\_row} and \textit{groupby\_col} are the only
 %GenOps that do not favor the column-major order for a tall-and-skinny matrix and
 %the row-major order for a short-and-wide matrix. \textit{groupby\_row} sorts
 %rows in a partition based on the categorical values associated with each row
-%and apply the aggregation VUDF on rows directly.
+%and apply the aggregation VEleFun on rows directly.
 
 \subsubsection{Implementation of GenOps on a group of matrices} \label{sec:group_op}
 
@@ -630,7 +625,7 @@ individual matrices in a group of wide matrices directly. %\textit{mapply}
 %can be decomposed in a similar fashion.
 
 Applying other GenOps to a group of matrices requires transformation. If an aggregation
-VUDF provides a \textit{combine} function, applying \textit{fm.agg.row} to a group of
+VEleFun provides a \textit{combine} function, applying \textit{fm.agg.row} to a group of
 tall matrices is transformed into two steps: apply the \textit{aggregate} function on
 each row of individual matrices and apply the \textit{combine} function on the partial
 aggregation results. When applying \textit{fm.mapply.row} to a group of tall matrices,
@@ -669,16 +664,18 @@ separately. We apply the same strategies to \textit{fm.agg.col} and
 %\end{figure}
 
 \subsection{Reduce data movement in memory hierarchy}
-Although GenOps coupled with VUDFs achieves efficiency in a single matrix
-operation, they alone cannot achieve the overall performance of users' code
-that contains a set of matrix operations, especially when matrices are stored
-on SSDs. Evaluation of individual matrix operations results in significant
-data movement between CPU and SSDs. To achieve performance, it is essential
-to reduce data movement in the memory hierarchy when evaluating a sequence
+Although GenOps coupled with VEleFuns achieves efficiency in a single matrix
+operation, they alone cannot achieve the overall performance of users' code,
+especially when matrices are stored on SSDs. Evaluation of individual matrix
+operations results in significant data movement between CPU and SSDs. Even
+though the I/O performance of SSDs has advanced to outperform hard drives by
+a large factor, they are still an order of magnitude slower than RAM.
+To achieve performance, it is essential to reduce data movement between SSDs
+and RAM as well as between RAM and CPU when evaluating a sequence
 of matrix operations. The first step is to evaluate individual matrix operations
-lazily so that we can materialize them in a single execution. In matrix
-materialization, we take advantage of two-level partitioning on matrices to
-reuse data in memory and in CPU cache and reduce data movement in memory
+lazily and construct a computation graph. When performing computation in
+the computation graph, we take advantage of two-level partitioning on matrices
+to reuse data in memory and in CPU cache and reduce data movement in memory
 hierarchy.
 
 \subsubsection{Lazy evaluation} \label{sec:lazy_eval}
