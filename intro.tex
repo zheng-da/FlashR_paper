@@ -91,11 +91,11 @@ hardware design that scales up a single machine for high performance computing
 
 We overcome many technical challenges to move data from SSDs to CPU efficiently,
 overcoming the large speed disparity between CPU and memory, as well as between
-memory and
-SSDs. The speed disparity of CPU and DRAM has increased exponentially over
-the past decades \cite{Wilkes01}. While SSDs have high IOPS and sequential
-I/O throughput, they are still an order of magnitude slower than DRAM.
-Many analysis tasks are data-intensive. Matrix
+memory and SSDs. The speed disparity of CPU and DRAM has increased exponentially
+over the past decades \cite{Wilkes01}. Even though the I/O performance of SSDs
+has advanced to outperform hard drives by a large factor, they remain an order
+of magnitude slower than RAM. On the other hand, many analysis tasks are
+data-intensive. Matrix
 formulation further increases data movement between CPU and SSDs because
 a matrix computation framework typically performs an operation
 on the entire input matrices before moving to the next operation.
@@ -104,7 +104,8 @@ on the entire input matrices before moving to the next operation.
 %bandwidth instead of computing power.
 
 Another challenge in FlashMatrix is to reduce computation overhead. A GenOp in
-FlashMatrix takes some functions as additional arguments that define operations
+FlashMatrix takes some functions (EleFuns) as additional arguments that define
+operations
 on individual elements in the input matrices. To support the matrix operations
 in the R \textit{base} package, a GenOp accepts functions at run time.
 As such, each operation on an element potentially results in a function call,
@@ -121,18 +122,18 @@ streams data from SSDs to maximize I/O throughput.
 
 %\dz{maybe we should say something about optimization on memory allocation?}
 
-To reduce computation overhead, we deploy vectorized user-defined
-functions (VUDFs), which operates on a vector of elements, instead of
-an individual element. We define multiple forms for each VUDF and automatically
+To reduce computation overhead, we deploy vectorized EleFuns (VEleFuns) that
+operates on a vector of elements, instead of
+an individual element. We define multiple forms for each VEleFun and automatically
 select the right form for each GenOp to amortize the function call overhead.
-When invoking VUDFs, GenOps choose the right vector length to balance
+When invoking VEleFuns, GenOps choose the right vector length to balance
 the amortization of the function call overhead and CPU cache misses.
-Inside VUDFs, we use vector CPU instructions, such as AVX \cite{avx},
+Inside VEleFuns, we use vector CPU instructions, such as AVX \cite{avx},
 to further improve performance.
 
 % What are it's key features?
 
-We implement multiple machine learning algorithms, including KMeans \cite{kmeans}
+We implement multiple machine learning algorithms, including k-means \cite{kmeans}
 and Gaussian Mixture Models \cite{gmm} in FlashMatrix with its R programming
 interface to benchmark its performance. On a large parallel machine with 48
 CPU cores and fast SSDs, the out-of-core execution of these R implementations
