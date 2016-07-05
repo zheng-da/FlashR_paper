@@ -461,11 +461,12 @@ FlashMatrix is a matrix-oriented programming framework for general data analysis
 with high-level functional programming interface. It scales matrix operations
 beyond memory capacity by utilizing solid-state drives (SSDs) in non-uniform
 memory architecture (NUMA). It provides a small number of generalized matrix
-operations (GenOps) and reimplements a large number of matrix operations in
-the R framework with GenOps. As such, it executes R code in parallel and out of
-core automatically. FlashMatrix
-uses vectorized user-defined functions (VUDF) to reduce the overhead of function
-calls and fuses matrix operations to reduce data movement between CPU and
+operations (GenOps) that require some functions to define the computation on
+elements of the input matrices. It reimplements a large number of matrix
+operations in the R framework with GenOps to execute R code in
+parallel and out of core automatically. The functions passed to GenOps
+are vectorized to reduce the overhead of function calls. In addition,
+FlashMatrix fuses matrix operations to reduce data movement between CPU and
 SSDs. We implement multiple machine learning algorithms in R to benchmark
 the performance of FlashMatrix. The execution of the R implementations in
 FlashMatrix has performance comparable to optimized C implementations.
