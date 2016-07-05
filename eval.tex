@@ -138,19 +138,16 @@ FORTRAN implementations on the Friendster-32 matrix.
 \begin{figure}
 	\centering
 	\footnotesize
-	\vspace{-15pt}
 	\begin{subfigure}{.5\textwidth}
-		\include{FlashMatrix_figs/FM.vs.spark}
+		\includegraphics{FlashMatrix_figs/FM-vs-spark.eps}
 		\label{perf:rt}
-		\vspace{-15pt}
 		\caption{Runtime}
 	\end{subfigure}
 
-	%\vspace{-5pt}
+	\vspace{5pt}
 	\begin{subfigure}{.5\textwidth}
-		\include{FlashMatrix_figs/FM.vs.spark.mem}
+		\includegraphics{FlashMatrix_figs/FM-vs-spark-mem.eps}
 		\label{perf:mem}
-		\vspace{-15pt}
 		\caption{Memory consumption}
 	\end{subfigure}
 	\caption{The performance and memory consumption of FlashMatrix both
@@ -159,43 +156,18 @@ FORTRAN implementations on the Friendster-32 matrix.
 	\label{perf:fm}
 \end{figure}
 
-%\begin{figure}
-%	\begin{center}
-%		\footnotesize
-%		\vspace{-15pt}
-%		\include{FM.vs.spark}
-%		\vspace{-15pt}
-%		\caption{The performance of FlashMatrix both in memory and on SSDs
-%			compared with Spark MLlib on a matrix with one billion rows and
-%		32 columns.}
-%		\label{perf:fm}
-%	\end{center}
-%\end{figure}
-
 FlashMatrix both in memory and on SSDs outperforms Spark MLlib significantly
 in all algorithms (Figure \ref{perf:fm} (a)). For some algorithms
 such as correlation, SVD and GMM, even though both FlashMatrix and MLlib
 implementations heavily rely on BLAS for matrix multiplication, FlashMatrix
 outperforms MLlib significantly owing to our heavy optimizations on GenOps
-such as aggressive matrix operation fusion and VUDFs. In contrast, MLlib
+such as aggressive matrix operation fusion and VEleFuns. In contrast, MLlib
 materializes operations such as aggregation separately and implements
 non-BLAS operations with Scala.
 %SVD is the only application whose FlashMatrix
 %implementation does not outperform the one in MLlib when being executed out of
 %core because this application requires to read the entire matrix multiple times
 %and output a large matrix.
-
-%\begin{figure}
-%	\begin{center}
-%		\footnotesize
-%		\vspace{-15pt}
-%		\include{FM.vs.spark.mem}
-%		\vspace{-15pt}
-%		\caption{The memory consumption of FlashMatrix in memory and on SSDs
-%		as well as Spark MLlib on a matrix with one billion rows and 32 columns.}
-%		\label{perf:mem}
-%	\end{center}
-%\end{figure}
 
 Even though FlashMatrix provides a matrix-oriented functional programming
 interface, it easily scales to datasets with billions of data points and its
@@ -213,9 +185,7 @@ very high scalability.
 \begin{figure}
 	\begin{center}
 		\footnotesize
-		\vspace{-15pt}
-		\include{FlashMatrix_figs/FM.vs.R}
-		\vspace{-10pt}
+		\includegraphics{FlashMatrix_figs/FM-vs-R.eps}
 		\caption{The performance of FlashMatrix in a single thread both in
 			memory (FM-IM) and on SSDs (FM-EM) compared with the C and FORTRAN
 		implementations in the R framework on the Friendster-32 matrix.}
@@ -233,9 +203,7 @@ some optimized C and FORTRAN implementations when processing large datasets.
 \begin{figure}
 	\begin{center}
 		\footnotesize
-		\vspace{-15pt}
-		\include{FlashMatrix_figs/speedup}
-		\vspace{-10pt}
+		\includegraphics{FlashMatrix_figs/speedup.eps}
 		\caption{The speedup of FlashMatrix with multithreading both in memory (IM)
 		and on SSDs (EM).}
 		\label{fig:speedup}
@@ -255,18 +223,6 @@ computation complexity. The performance results in Figure \ref{fig:fmR} and Figu
 \ref{fig:speedup} indicate that FlashMatrix can potentially execute R code with
 performance comparable to parallel C or FORTRAN implementations.
 
-%\begin{figure}
-%	\begin{center}
-%		\footnotesize
-%		\vspace{-15pt}
-%		\include{scale}
-%		\vspace{-10pt}
-%		\caption{The scalability and performance of k-means in different
-%		frameworks.}
-%		\label{fig:scale}
-%	\end{center}
-%\end{figure}
-
 \subsection{Performance of FlashMatrix in memory and on SSDs}
 
 We further measure the in-memory and external-memory performance of FlashMatrix
@@ -278,9 +234,7 @@ and GMM on the Friendster-32 matrix and vary the number of clusters from 2 to 64
 \begin{figure}
 	\begin{center}
 		\footnotesize
-		\vspace{-15pt}
-		\include{FlashMatrix_figs/IM.vs.EM.stat}
-		\vspace{-10pt}
+		\includegraphics{FlashMatrix_figs/IM-vs-EM-stat.eps}
 		\caption{The relative performance of FlashMatrix on SSDs for
 			statistics computation on random-65M matrices with the number of
 			columns varying from 8 to 512, normalized by its performance
@@ -312,9 +266,7 @@ performance close to their in-memory performance.
 \begin{figure}
 	\begin{center}
 		\footnotesize
-		\vspace{-15pt}
-		\include{FlashMatrix_figs/IM.vs.EM.clust}
-		\vspace{-10pt}
+		\includegraphics{FlashMatrix_figs/IM-vs-EM-clust.eps}
 		\caption{The relative performance of FlashMatrix on SSDs for
 			clustering algorithms with different numbers of clusters, normalized
 			by its performance in memory. As the number of clusters increases,
@@ -334,7 +286,7 @@ matrices and I/O access to reduce large memory allocation (mem-alloc),
 between SSDs and main memory (mem-fuse), \textit{(iii)} matrix operation
 fusion in CPU cache to reduce data movement between main memory and CPU cache
 (cache-fuse). To reduce computation overhead, we illustrate the effectiveness
-of using VUDFs.
+of using VEleFuns.
 
 Each memory optimization has significant performance improvement on most of
 the algorithms when FlashMatrix runs on SSDs (Figure \ref{perf:opts} (a)).
@@ -367,19 +319,16 @@ generate new large matrices but do not have very heavy computation.
 \begin{figure}
 	\centering
 	\footnotesize
-	\vspace{-15pt}
 	\begin{subfigure}{.5\textwidth}
-		\include{FlashMatrix_figs/opts.EM}
+		\includegraphics{FlashMatrix_figs/opts-EM.eps}
 		\label{perf:em_opts}
-		\vspace{-15pt}
 		\caption{on SSDs}
 	\end{subfigure}
 
-	%\vspace{-5pt}
+	\vspace{5pt}
 	\begin{subfigure}{.5\textwidth}
-		\include{FlashMatrix_figs/opts.IM}
+		\includegraphics{FlashMatrix_figs/opts-IM.eps}
 		\label{perf:im_opts}
-		\vspace{-15pt}
 		\caption{in memory}
 	\end{subfigure}
 	\caption{The effectiveness of memory optimizations on different
@@ -388,24 +337,22 @@ generate new large matrices but do not have very heavy computation.
 	\label{perf:opts}
 \end{figure}
 
-VUDFs improve the performance of the algorithms that rely on GenOps
+VEleFuns improve the performance of the algorithms that rely on GenOps
 for computation (Figure \ref{perf:opts_CPU}). In this experiment, the base
 implementations deploy all memory optimizations to avoid memory from being
 the bottleneck of the system, and invoke functions on individual elements.
 The FlashMatrix implementations of statistical summary and k-means solely
 rely on GenOps. Therefore, their performance is almost doubled
-when we use VUDFs. The main computation in correlation and GMM is matrix
+when we use VEleFuns. The main computation in correlation and GMM is matrix
 multiplication, but they still rely on GenOps for the remaining computation.
-As such, the use of VUDFs helps their performance. SVD solely uses matrix
-multiplication, so switching to VUDFs has no performance impact.
+As such, the use of VEleFuns helps their performance. SVD solely uses matrix
+multiplication, so switching to VEleFuns has no performance impact.
 
 \begin{figure}
 	\begin{center}
 		\footnotesize
-		\vspace{-15pt}
-		\include{FlashMatrix_figs/opts.CPU}
-		\vspace{-10pt}
-		\caption{The effectiveness of using VUDFs on different algorithms
+		\includegraphics{FlashMatrix_figs/opts-CPU.eps}
+		\caption{The effectiveness of using VEleFuns on different algorithms
 		running in memory.}
 		\label{perf:opts_CPU}
 	\end{center}
