@@ -7,7 +7,7 @@ For simplicity and generality, the core of FlashMatrix only implements
 a small number of generalized matrix operators (GenOps). It reimplements
 many matrix operations in R \textit{base} package with GenOps to provide
 a familiar programming environment to users. To improve performance,
-FlashMatrix uses vectorized user-defined functions (VUDFs) to reduce the
+FlashMatrix uses vectorized element functions (VEleFuns) to reduce the
 overhead of function calls and fuses matrix operations to reduce data movement
 between CPU and SSDs.
 
