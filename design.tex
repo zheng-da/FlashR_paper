@@ -65,33 +65,49 @@ the layout of an output matrix based on the input matrices.
 
 \begin{figure}
 	\centering
-	\includegraphics[scale=0.5]{FlashMatrix_figs/dense_matrix2.pdf}
+	\includegraphics[scale=0.5]{FlashMatrix_figs/dense_matrix.pdf}
 	\caption{The format of a tall-and-skinny dense matrix.}
 	\label{fig:tas_mat}
 \end{figure}
 
 FlashMatrix uses two-level horizontal partitioning on TAS matrices for
-efficient data access to SSDs and main memory (Figure \ref{fig:tas_mat}).
-FlashMatrix partitions both in-memory and
-external-memory TAS matrices horizontally into I/O-level partitions.
+efficient data access to SSDs (Figure \ref{fig:tas_mat}).
+FlashMatrix partitions TAS matrices horizontally into I/O-level partitions.
 All elements in an I/O-level partition are stored contiguously regardless
-of the data layout in the matrix. For an in-memory matrix, the partition
-size determines the size of contiguous memory required in memory allocation
-(see Section \ref{sec:mem}). For an external-memory matrix, the partition
+of the data layout in the matrix. The I/O-level partition
 size determines an I/O size, usually on the order of megabytes, because each
 I/O access reads an entire I/O-level partition. The number of rows in
 an I/O-level partition is always $2^i$. This produces column-major TAS
 matrices whose data are well aligned in memory to help CPU vectorization.
-For an in-memory TAS matrix, FlashMatrix maps I/O-level partitions to NUMA
-nodes to achieve data locality and full utilization of memory bandwidth.
-We map I/O-level partitions of different vectors/matrices involved in
-computation to the same NUMA node to reduce remote memory access.
-We further split an I/O-level partition
-horizontally into CPU-level partitions for computation. We use a small
+We further split an I/O-level partition horizontally into CPU-level partitions
+during computation. We use a small
 CPU-level partition (on the order of kilobytes) so that it fits in CPU
 L1/L2 cache to reduce CPU cache misses when evaluating a sequence of matrix
 operations (Section \ref{sec:lazy_eval}). FlashMatrix determines the number
 of rows in a CPU-level partition based on the number of columns in a matrix.
+
+%FlashMatrix uses two-level horizontal partitioning on TAS matrices for
+%efficient data access to SSDs and main memory (Figure \ref{fig:tas_mat}).
+%FlashMatrix partitions both in-memory and
+%external-memory TAS matrices horizontally into I/O-level partitions.
+%All elements in an I/O-level partition are stored contiguously regardless
+%of the data layout in the matrix. For an in-memory matrix, the partition
+%size determines the size of contiguous memory required in memory allocation
+%(see Section \ref{sec:mem}). For an external-memory matrix, the partition
+%size determines an I/O size, usually on the order of megabytes, because each
+%I/O access reads an entire I/O-level partition. The number of rows in
+%an I/O-level partition is always $2^i$. This produces column-major TAS
+%matrices whose data are well aligned in memory to help CPU vectorization.
+%For an in-memory TAS matrix, FlashMatrix maps I/O-level partitions to NUMA
+%nodes to achieve data locality and full utilization of memory bandwidth.
+%We map I/O-level partitions of different vectors/matrices involved in
+%computation to the same NUMA node to reduce remote memory access.
+%We further split an I/O-level partition
+%horizontally into CPU-level partitions for computation. We use a small
+%CPU-level partition (on the order of kilobytes) so that it fits in CPU
+%L1/L2 cache to reduce CPU cache misses when evaluating a sequence of matrix
+%operations (Section \ref{sec:lazy_eval}). FlashMatrix determines the number
+%of rows in a CPU-level partition based on the number of columns in a matrix.
 
 \subsubsection{Virtual matrices} \label{virt_mat}
 In many cases, we do not need to store the data of a matrix physically. Instead,
@@ -109,27 +125,27 @@ essential for both in-memory and external-memory optimizations to improve
 performance. It significantly reduces data access to memory and SSDs as well as
 memory allocation overhead for creating new matrices.
 
-\subsubsection{Cached matrix}
-Memory cache is necessary for external-memory matrices on a machine with
-substantial memory.
-Even though SSDs have substantial I/O performance, they are still
-an order of magnitude slower than DRAM. Unfortunately, we cannot rely on
-the page cache in SAFS \cite{SA-cache} to buffer some portion of a dense matrix
-because streaming an entire matrix to memory evicts existing data in the page
-cache and generates zero cache hits. Therefore, FlashMatrix allows users to
-explicitly cache part of a dense matrix.
-
-We store a matrix cache as an in-memory dense matrix.
-To effectively cache data in a dense matrix, we store a tall matrix in
-column-major and cache the first few columns; we store a wide matrix in row-major
-and cache the first few rows. As such, when computation requests an I/O-level
-partition of a matrix, we only need to issue a single I/O request to read
-the remaining columns or rows to reconstruct the I/O-level partition.
-
-We use a write-through policy for the matrix cache. As such, even when part of
-a dense matrix is cached, we keep a complete copy of the dense matrix on SSDs.
-The write-through policy overlaps computation and I/O when
-a dense matrix is created, and avoids I/O latency when removing the cache.
+%\subsubsection{Cached matrix}
+%Memory cache is necessary for external-memory matrices on a machine with
+%substantial memory.
+%Even though SSDs have substantial I/O performance, they are still
+%an order of magnitude slower than DRAM. Unfortunately, we cannot rely on
+%the page cache in SAFS \cite{SA-cache} to buffer some portion of a dense matrix
+%because streaming an entire matrix to memory evicts existing data in the page
+%cache and generates zero cache hits. Therefore, FlashMatrix allows users to
+%explicitly cache part of a dense matrix.
+%
+%We store a matrix cache as an in-memory dense matrix.
+%To effectively cache data in a dense matrix, we store a tall matrix in
+%column-major and cache the first few columns; we store a wide matrix in row-major
+%and cache the first few rows. As such, when computation requests an I/O-level
+%partition of a matrix, we only need to issue a single I/O request to read
+%the remaining columns or rows to reconstruct the I/O-level partition.
+%
+%We use a write-through policy for the matrix cache. As such, even when part of
+%a dense matrix is cached, we keep a complete copy of the dense matrix on SSDs.
+%The write-through policy overlaps computation and I/O when
+%a dense matrix is created, and avoids I/O latency when removing the cache.
 
 \subsubsection{A group of dense matrices} \label{sec:mat_group}
 FlashMatrix represents a tall matrix with a group of
@@ -151,36 +167,34 @@ or CPU cache.
 %to the vector. The result vector becomes the new vector, and the original vector
 %becomes the sub-vector of the new vector.
 
-\subsubsection{Memory management} \label{sec:mem}
-Creating in-memory matrices requires large memory allocations, which are
-expensive operations in Linux because Linux uses \textit{mmap} to allocate
-large memory and relies on page faults to populate the memory. Frequent page
-faults prevent computation from fully utilizing CPUs in a large parallel
-machine and cause significant performance degradation. The functional
-programming interface of FlashMatrix leads to more frequent memory allocation,
-because each matrix operation generates a new matrix. 
-FlashMatrix manages large memory allocation itself to reduce overhead.
+%\subsubsection{Memory management} \label{sec:mem}
+%Creating in-memory matrices requires large memory allocations, which are
+%expensive operations in Linux because Linux uses \textit{mmap} to allocate
+%large memory and relies on page faults to populate the memory. Frequent page
+%faults prevent computation from fully utilizing CPUs in a large parallel
+%machine and cause significant performance degradation. The functional
+%programming interface of FlashMatrix leads to more frequent memory allocation,
+%because each matrix operation generates a new matrix. 
+%FlashMatrix manages large memory allocation itself to reduce overhead.
 
-\begin{figure}
-	\centering
-	\includegraphics[scale=0.5]{FlashMatrix_figs/matrix_mem.pdf}
-	\caption{Memory layout of a tall-and-skinny dense matrix.}
-	\label{fig:mat_mem}
-\end{figure}
+%\begin{figure}
+%	\centering
+%	\includegraphics[scale=0.5]{FlashMatrix_figs/matrix_mem.pdf}
+%	\caption{Memory layout of a tall-and-skinny dense matrix.}
+%	\label{fig:mat_mem}
+%\end{figure}
 
-FlashMatrix stores an in-memory matrix in fixed-size memory chunks and
-recycles memory chunks to reduce memory allocation overhead (Figure
-\ref{fig:mat_mem}). FlashMatrix requires only an I/O-level partition to
-be stored in contiguous memory. As long as a memory chunk is sufficient
-to store an I/O-level partition, FlashMatrix can store a matrix in a set
-of fixed-size memory chunks. The size of a memory chunk is a global parameter
-and is the same for all matrices. As such, FlashMatrix reuses memory chunks
-allocated for matrices of different shapes. 
-%In practice, the memory chunk size
-%may not be divisible by an I/O-level partition size. Therefore, the 
-We choose the memory chunk
-size to be much larger than the I/O-level partition size to increase
-memory utilization. We use 64MB as the default memory chunk size.
+%FlashMatrix stores an in-memory matrix in fixed-size memory chunks and
+%recycles memory chunks to reduce memory allocation overhead (Figure
+%\ref{fig:mat_mem}). FlashMatrix requires only an I/O-level partition to
+%be stored in contiguous memory. As long as a memory chunk is sufficient
+%to store an I/O-level partition, FlashMatrix can store a matrix in a set
+%of fixed-size memory chunks. The size of a memory chunk is a global parameter
+%and is the same for all matrices. As such, FlashMatrix reuses memory chunks
+%allocated for matrices of different shapes. 
+%We choose the memory chunk
+%size to be much larger than the I/O-level partition size to increase
+%memory utilization. We use 64MB as the default memory chunk size.
 
 
 \subsection{Programming interface}
@@ -667,23 +681,18 @@ separately. We apply the same strategies to \textit{fm.agg.col} and
 Although GenOps coupled with VEleFuns achieves efficiency in a single matrix
 operation, they alone cannot achieve the overall performance of users' code,
 especially when matrices are stored on SSDs. Evaluation of individual matrix
-operations results in significant data movement between CPU and SSDs. Even
-though the I/O performance of SSDs has advanced to outperform hard drives by
-a large factor, they are still an order of magnitude slower than RAM.
-To achieve performance, it is essential to reduce data movement between SSDs
-and RAM as well as between RAM and CPU when evaluating a sequence
-of matrix operations. The first step is to evaluate individual matrix operations
-lazily and construct a computation graph. When performing computation in
-the computation graph, we take advantage of two-level partitioning on matrices
-to reuse data in memory and in CPU cache and reduce data movement in memory
-hierarchy.
+operations results in significant data movement between CPU and SSDs.
+As such, we deploy lazy evaluation to construct a directed acyclic graph (DAG);
+when evaluating computation in a DAG, we take advantage of two-level partitioning
+on matrices to reuse data in memory and CPU cache.
 
 \subsubsection{Lazy evaluation} \label{sec:lazy_eval}
 FlashMatrix allows to evaluate many matrix operations lazily, which includes
 all GenOps in Table \ref{tbl:genops} and some utility functions in Table
 \ref{tbl:utility}. The lazily evaluated matrices are put together to construct
-a directed acyclic graph (DAG) to represent the computation. To help reduce data
-movement, FlashMatrix grows a DAG as large as possible.
+a DAG to represent the computation. To reduce data movement, the goal is to
+grow a DAG as large as possible to increase the ratio of computation and
+I/O in a DAG.
 
 \begin{figure}
 	\centering
@@ -726,7 +735,9 @@ garbage collects a matrix when there are no references to it.
 \subsubsection{Matrix materialization in the memory hierarchy} \label{sec:materialize}
 Lazy evaluation postpones computation in matrix operations, but we eventually
 have to materialize some \textit{virtual matrices} to perform actual computation.
-When materializing the computation in a DAG, FlashMatrix utilizes the two-level
+When we perform computation in a DAG, FlashMatrix only reads the input matrices
+of the DAG from SSDs and materializes other matrices on the fly.
+FlashMatrix utilizes the two-level
 partitioning in dense matrices to bring data from SSDs to CPU efficiently.
 
 FlashMatrix allows users to materialize any \textit{virtual matrix} in a DAG.
@@ -799,8 +810,16 @@ at any time to reduce CPU cache pollution and thus increase CPU cache hits.
 %CPU-level partition in each thread to avoid redundant computation.
 %\dz{We need to identify transpose of a matrix.}
 
+% TODO
+%To keep data in CPU cache as long as possible, we reuse the memory buffers
+%to reduce the number of memory buffers used in the computation and avoid CPU
+%cache polution.
+
+%\subsection{Parallel execution and I/O access}
+%
 %FlashMatrix uses a global task scheduler to assign tasks that contains
-%computation on I/O-level partitions to threads dynamically for load balancing.
+%computation on I/O-level matrix partitions to threads dynamically for load
+%balancing.
 %When the computation involves in-memory matrices, the task scheduler assigns
 %tasks to the NUMA node, where the I/O-level partitions of the in-memory matrices
 %are stored, to reduce remote memory access.
@@ -809,14 +828,9 @@ at any time to reduce CPU cache pollution and thus increase CPU cache hits.
 %\cite{}. As such, FlashMatrix delays writing the materialized partitions to
 %SSDs and merge multiple materialized partitions into a single write because
 %the global task scheduler assigns consecutive partitions to threads.
-
-% TODO
-%To keep data in CPU cache as long as possible, we reuse the memory buffers
-%to reduce the number of memory buffers used in the computation and avoid CPU
-%cache polution.
-
-%\subsection{I/O optimizations}
-
+%
+%Asymmetric I/O access.
+%
 %FlashMatrix maintains per-thread memory buffer pools for accessing I/O-level
 %partitions of a matrix on SSDs. These memory buffers have the same size as
 %I/O-level partitions, which are in the order of megabytes to maximize I/O
