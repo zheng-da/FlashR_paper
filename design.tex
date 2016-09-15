@@ -12,8 +12,7 @@ the framework. The optimizer in FlashMatrix aggressively merges operations to
 reduce data movement in the memory hierarchy and achieve better parallelization.
 FlashMatrix stores large matrices on SSDs through SAFS \cite{safs},
 a user-space filesystem for a large SSD array, to fully utilize high I/O
-throughput of SSDs and deploys a set of I/O optimizations to improve
-its sequential I/O throughput \cite{SEM_SpMM}.
+throughput of SSDs and deploys a set of I/O optimizations.
 
 \begin{figure}
 \centering
@@ -28,11 +27,11 @@ FlashMatrix provides a matrix-oriented functional programming interface.
 Table \ref{tbl:genops} lists all GenOps, each of which takes matrices and
 some functions as input and output new matrices that store computation results.
 The input function defines computation on individual elements in input matrices.
-The GenOps can be classified into four categories: \textit{apply} for
-element-wise operations, \textit{agg} for computing aggregation on a matrix
-or on rows/columns of a matrix, \textit{groupby} for splitting rows/columns
-of a matrix into multiple groups and computing the aggregation in each group,
-\textit{inner product} for computing the inner product of two matrices.
+The GenOps can be classified into four categories: (a) \textit{apply} for
+element-wise operations, (b) \textit{agg} for aggregation on a matrix
+or on rows/columns of a matrix, (c) \textit{groupby} for splitting rows/columns
+of a matrix into groups and computing aggregation in each group,
+(d) \textit{inner product} for computing the inner product of two matrices.
 
 \begin{table}
 \begin{center}
@@ -178,16 +177,8 @@ the number of data points in each cluster and compute the mean of each cluster.
 Dense matrices are the main data types in FlashMatrix. A vector is stored
 as a one-column dense matrix. In FlashMatrix, a dense matrix can be stored
 physically in memory or on SSDs or represented virtually by a sequence of
-computation. FlashMatrix specifically optimizes for tall-and-skinny matrices
-and short-and-wide matrices, and views tall matrices and wide matrices
-as groups of tall-and-skinny matrices and short-and-wide matrices, respectively.
-In this section, we describe the data format of tall matrices. The similar
-strategy is applied to wide matrices.
-
-All matrices in FlashMatrix are immutable and every
-matrix operation generates a new matrix. As such, materialization of
-\textit{virtual matrices} always generates the same result. FlashMatrix
-garbage collects a matrix when there are no references to it.
+computation. In this section, we describe the data format of tall matrices.
+The similar strategy is applied to wide matrices.
 
 \subsubsection{Tall-and-skinny matrices} \label{sec:tas_mat}
 
@@ -209,28 +200,26 @@ or fewer.
 
 A TAS matrix is partitioned physically into I/O-level partitions (Figure
 \ref{fig:den_mat}). All elements in an I/O-level partition are stored
-contiguously regardless of the data layout in the matrix. All tall matrices
-have the same number of rows in an I/O-level partitions regardless of
-the number of columns that the tall matrices have. The number of rows in
+contiguously regardless of the data layout in the matrix. All I/O-level
+partitions have the same number of rows regardless of
+the number of columns in a TAS matrix. The number of rows in
 an I/O-level partition is always $2^i$. This produces column-major TAS
 matrices whose data are well aligned in memory to help CPU vectorization.
 
 \subsubsection{Block matrices} \label{sec:block_mat}
 FlashMatrix represents a tall matrix with a group of TAS matrices (Figure
-\ref{fig:den_mat} (c)), each with $32$ columns. We refer to such a matrix as
-a \textit{block matrix}. To take advantage of the optimizations on matrix
-operations on TAS matrices, we decompose a matrix operation on a group of
-matrices into operations on individual matrices in the group (Section
-\ref{sec:group_op}).
-Coupled with the two-level partitioning on TAS matrices, this strategy enables
-2D-partitioning on a dense matrix and each partition fits in main memory
-or CPU cache.
+\ref{fig:den_mat} (c)), each with $32$ columns except the last one. We refer
+to such a matrix as a \textit{block matrix}. We decompose a matrix operation
+on a group of matrices into operations on individual matrices in the group
+to take advantage of the optimizations on TAS matrices.
+Coupled with the I/O partitioning on TAS matrices, this strategy enables
+2D-partitioning on a dense matrix and each partition fits in main memory.
 
 \subsubsection{Virtual matrices} \label{virt_mat}
 In many cases, we do not need to store the data of a matrix physically. Instead,
 we compute and generate its data on the fly. Such matrices are essential for
 lazy evaluation and we refer to these matrices as \textit{virtual matrices}.
-All GenOps may output \textit{virtual matrices} that represent computation
+All GenOps output \textit{virtual matrices} that represent computation
 results by storing only the computation of GenOps and the references to input
 matrices. \textit{Virtual matrices} are put together to construct a directed
 acyclic graph (DAG) to represent a sequence of matrix computation.
@@ -239,10 +228,11 @@ acyclic graph (DAG) to represent a sequence of matrix computation.
 %movement in the memory hierarchy and memory allocation overhead for creating
 %new matrices.
 
-\subsection{Directed acyclic graphs (DAGs)}
-The goal is to grow a DAG as large as possible to increase
-the ratio of computation and I/O in a DAG. In FlashMatrix, a DAG is a basic
-computation task.
+\subsection{Reduce data movement in memory hierarchy}
+When evaluating a sequence of matrix operations, FlashMatrix grows a DAG as
+large as possible to increase the ratio of computation and I/O in a DAG.
+Then it performs computation in a DAG all together to minimize data movement
+in the memory hierarchy.
 
 \begin{figure}
 	\centering
@@ -298,9 +288,7 @@ fm.inner.prod & ($p1 \times n$) $\times$ ($n \times p2$), & $p1 \times p2$ \\
 \label{tbl:sink}
 \end{table}
 
-\subsection{Materialization of a DAG} \label{sec:materialize}
 Access to elements of a \textit{sink matrix} triggers materialization of a DAG.
-
 During materialization of a DAG, FlashMatrix by default saves only the computation
 results of sink matrices in the DAG. The computation results are saved in memory
 to minimize data written to SSDs. In general, the \textit{sink matrices} shown
