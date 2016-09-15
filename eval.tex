@@ -182,6 +182,7 @@ the minimum memory requirement of the algorithms. This indicates that
 the out-of-core execution consumes small space on SSDs, which leads to
 very high scalability.
 
+\begin{comment}
 \begin{figure}
 	\begin{center}
 		\footnotesize
@@ -222,6 +223,7 @@ GMM still speeds up almost linearly even when running on SSDs, due to its high
 computation complexity. The performance results in Figure \ref{fig:fmR} and Figure
 \ref{fig:speedup} indicate that FlashMatrix can potentially execute R code with
 performance comparable to parallel C or FORTRAN implementations.
+\end{comment}
 
 \subsection{Performance of FlashMatrix in memory and on SSDs}
 
@@ -304,6 +306,18 @@ the bandwidth of main memory, instead of I/O. Even though it is less noticeable,
 reducing large memory allocation improves I/O performance and almost doubles
 the overall performance of all algorithms.
 
+\begin{figure}
+	\begin{center}
+		\footnotesize
+		\includegraphics{FlashMatrix_figs/opts-EM.eps}
+		\label{perf:em_opts}
+		\caption{The effectiveness of memory optimizations on different
+			algorithms running on SSDs. The three memory optimizations are
+		applied to FlashMatrix incrementally.}
+	\end{center}
+\end{figure}
+
+\begin{comment}
 The same memory optimizations also have very positive impact on the performance
 of most of the algorithms when FlashMatrix runs in memory (Figure
 \ref{perf:opts} (b)). Operation fusion in CPU cache has performance improvement
@@ -357,3 +371,4 @@ multiplication, so switching to VEleFuns has no performance impact.
 		\label{perf:opts_CPU}
 	\end{center}
 \end{figure}
+\end{comment}

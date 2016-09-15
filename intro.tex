@@ -1,16 +1,39 @@
 % What problem are you going to solve.
 
-The National Strategic Computing Initiative (NSCI \cite{NSCI}) puts forth a critical
-problem as we move to exascale: {\em ``Increasing coherence between the technology base used for 
-modeling and simulation and that used for data analytic computing.''}  
-A key challenge lies in providing statistical analysis and machine learning 
-tools that are simple and efficient.
-Simple tools need to be programmable, interactive, and extensible, 
-allowing scientists to encode and deploy complex algorithms. 
-Successful examples include R, SciPy, and Matlab.  Efficiency dictates that tools should 
-leverage modern HPC architectures, including scalable parallelism, high-speed networking,
-and fast I/O from memory and solid-state storage.
+%The National Strategic Computing Initiative (NSCI \cite{NSCI}) puts forth
+%a critical problem as we move to exascale: {\em ``Increasing coherence between
+%the technology base used for 
+%modeling and simulation and that used for data analytic computing.''}  
+%A key challenge lies in providing statistical analysis and machine learning 
+%tools that are simple and efficient.
+%Simple tools need to be programmable, interactive, and extensible, 
+%allowing scientists to encode and deploy complex algorithms. 
+%Successful examples include R, SciPy, and Matlab.  Efficiency dictates that
+%tools should  leverage modern HPC architectures, including scalable parallelism,
+%high-speed networking, and fast I/O from memory and solid-state storage.
 
+The I/O performance of solid-state drives (SSDs) have advanced tremendously in
+the past years. Given such performance improvement, recent works
+\cite{flashgraph, gridgraph} demonstrate that SSDs-based data analysis is
+capable of meeting or even exceeding the performance of state-of-the-art
+in-memory data analysis while scaling to large datasets.
+
+This work takes this direction and extends to other data analysis tasks
+that are based on dense matrix operations. Matrix operations are an intuitive
+formulation for many computation tasks. For example, we store samples
+collected from an experiment in a matrix with rows corresponding to samples
+and columns corresponding to attributes.
+Consequently, we express the computation on the data matrix with a sequence
+of matrix operations. Such a formulation simplifies the implementation of
+data analysis algorithms and is very intuitive for many machine learning
+and data analysis experts. Unlike graph analysis, dense matrix based data
+analysis generates sequential data access patterns.
+
+Most of previous works on disk-based matrix computation focus only on I/O
+complexity in matrix operations\cite{}. However, to achieve performance
+comparable to state-of-the-art in-memory implementations, it is essential
+to move data efficiently both from SSDs to memory and from memory to CPU
+cache.
 
 %In today's big data era, we face the challenges in both the explosion of
 %data volume and the increasing complexity of data analysis. Experiments,
@@ -24,63 +47,19 @@ and fast I/O from memory and solid-state storage.
 
 % How have others addressed the problem?
 
-Large-scale data analysis requires a large parallel machine or a cluster to
-gain computation power and memory capacity. Currently,
-there are two approaches of implementing parallel algorithms to process large
-datasets. One can write an efficient implementation with low-level parallel
-primitives such as the ones provided by MPI \cite{mpi} or OpenMP \cite{openmp}.
-This approach requires expertise in parallel programming and significant
-effort from programmers. The other approach is to use high-level programming
-frameworks that provide high-level operations to reduce the burden of
-programmers. In general, the second approach is less computationally
-efficient but can significantly increase productivity and lower the barrier
-to writing parallel implementations. The second approach is 
-preferred in the rapidly evolving fields of machine learning and data mining.
-%The high-level programming interface enables non-expert programmers
-%to effectively use computation resources.
-
 % Why is it hard?
 
-It is challenging to provide a programming framework that has a high-level
-programming interface and achieves both generality and efficiency.
-Some highly-optimized linear algebra libraries \cite{mkl, openblas, elemental,
-trilinos, petsc} provides a matrix programming interface that has a limited
-set of matrix operations with efficient implementations, e.g.~BLAS provides
-only matrix multiplication and not integer operations or row/column operations.
-Users have to parallelize the remaining matrix
-operations themselves that are not supported by the libraries. 
-High-level programming frameworks, such as R and Matlab, provide a
-general programming interface for users to express varieties of algorithms, but
-do not produce efficient parallel code.
-
 % What is the nature of your solution?
-%Matrix operations are an intuitive formulation for many computation tasks,
-%especially for many data analysis tasks. For example, we can store samples
-%collected from an experiment in a matrix with rows corresponding to samples
-%and columns corresponding to attributes.
-%Consequently, we express the computation on the data matrix with a sequence
-%of matrix operations. Such a formulation simplifies the implementation of
-%data analysis algorithms and is very intuitive for many machine learning
-%and data analysis experts.
 
 We present FlashMatrix, a programming framework that provides a high-level
 matrix-oriented functional programming interface and supports automatic
-parallelization and out-of-core execution for large-scale data analysis;
-\emph{users write R programs and FlashMatrix executes them efficiently.}
-Unlike most of the linear algebra libraries, FlashMatrix provides a small
-set of highly-optimized generalized matrix operations (GenOps) to achieve
-generality. GenOps represent common data access patterns. By accepting
-different functions that define operations on individual elements in the input
-matrices, each GenOp covers a very large number of matrix operations.
-FlashMatrix reimplements many matrix operations from the R \textit{base}
-package with GenOps to execute R code in parallel and
-out of core automatically. FlashMatrix focuses on optimizations in
+parallelization and out-of-core execution for large-scale data analysis.
+FlashMatrix focuses on optimizations in
 a single machine and scales matrix operations beyond memory capacity by utilizing
 solid-state drives (SSDs). This design choice conforms with a current trend of
 hardware design that scales up a single machine for high performance computing
-\cite{Ang14}, including analysis of data stored on SSDs of I/O burst buffers
-\cite{burst}.
-% bb = https://scholar.google.com/scholar?cluster=13235278116505344242&hl=en&as_sdt=0,21&sciodt=0,21
+\cite{Ang14}.
+%, including analysis of data stored on SSDs of I/O burst buffers \cite{burst}.
 
 %These machines typically have multiple processors with many CPU cores and
 %a large amount of memory. They are also equipped with fast flash
@@ -103,14 +82,6 @@ on the entire input matrices before moving to the next operation.
 %the performance of the data analysis tasks is usually limited by memory
 %bandwidth instead of computing power.
 
-Another challenge in FlashMatrix is to reduce computation overhead. A GenOp in
-FlashMatrix takes some functions (EleFuns) as additional arguments that define
-operations
-on individual elements in the input matrices. To support the matrix operations
-in the R \textit{base} package, a GenOp accepts functions at run time.
-As such, each operation on an element potentially results in a function call,
-incurring computational overhead.
-
 To move data efficiently, FlashMatrix evaluates expressions lazily and fuses
 operations aggressively in a single parallel execution job.
 FlashMatrix builds a directed acyclic graph (DAG) to represent all operations
@@ -120,16 +91,9 @@ memory hierarchy and reduce data movement between memory and SSDs
 as well as between CPU and memory. To access data stored on SSDs, FlashMatrix
 streams data from SSDs to maximize I/O throughput.
 
-%\dz{maybe we should say something about optimization on memory allocation?}
+FlashMatrix adapts to dense matrices with different dimensions automatically.
 
-To reduce computation overhead, we deploy vectorized EleFuns (VEleFuns) that
-operates on a vector of elements, instead of
-an individual element. We define multiple forms for each VEleFun and automatically
-select the right form for each GenOp to amortize the function call overhead.
-When invoking VEleFuns, GenOps choose the right vector length to balance
-the amortization of the function call overhead and CPU cache misses.
-Inside VEleFuns, we use vector CPU instructions, such as AVX \cite{avx},
-to further improve performance.
+%\dz{maybe we should say something about optimization on memory allocation?}
 
 % What are it's key features?
 
