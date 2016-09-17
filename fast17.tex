@@ -46,14 +46,16 @@
 \newcommand{\dz}[1]{{\color{blue}{\it DZ: #1}}}
 \newcommand{\rb}[1]{{\color{red}{\it RB: #1}}}
 
+\newcommand{\para}[1]{\vspace{5pt}\noindent\textbf{{#1:}}}
+
+
 \begin{document}
 
 %don't want date printed
 \date{}
 
 %make title bold and 14 pt font (Latex default is non-bold, 16 pt)
-\title{%FlashMatrix: Parallel, Scalable Data Analysis with Generalized Matrix Operations
-}
+\title{FlashMatrix: Out-of-Core, Parallel Statistics and Machine Learning through Asynchronous, Fast I/O}
 
 %for single author (just remove % characters)
 %\author{
@@ -76,23 +78,44 @@
 
 
 \subsection*{Abstract}
-FlashMatrix is a matrix-oriented programming framework for general data analysis
-with functional programming interface. It scales matrix operations
-beyond memory capacity by utilizing solid-state drives (SSDs) in non-uniform
-memory architecture (NUMA). To achieve in-memory performance for matrix-based
-data analysis tasks, it is essential to move data efficiently from SSDs to
-memory as well as from memory to CPU cache. The core of FlashMatrix is to
-fuse matrix operations, which provides opportunities of moving data efficiently
-in the deeper memory hierarchy.
-\dz{Our techniques for efficient data movement: XXX.}
-We implement multiple machine learning algorithms in R to benchmark
-the performance of FlashMatrix. The execution of the R implementations in
-FlashMatrix has performance comparable to optimized C implementations.
-When scaling beyond memory capacity on a large parallel machine, the out-of-core
-execution of these R implementations in FlashMatrix has performance comparable
-to in-memory execution on a billion-scale dataset. Both in-memory and
-out-of-core execution significantly outperform the in-memory execution of
-Spark MLlib.
+FlashMatrix executes R code for machine learning and statistics 
+in parallel and out-of-core automatically.
+%so that 
+%their programs scale beyond the boundaries of system memory and 
+%run faster than optimized, compiled C++ and Fortran implementations.
+%
+%FlashMatrix is a matrix-oriented programming framework for general data analysis
+%with a high-level functional programming interface; i.e.~, it makes users R
+%implementations of machine learning and statistics algorithms access 
+%optimized, parallelized implementations of 
+%
+%
+It scales matrix operations
+beyond memory capacity by utilizing solid-state drives (SSDs) in a non-uniform
+memory architecture (NUMA). It provides a small number of generalized 
+operations (GenOps) upon which we reimplement a large fraction of the dense 
+matrix functions of the R framework.
+We vectorize the execution of GenOps to reduce the overhead of function calls
+and increase parellelism.
+In addition, FlashMatrix fuses matrix operations to reduce data movement between CPU and
+SSDs. 
+%that require some functions to define the computation on
+%elements of the input matrices. It reimplements
+% a large number of matrix operations in the R framework with GenOps to execute R code in
+%parallel and out of core automatically. 
+%The functions passed to GenOps
+%are vectorized to reduce the overhead of function calls. 
+We implement many of the top machine learning algorithms in R to benchmark
+the performance of FlashMatrix.
+Performance meets or exceeds optimized C implementations.
+%When scaling beyond memory capacity on a large parallel machine, 
+Out-of-core execution has little overhead when compared with the in-memory execution
+for billion-scale datasets.
+%in FlashMatrix has performance comparable
+%to in-memory execution on a billion-scale dataset. 
+Both in-memory and out-of-core execution outperform the in-memory execution of
+Spark MLlib by a factor of \dz{3 to 30}.
+% DZTODO -- check 
 
 \section{Introduction}
 \input{intro}

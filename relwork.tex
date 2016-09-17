@@ -1,52 +1,50 @@
 Basic Linear Algebra Subprograms (BLAS) defines a small set of vector and
-matrix operations commonly used in scientific computing. There exist a few
-highly-optimized BLAS implementations such as MKL \cite{mkl}, OpenBLAS
-\cite{openblas}, GotoBLAS \cite{Goto} and ATLAS \cite{atlas}. However, these
-libraries optimize the vector and matrix operations in shared memory. BLAS
-provides only a small number of vector and matrix operations.
+matrix operations for shared memory.. There exist a few
+highly-optimized BLAS implementations, such as MKL \cite{mkl}, OpenBLAS
+\cite{openblas}, GotoBLAS \cite{Goto} and ATLAS \cite{atlas}. 
 
-Distributed memory matrix computation libraries \cite{trilinos, petsc, elemental}
-speed up computation and scale to larger vectors and matrices. These libraries
-in general build on top of BLAS and distribute computation with MPI.
+Distributed-memory libraries \cite{trilinos, petsc, elemental}
+scale to larger matrices. 
+These build on BLAS and distribute computation with MPI.
 They provide a limited set of predefined matrix operations and
-require users to manually parallelize the remaining matrix operations. Instead
-of providing predefined matrix operations, the core of FlashMatrix provides
-a few GenOps that represent some common data access patterns. Thus,
-each GenOp covers a very large number of matrix operations.
+require users to manually parallelize the remaining matrix operations.
+%In contrast, FlashMatrix provides a few parallelized GenOps that 
+%represent common data access patterns. 
+%Each GenOp covers a large number of matrix operations.
 
-There are many distributed data processing frameworks.
-MapReduce \cite{mapreduce} is a general large-scale data processing framework.
-It provides a single primitive that takes two user-defined functions. 
+%There are many distributed data processing frameworks.
+The MapReduce \cite{mapreduce} large-scale data processing framework
+provides a single primitive that takes two user-defined functions. 
 % RB not true
 %written in low-level programming languages such as C/C++ and Java. 
-Due to the lack of
-efficient primitives for varieties of data access patterns, algorithms
-implemented in MapReduce are inefficient. Dryad \cite{dryad} and
-Naiad \cite{naiad} provide more primitives than MapReduce to support various
-data access patterns more efficiently.
+For matrixes, MapReduce algorithms are inefficient, because they lack
+primitives for matrix data access patterns.
+Dryad \cite{dryad} and Naiad \cite{naiad} provide more primitives 
+that support various data access patterns more efficiently.
 
-Due to complexity of programming in the distributed execution engines, many
-programming frameworks have been developed on top of the distributed execution
-engines. Pig Latin \cite{pig} and FlumeJava \cite{flumejava} build on top of
-MapReduce to provide high-level operations for general data analysis. SystemML
-\cite{systemml} builds on top of MapReduce with a focus on machine learning.
-DryadLINQ \cite{dryadlinq} builds on top of Dryad and exposes a high-level
-language to express data analysis tasks. The performance of these programming
-frameworks is bound by the underlying distributed execution engines.
+Many frameworks that reduce programming complexity have been developed on top of distributed engines.
+%Due to complexity of programming in the distributed execution engines, many
+%programming frameworks have been developed on top of the distributed execution
+%engines. 
+Pig Latin \cite{pig} and FlumeJava \cite{flumejava}
+provide high-level operations for general data analysis on Hadoop!
+SystemML \cite{systemml} has a focus on machine learning. 
+DryadLINQ \cite{dryadlinq} expresses data analysis tasks on Dryad. 
+%Performance is determined by the underlying distributed execution engines.
 
-Spark \cite{spark} is a distributed in-memory data processing framework.
+Spark \cite{spark} is a distributed, in-memory framework.
 It provides a highly-optimized machine learning library called MLlib \cite{mllib}.
-Spark also provides an R programming interface called SparkR, which
-focuses on computation on data frames, a table-like data structure in R.
+Spark also provides an R programming interface called SparkR.  
+We compare FlashMatrix with MLlib; Spark is the most efficient distributed engine.
+%, which
+%focuses on computation on data frames, a table-like data structure in R.
 % DZTODO  what are data frames?
 
-Both academia and industry are making significant effort to bring parallelization to
-array programming languages and scale them to large datasets. Revolution R
-\cite{rre} and parallel computing toolbox in MatLab \cite{matlab} provide
-parallel linear algebra and data analysis routines as well as explicit
-parallel programming interface such as MPI and MapReduce. Other works bring
-implicit parallelization to programming frameworks. Presto \cite{presto}
-extends R to support sparse matrix operations in distributed memory for graph
+Efforts to parallelize array programming include
+Revolution R \cite{rre} and Matlab's parallel computing toolbox, which
+offer multicore parallelism and explicit distributed parallelism using MPI and MapReduce. 
+Other works focus on implicit parallelization.
+Presto \cite{presto} extends R to sparse matrix operations in distributed memory for graph
 analysis. Ching et. al \cite{Ching12} parallelizes APL code by
-compiling it to paralllelized C code. Accelerator \cite{accelerator} compiles
-data-parallel operations on the fly to execute programs in GPU.
+compiling it to C. Accelerator \cite{accelerator} compiles
+data-parallel operations on the fly to execute programs on a GPU.

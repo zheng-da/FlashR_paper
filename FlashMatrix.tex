@@ -388,8 +388,7 @@
 % not capitalized unless they are the first or last word of the title.
 % Linebreaks \\ can be used within to get better formatting as desired.
 % Do not put math or special symbols in the title.
-\title{FlashMatrix: Parallel, Scalable Data Analysis with Generalized Matrix
-Operations}
+\title{FlashMatrix: Out-of-Core, Parallel Statistics and Machine Learning through Asynchronous, Fast I/O}
 
 
 \author[1]{\rm Da Zheng}
@@ -457,28 +456,48 @@ Operations}
 % As a general rule, do not put math, special symbols or citations
 % in the abstract
 \begin{abstract}
-FlashMatrix is a matrix-oriented programming framework for general data analysis
-with high-level functional programming interface. It scales matrix operations
+
+FlashMatrix gives machine-learning and statistics routines written in R
+access to I/0 and memory-optimized, parallel matrix operations. 
+%so that 
+%their programs scale beyond the boundaries of system memory and 
+%run faster than optimized, compiled C++ and Fortran implementations.
+%
+%FlashMatrix is a matrix-oriented programming framework for general data analysis
+%with a high-level functional programming interface; i.e.~, it makes users R
+%implementations of machine learning and statistics algorithms access 
+%optimized, parallelized implementations of 
+%
+%
+FlashMatrix scales matrix operations
 beyond memory capacity by utilizing solid-state drives (SSDs) in non-uniform
-memory architecture (NUMA). It provides a small number of generalized matrix
-operations (GenOps) that require some functions to define the computation on
-elements of the input matrices. It reimplements a large number of matrix
-operations in the R framework with GenOps to execute R code in
-parallel and out of core automatically. The functions passed to GenOps
-are vectorized to reduce the overhead of function calls. In addition,
-FlashMatrix fuses matrix operations to reduce data movement between CPU and
-SSDs. We implement multiple machine learning algorithms in R to benchmark
-the performance of FlashMatrix. The execution of the R implementations in
-FlashMatrix has performance comparable to optimized C implementations.
-When scaling beyond memory capacity on a large parallel machine, the out-of-core
-execution of these R implementations in FlashMatrix has performance comparable
-to in-memory execution on a billion-scale dataset. Both in-memory and
-out-of-core execution significantly outperform the in-memory execution of
-Spark MLlib.
+memory architecture (NUMA). It provides a small number of generalized 
+operations (GenOps) upon which we reimplement a large fraction of the dense 
+matrix functions of the R framework.
+This allows FlashMatrix to execute R code in parallel and out-of-core automatically.
+We vectorize the execution of GenOps to reduce the overhead of function calls
+and increase parellelism.
+In addition, FlashMatrix fuses matrix operations to reduce data movement between CPU and
+SSDs. 
+%that require some functions to define the computation on
+%elements of the input matrices. It reimplements
+% a large number of matrix operations in the R framework with GenOps to execute R code in
+%parallel and out of core automatically. 
+%The functions passed to GenOps
+%are vectorized to reduce the overhead of function calls. 
+We implement many of the top machine learning algorithms in R to benchmark
+the performance of FlashMatrix.
+Their execution in FlashMatrix has performance comparable to optimized C implementations.
+%When scaling beyond memory capacity on a large parallel machine, 
+Out-of-core execution has little overhead when compared with the in-memory exection of FlashMatrix
+for billion-scale datasets.
+%in FlashMatrix has performance comparable
+%to in-memory execution on a billion-scale dataset. 
+Both in-memory and out-of-core execution outperform the in-memory execution of
+Spark MLlib by a factor of 3 to 30.
 \end{abstract}
 
 % no keywords
-
 
 
 

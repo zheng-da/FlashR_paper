@@ -12,28 +12,32 @@
 %tools should  leverage modern HPC architectures, including scalable parallelism,
 %high-speed networking, and fast I/O from memory and solid-state storage.
 
-The I/O performance of solid-state drives (SSDs) have advanced tremendously in
-the past years. Given such performance improvement, recent works
-\cite{flashgraph, gridgraph} demonstrate that SSDs-based data analysis is
-capable of meeting or even exceeding the performance of state-of-the-art
-in-memory data analysis while scaling to large datasets.
+The I/O performance of solid-state drives (SSDs) has advanced tremendously.
+Recent works \cite{flashgraph, gridgraph} demonstrate that SSD-based 
+graph analysis matches the performance of 
+state-of-the-art in-memory data analysis, while scaling to arbitrarily large datasets.
+This work extends these findings to dense matrix operations: matrixes are the most
+prevalent and inituitive representation for machine learning and data analysis tasks.
 
-This work takes this direction and extends to other data analysis tasks
-that are based on dense matrix operations. Matrix operations are an intuitive
-formulation for many computation tasks. For example, we store samples
-collected from an experiment in a matrix with rows corresponding to samples
-and columns corresponding to attributes.
-Consequently, we express the computation on the data matrix with a sequence
-of matrix operations. Such a formulation simplifies the implementation of
-data analysis algorithms and is very intuitive for many machine learning
-and data analysis experts. Unlike graph analysis, dense matrix based data
-analysis generates sequential data access patterns.
+%Unlike graph analysis, dense matrix based data analysis generates sequential data access patterns.
 
-Most of previous works on disk-based matrix computation focus only on I/O
-complexity in matrix operations\cite{}. However, to achieve performance
+%that are based on dense matrix operations. 
+
+%Matrix operations are an intuitive formulation for many computation tasks. 
+%For example, we store samples
+%collected from an experiment in a matrix with rows corresponding to samples
+%and columns corresponding to attributes.
+%Consequently, we express the computation on the data matrix with a sequence
+%of matrix operations. Such a formulation simplifies the implementation of
+%data analysis algorithms and is very intuitive for many machine learning
+%and data analysis experts. 
+
+
+Most of prior work on disk-based matrix computation focus on the I/O
+complexity of matrix operations~\cite{}. However, to achieve performance
 comparable to state-of-the-art in-memory implementations, it is essential
 to move data efficiently both from SSDs to memory and from memory to CPU
-cache.
+caches.
 
 %In today's big data era, we face the challenges in both the explosion of
 %data volume and the increasing complexity of data analysis. Experiments,
@@ -50,15 +54,27 @@ cache.
 % Why is it hard?
 
 % What is the nature of your solution?
-
 We present FlashMatrix, a programming framework that provides a high-level
-matrix-oriented functional programming interface and supports automatic
+functional programming interface and supports automatic
 parallelization and out-of-core execution for large-scale data analysis.
-FlashMatrix focuses on optimizations in
-a single machine and scales matrix operations beyond memory capacity by utilizing
-solid-state drives (SSDs). This design choice conforms with a current trend of
-hardware design that scales up a single machine for high performance computing
-\cite{Ang14}.
+FlashMatrix focuses on optimizations in a single machine (often with multiple
+CPUs and many cores) and scales matrix operations beyond memory capacity by 
+utilizing solid-state drives (SSDs).  
+This paper does not address distributed matrix multiplication, but, 
+FlashMatrix primitives are suitable for executing the local part of a distributed 
+computation.   
+Our evaluation does show that we can solve billion row, Internet-scale 
+clustering problems on a single thick node, which can prevent the complexity,
+expense, and power consumption of distributed systems when they are not strictly necessary
+\cite{hotos}.
+
+
+
+%This design choice conforms with a current trend of
+%hardware design that scales up a single machine for high performance computing
+%\cite{Ang14}.  It is also supported by 
+
+
 %, including analysis of data stored on SSDs of I/O burst buffers \cite{burst}.
 
 %These machines typically have multiple processors with many CPU cores and
@@ -69,29 +85,33 @@ hardware design that scales up a single machine for high performance computing
 % Why is it new/different/special?
 
 We overcome many technical challenges to move data from SSDs to CPU efficiently,
-overcoming the large speed disparity between CPU and memory, as well as between
+notably the large speed disparity between CPU and memory, as well as between
 memory and SSDs. The speed disparity of CPU and DRAM has increased exponentially
 over the past decades \cite{Wilkes01}. Even though the I/O performance of SSDs
 has advanced to outperform hard drives by a large factor, they remain an order
-of magnitude slower than RAM. On the other hand, many analysis tasks are
-data-intensive. Matrix
-formulation further increases data movement between CPU and SSDs because
-a matrix computation framework typically performs an operation
-on the entire input matrices before moving to the next operation.
+of magnitude slower than RAM.  
+%Most matrix computation engines increase data movement,
+%because they perform an operation on an entire input matrix prior to moving 
+%to the next operation.
+% RB -- 
+%On the other hand, many analysis tasks are
+%data-intensive. Matrix
+%formulation further increases data movement between CPU and SSDs because
+%a matrix computation framework typically performs an operation
+%on the entire input matrices before moving to the next operation.
 % As such,
 %the performance of the data analysis tasks is usually limited by memory
 %bandwidth instead of computing power.
 
-To move data efficiently, FlashMatrix evaluates expressions lazily and fuses
+To minmize data movement, FlashMatrix evaluates expressions lazily and fuses
 operations aggressively in a single parallel execution job.
 FlashMatrix builds a directed acyclic graph (DAG) to represent all operations
 in a single execution. When evaluating the computation in a DAG, FlashMatrix
 performs two levels of matrix partitioning to improve data utilization in
-memory hierarchy and reduce data movement between memory and SSDs
+the memory hierarchy and reduce data movement between memory and SSDs
 as well as between CPU and memory. To access data stored on SSDs, FlashMatrix
-streams data from SSDs to maximize I/O throughput.
-
-FlashMatrix adapts to dense matrices with different dimensions automatically.
+streams data from SSDs to maximize I/O throughput.  
+%FlashMatrix adapts to dense matrices with different dimensions automatically.
 
 %\dz{maybe we should say something about optimization on memory allocation?}
 
@@ -99,18 +119,19 @@ FlashMatrix adapts to dense matrices with different dimensions automatically.
 
 We implement multiple machine learning algorithms, including k-means \cite{kmeans}
 and Gaussian Mixture Models \cite{gmm} in FlashMatrix with its R programming
-interface to benchmark its performance. On a large parallel machine with 48
+interface. On a large parallel machine with 48
 CPU cores and fast SSDs, the out-of-core execution of these R implementations
-in FlashMatrix achieves performance comparable to the in-memory execution,
+achieves performance comparable to the in-memory execution,
 while significantly outperforming the same algorithms in Spark MLlib
 \cite{spark}. FlashMatrix effortlessly scales to datasets with billions
 of data points and its out-of-core execution uses a small fraction of
 resources required by in-memory implementations. When
 running in a single thread, the FlashMatrix implementations
 outperform the C and FORTRAN optimized implementations of the R framework.
-In addition, FlashMatrix achieves almost linear speedup in a multicore NUMA
-machine for all algorithms. We believe
-FlashMatrix significantly lowers the requirements for writing parallel
+In addition, FlashMatrix achieves near-linear speedup in a multicore NUMA
+machine for all algorithms. 
+
+We believe that FlashMatrix significantly lowers the requirements for writing parallel
 and scalable implementations of data analysis algorithms; it also offers new
 design possibilities for data analysis clusters, replacing memory with larger
 and cheaper SSDs and processing bigger problems on fewer nodes.
