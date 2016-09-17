@@ -23,16 +23,6 @@ throughput of SSDs and deploys a set of I/O optimizations.
 
 \subsection{Programming interface}
 
-FlashMatrix provides a matrix-oriented functional programming interface.
-Table \ref{tbl:genops} lists all GenOps, each of which takes matrices and
-some functions as input and output new matrices that store computation results.
-The input function defines computation on individual elements in input matrices.
-The GenOps can be classified into four categories: (a) \textit{apply} for
-element-wise operations, (b) \textit{agg} for aggregation on a matrix
-or on rows/columns, (c) \textit{groupby} for splitting rows/columns
-into groups and computing aggregates in each group,
-(d) \textit{inner product} for the inner product of two matrices.
-
 \begin{table}
 \begin{center}
 \footnotesize
@@ -69,6 +59,25 @@ $C=inner.prod(A, B, f1, f2)$ & $t=f1(A_{i,k}, B_{k,j})$,
 $A$, $B$ and $C$ are matrices, and $c$ is a scalar.}
 \label{tbl:genops}
 \end{table}
+
+FlashMatrix provides a matrix-oriented functional programming interface.
+Table \ref{tbl:genops} lists all GenOps, each of which takes matrices and
+some functions as input and output new matrices that store computation results.
+The input function defines computation on individual elements in input matrices.
+The GenOps can be classified into four categories: (a) \textit{apply} for
+element-wise operations, (b) \textit{agg} for aggregation on a matrix
+or on rows/columns, (c) \textit{groupby} for splitting rows/columns
+into groups and computing aggregates in each group,
+(d) \textit{inner product} for the inner product of two matrices.
+
+The example in Figure \ref{fig:kmeans} computes an iteration of k-means
+\cite{kmeans} using GenOps. It first uses \textit{fm.inner.prod} to
+compute the Euclidean distance between every data point and every cluster center
+and outputs a matrix with each row representing the distances to centers.  
+It uses \textit{fm.agg.row} to find the closest
+cluster for each data point.  The output matrix 
+assigns data points to clusters. It then uses \textit{fm.groupby.row} to count
+the number of data points in each cluster and compute the mean of each cluster.
 
 \begin{figure}
 \centering
@@ -114,15 +123,6 @@ kmeans.iter <- function(X,C) {
 	\label{fig:kmeans}
 \end{figure}
 
-The example in Figure \ref{fig:kmeans} computes an iteration of k-means
-\cite{kmeans} using GenOps. It first uses \textit{fm.inner.prod} to
-compute the Euclidean distance between every data point and every cluster center
-and outputs a matrix with each row representing the distances to centers.  
-It uses \textit{fm.agg.row} to find the closest
-cluster for each data point.  The output matrix 
-assigns data points to clusters. It then uses \textit{fm.groupby.row} to count
-the number of data points in each cluster and compute the mean of each cluster.
-
 \subsection{Dense matrices}
 Dense matrices are the main data types in FlashMatrix. A vector is stored
 as a one-column dense matrix. A dense matrix can be stored
@@ -146,9 +146,8 @@ are tall and skinny; even if the original data matrices have many features,
 the first step is usually dimension reduction \cite{} to reduce the number
 of features.. FlashMatrix supports both row-major and column-major
 layouts (Figure \ref{fig:den_mat} (a) and (b)).  Supporting both formats
-allows FlashMatrix to transpose data without a copy.
-%FlashMatrix optimizes the generalized matrix operations on TAS dense matrices with tens of columns
-%or fewer.
+allows FlashMatrix to transpose data without a copy. A TAS matrix is stored
+as an SAFS file.
 
 \begin{figure}
 	\centering
@@ -170,7 +169,8 @@ matrices whose data are well aligned in memory to help CPU vectorization.
 \noindent \textbf{Block matrices}:
 FlashMatrix represents a tall matrix with a group of TAS matrices (Figure
 \ref{fig:den_mat} (c)), each with $32$ columns except the last one. We refer
-to such a matrix as a \textit{block matrix}. We decompose a matrix operation
+to such a matrix as a \textit{block matrix}. Each of the TAS matrices is
+stored as a separate file on SAFS. We decompose a matrix operation
 on a group of matrices into operations on individual matrices in the group
 to take advantage of the optimizations on TAS matrices.
 Coupled with the I/O partitioning on TAS matrices, this strategy enables
