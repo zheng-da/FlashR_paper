@@ -182,11 +182,12 @@ Coupled with the I/O partitioning on TAS matrices, this strategy enables
 To support lazy evaluation, FlashMatrix uses \textit{virtual matrices} that
 materialize data on the fly during computation and transfer output as input to the
 next stage of computation.  The data of a matrix are not stored physically.
-All GenOps output virtual matrices. A GenOp on a \textit{block matrix} outputs
+All GenOps output virtual matrices. A GenOp on a \textit{block matrix} may outputs
 a block \textit{virtual matrix}. Virtual matrices are assembled to construct
-a directed acyclic graph (DAG) that represents a matrix computation.
+a directed acyclic graph (DAG) that represents a sequence of matrix computations.
 
-\noindent \textbf{Sink matrices}: Some of the GenOps output \textit{virtual
+\noindent \textbf{Sink matrices}: Some of the GenOps, such as aggregation and
+groupby, output \textit{virtual
 matrices} that have different \textit{partition dimensize} size from
 the large input matrices (\dz{a better name?}). We refer to these
 \textit{virtual matrices} as \textit{sink matrices}. %The GenOps that
@@ -302,22 +303,22 @@ to reduce data movement between SSDs and CPU. It assigns I/O-partitions
 to a thread as a parallel task.
 %A small partition size (\rb{How?}) balances the overhead of accessing a partition,
 %computation, skew, and memory consumption. 
-\rb{I think CPU partition is a bad term.  It makes it sound like it is being partitioned across mutliple CPUs.  Not the case.}
-It further splits I/O-partitions into CPU-partitions at run time 
-and each thread materializes one CPU-partition at a time. 
+It further splits I/O-partitions into Pcache-partitions (processor cache
+partitions) at run time and each thread materializes one Pcache-partition
+at a time. 
 %Materialization of a CPU-level partition
 %is triggered recursively. As shown in 
-Figure \ref{fig:mater} shows how CPU-partitions materialize recursively.
-Matrix \textit{CNT} triggers materialization of CPU-partitions of 
-\textit{I} and \textit{one}, which in turn triggers 
+Figure \ref{fig:mater} shows how Pcache-partitions
+materialize recursively. Matrix \textit{CNT} triggers materialization of
+Pcache-partitions of \textit{I} and \textit{one}, which in turn triggers 
 partitions of \textit{D}, and so on. Eventually, the process triggers data access
-to an I/O-partition of input matrix \textit{X} from SSDs.
-\dz{Upon materializing output to a sink matrix, the thread passes the output as input to the subsequent
-DAG, instead of materializing the next CPU-partition in the same thread.
-A CPU-partition is sufficiently small to fit in the CPU cache so that
-the partition still resides in the CPU cache when the subsequent DAG consumes
-it.} This significantly reduces data movement between CPU and memory. In each
-thread, all intermediate matrices have only one CPU-partitions materialized
+to an I/O-partition of input matrix \textit{X} from SSDs. Upon materializing
+output to a sink matrix, the thread passes the output as input to the subsequent
+GenOp, instead of materializing the next Pcache-partition in the same thread.
+A Pcache-partition is sufficiently small to fit in the CPU cache so that
+the partition still resides in the CPU cache when the subsequent GenOp consumes
+it. This significantly reduces data movement between CPU and memory. In each
+thread, all intermediate matrices have only one Pcache-partitions materialized
 at any time to reduce CPU cache pollution and increase CPU cache hits.
 %To reduce CPU cache polution, a CPU-level partition is discarded once it is
 %used by all children matrices.
