@@ -180,6 +180,7 @@ The R package mclust \cite{mclust} provides a FORTRAN implementation of GMM.
 	\begin{subfigure}{.5\textwidth}
 		\includegraphics{FlashMatrix_figs/FM-vs-spark.eps}
 		\label{perf:rt}
+		\vspace{-10pt}
 		\caption{Runtime}
 	\end{subfigure}
 
@@ -187,6 +188,7 @@ The R package mclust \cite{mclust} provides a FORTRAN implementation of GMM.
 	\begin{subfigure}{.5\textwidth}
 		\includegraphics{FlashMatrix_figs/FM-vs-spark-mem.eps}
 		\label{perf:mem}
+		\vspace{-10pt}
 		\caption{Memory consumption}
 	\end{subfigure}
 	\caption{The performance and memory consumption of FlashMatrix both
@@ -333,8 +335,7 @@ matrices and I/O access to reduce large memory allocation (mem-alloc),
 \textit{(ii)} matrix operation fusion in main memory to reduce data movement
 between SSDs and main memory (mem-fuse), \textit{(iii)} matrix operation
 fusion in CPU cache to reduce data movement between main memory and CPU cache
-(cache-fuse). To reduce computation overhead, we illustrate the effectiveness
-of using VEleFuns.
+(cache-fuse).
 
 Each memory optimization has significant performance improvement on most of
 the algorithms when FlashMatrix runs on SSDs (Figure \ref{perf:opts} (a)).
@@ -357,9 +358,9 @@ the overall performance of all algorithms.
 		\footnotesize
 		\includegraphics{FlashMatrix_figs/opts-EM.eps}
 		\label{perf:em_opts}
-		\caption{The effectiveness of memory optimizations on different
-			algorithms running on SSDs. The three memory optimizations are
-		applied to FlashMatrix incrementally.}
+		\caption{The effectiveness of optimizations on different algorithms
+		running on SSDs. The three optimizations are applied to FlashMatrix
+		incrementally.}
 	\end{center}
 \end{figure}
 
