@@ -17,7 +17,7 @@ throughput of SSDs and deploys a set of I/O optimizations.
 \begin{figure}
 \centering
 \includegraphics[scale=0.3]{FlashMatrix_figs/architecture.pdf}
-\caption{The architecture of FlashMatrix \rb{this can be shrunk so that the optimizer and SAFS layer are the same thickness.}}
+\caption{The architecture of FlashMatrix}
 \label{fig:arch}
 \end{figure}
 
@@ -40,28 +40,27 @@ into groups and computing aggregates in each group,
 \hline
 GenOp & Description \\
 \hline
-$C=fm.sapply(A, f)$ & $C_{i,j}=f(A_{i,j})$ \\
+$C=sapply(A, f)$ & $C_{i,j}=f(A_{i,j})$ \\
 \hline
-$C=fm.mapply(A, B, f)$ & $C_{i,j}=f(A_{i,j}, B_{i,j})$ \\
+$C=mapply(A, B, f)$ & $C_{i,j}=f(A_{i,j}, B_{i,j})$ \\
 \hline
-$C=fm.mapply.row(A, B, f)$ & $C_{i,j}=f(A_{i,j}, B_j)$ \\
+$C=mapply.row(A, B, f)$ & $C_{i,j}=f(A_{i,j}, B_j)$ \\
 \hline
-$C=fm.mapply.col(A, B, f)$ & $C_{i,j}=f(A_{i,j}, B_i)$ \\
+$C=mapply.col(A, B, f)$ & $C_{i,j}=f(A_{i,j}, B_i)$ \\
 \hline
-$c=fm.agg(A, f)$ & $c=f(A_{i,j}, c)$, over all $i$, $j$ \\
+$c=agg(A, f)$ & $c=f(A_{i,j}, c)$, over all $i$, $j$ \\
 \hline
-$C=fm.agg.row(A, f)$ & $C_i=f(A_{i,j}, C_i)$, over all $j$ \\
+$C=agg.row(A, f)$ & $C_i=f(A_{i,j}, C_i)$, over all $j$ \\
 \hline
-$C=fm.agg.col(A, f)$ & $C_j=f(A_{i,j}, C_j)$, over all $i$ \\
+$C=agg.col(A, f)$ & $C_j=f(A_{i,j}, C_j)$, over all $i$ \\
 \hline
-%$C=fm.groupby(A, f)$ & $C_k=f(A_{i,j}, C_k)$, where $k$ \\
-$C=fm.groupby.row(A, B, f)$ & $C_{k,j}=f(A_{i,j}, C_{k,j})$,\\ & where $B_i=k$, over all $i$ \\
+%$C=groupby(A, f)$ & $C_k=f(A_{i,j}, C_k)$, where $k$ \\
+$C=groupby.row(A, B, f)$ & $C_{k,j}=f(A_{i,j}, C_{k,j})$,\\ & where $B_i=k$, over all $i$ \\
 \hline
-$C=fm.groupby.col(A, B, f)$ & $C_{i,k}=f(A_{i,j}, C_{i,k})$,\\ & where $B_j=k$, over all $j$ \\
+$C=groupby.col(A, B, f)$ & $C_{i,k}=f(A_{i,j}, C_{i,k})$,\\ & where $B_j=k$, over all $j$ \\
 \hline
-$C=fm.inner.prod(A, B, f1, f2)$ & $t=f1(A_{i,k}, B_{k,j})$,
-\\ & $C_{i,j}=f2(t, C_{i,j})$,
-\\ & over all $k$ \\
+$C=inner.prod(A, B, f1, f2)$ & $t=f1(A_{i,k}, B_{k,j})$,
+\\ & $C_{i,j}=f2(t, C_{i,j})$, over all $k$ \\
 \hline
 \end{tabular}
 \normalsize
@@ -71,97 +70,48 @@ $A$, $B$ and $C$ are matrices, and $c$ is a scalar.}
 \label{tbl:genops}
 \end{table}
 
-\begin{comment}
-\begin{table}
-\begin{center}
-\footnotesize
-\begin{tabular}{|l|l|l|}
-\hline
-Class & Function & Description \\
-\hline
-\multirow{4}{*}{Create} & $fm.rep.int$ & Create a vector of a repeated value \\
-& $fm.seq.int$ & Create a vector of sequence numbers \\
-& $fm.runif.matrix$ & Create a uniformly random matrix  \\
-& $fm.rnorm.matrix$ & Create a random matrix under \\ & & a normal distribution \\
-\hline
-\multirow{2}{*}{Convert} & $fm.conv.FM2R$ & Convert a FM matrix to an R matrix \\
-& $fm.conv.R2FM$ & Convert an R matrix to a FM matrix \\
-\hline
-\multirow{3}{*}{Reshape} & $t$ & Matrix transpose \\
-& $fm.rbind$ & Bind matrices by rows \\
-& $fm.cbind$ & Bind matrices by columns \\
-\hline
-\multirow{4}{*}{Control} & $fm.conv.layout$ & Convert the data layout of a matrix \\
-& $fm.set.mate.level$ & Set the materialization level of \\ & & a \textit{virtual matrix} \\
-& $fm.materialize$ & Materialize a \textit{virtual matrix} \\
-& $fm.conv.store$ & Move a matrix to a specified \\ & & storage \\
-\hline
-\end{tabular}
-\normalsize
-\end{center}
-\caption{Some of the utility functions in FlashMatrix.}
-\label{tbl:utility}
-\end{table}
-
-\begin{table}
-\begin{center}
-\footnotesize
-\begin{tabular}{|l|l|l|}
-\hline
-Class & Function & Description \\
-\hline
-\multirow{10}{*}{Element-wise} & $C=A+B$ & $C_{i,j}=A_{i,j} + B_{i,j}$ \\
-& $C=A-B$ & $C_{i,j}=A_{i,j} - B_{i,j}$ \\
-& $C=A*B$ & $C_{i,j}=A_{i,j} * B_{i,j}$ \\
-& $C=A/B$ & $C_{i,j}=A_{i,j} / B_{i,j}$ \\
-& $C=pmin(A,B)$ & $C_{i,j}=pmin(A_{i,j}, B_{i,j})$ \\
-& $C=pmax(A,B)$ & $C_{i,j}=pmax(A_{i,j}, B_{i,j})$ \\
-& $C=sqrt(A)$ & $C_{i,j}=sqrt(A_{i,j})$ \\
-& $C=abs(A)$ & $C_{i,j}=abs(A_{i,j})$ \\
-& $C=exp(A)$ & $C_{i,j}=exp(A_{i,j})$ \\
-\hline
-\multirow{5}{*}{Aggregate} & $c=sum(A)$ & $c=\sum\limits_{i=1}^{n} \sum\limits_{j=1}^{p}A_{i,j}$ \\
-& $C=rowSums(A)$ & $C_i=\sum\limits_{j=1}^{p} A_{i,j}$ \\
-& $C=colSums(A)$ & $C_j=\sum\limits_{i=1}^{n} A_{i,j}$ \\
-& $c=any(A)$ & true if any element is true \\
-& $c=all(A)$ & true if all elements are true \\
-\hline
-\multirow{1}{*}{multiply} & $\%*\%$ & matrix multiplication \\
-\hline
-\end{tabular}
-\normalsize
-\end{center}
-\caption{Some of the R functions implemented with GenOps.}
-\label{tbl:Rfuns}
-\end{table}
-\end{comment}
-
-\begin{figure}[t]
-\begin{minted}[mathescape,
-		fontsize=\scriptsize,
-		frame=single,
-]{R}
-# X is the data matrix
-# C is the cluster centers from the previous iteration.
-kmeans.iter <- function(X, C)
-{
-	# Compute the pair-wise distance between a data
-	# point and a center.
-	D <- fm.inner.prod(X, t(C), "euclidean", "+")
-	# Find the closest center to a data point.
-	I <- fm.agg.row(D, "which.min")
-	# Count the number of data points in each cluster.
-	one <- fm.rep.int(1, nrow(I))
-	CNT <- fm.groupby.row(one, I, "+")
+\begin{figure}
+\centering
+	\footnotesize
+	\begin{subfigure}{.25\textwidth}
+	\centering
+	\begin{minted}[mathescape,
+	fontsize=\scriptsize,
+	frame=single,
+	tabsize=2,
+	]{R}
+# X is the data matrix.
+# C is cluster centers.
+kmeans.iter <- function(X,C) {
+	# Compute pair-wise distance
+	# between data points and
+	# centers.
+	D<-inner.prod(X,t(C),
+			"euclidean","+")
+	# Find the closest center.
+	I<-agg.row(D,"which.min")
+	# Count the number of data
+	# points in each cluster.
+	one<-rep.int(1,nrow(I))
+	CNT<-groupby.row(one,I,"+")
 	# Compute the new centers.
-	C <- fm.groupby.row(X, I, "+")
-	C <- fm.mapply.row(C, CNT, "/")
-	list(C=C, I=I)
+	C<-groupby.row(X,I,"+")
+	C<-mapply.row(C,CNT,"/")
+	list(C=C,I=I)
 }
-\end{minted}
-\vspace{-5pt}
-\caption{The R code of computing an iteration of k-means using GenOps. \rb{this looks bad.}}
-\label{fig:kmeans}
+	\end{minted}
+	\label{fig:code}
+		\caption{R code \rb{this looks bad.}}
+	\hspace{20pt}
+	\end{subfigure}%
+	\begin{subfigure}{.25\textwidth}
+	\centering
+	\includegraphics[scale=0.5]{FlashMatrix_figs/DAG.pdf}
+	\label{fig:dag}
+	\caption{DAG}
+	\end{subfigure}
+	\caption{An example of using GenOps to implement k-means.}
+	\label{fig:kmeans}
 \end{figure}
 
 The example in Figure \ref{fig:kmeans} computes an iteration of k-means
@@ -177,14 +127,24 @@ the number of data points in each cluster and compute the mean of each cluster.
 Dense matrices are the main data types in FlashMatrix. A vector is stored
 as a one-column dense matrix. A dense matrix can be stored
 physically in memory or on SSDs or represented virtually by a sequence of
-computations. Our treatment describes the data format for tall matrices. 
+computations.
+For most of data analysis tasks, input data matrices are large and rectangular.
+Many of them contain a large number of samples with a relatively
+few features \cite{}, while many other contain a large number of features with
+a relatively few samples \cite{}. Intermediate matrices and output matrices
+from the computation are usually small and may be square. As such, we optimize
+dense matrices differently based on their size and shape.
+Our treatment describes the data format for tall matrices. 
 Wide matrices use similar strategies.
 
 %\subsubsection{Tall-and-skinny matrices} \label{sec:tas_mat}
+\noindent \textbf{Tall-and-skinny matrices}:
 FlashMatrix optimizes for \textit{tall-and-skinny} (TAS) dense matrices due to their
 frequent occurrence in data analysis. Many data matrices contain
 a large number of samples with a relatively few features, so data matrices
-are tall and skinny. FlashMatrix supports both row-major and column-major
+are tall and skinny; even if the original data matrices have many features,
+the first step is usually dimension reduction \cite{} to reduce the number
+of features.. FlashMatrix supports both row-major and column-major
 layouts (Figure \ref{fig:den_mat} (a) and (b)).  Supporting both formats
 allows FlashMatrix to transpose data without a copy.
 %FlashMatrix optimizes the generalized matrix operations on TAS dense matrices with tens of columns
@@ -198,7 +158,8 @@ allows FlashMatrix to transpose data without a copy.
 \end{figure}
 
 A TAS matrix is partitioned physically into I/O-partitions (Figure
-\ref{fig:den_mat}). All elements in an I/O-partition are stored
+\ref{fig:den_mat}). We refer to the dimension that are partitioned as
+\textit{partition dimension}. All elements in an I/O-partition are stored
 contiguously regardless of the data layout in the matrix. All 
 I/O-partitions have the same number of rows regardless of
 the number of columns in a TAS matrix. The number of rows in
@@ -206,6 +167,7 @@ an I/O-partition is always $2^i$. This produces column-major TAS
 matrices whose data are well aligned in memory to help CPU vectorization.
 
 %\subsubsection{Block matrices} \label{sec:block_mat}
+\noindent \textbf{Block matrices}:
 FlashMatrix represents a tall matrix with a group of TAS matrices (Figure
 \ref{fig:den_mat} (c)), each with $32$ columns except the last one. We refer
 to such a matrix as a \textit{block matrix}. We decompose a matrix operation
@@ -213,59 +175,38 @@ on a group of matrices into operations on individual matrices in the group
 to take advantage of the optimizations on TAS matrices.
 Coupled with the I/O partitioning on TAS matrices, this strategy enables
 2D-partitioning on a dense matrix and each partition fits in main memory.
+\dz{Should we explain GenOps on block matrices in more details?}
 
 %\subsubsection{Virtual matrices} \label{virt_mat}
+\noindent \textbf{Virtual matrices}:
 To support lazy evaluation, FlashMatrix uses \textit{virtual matrices} that
 materialize data on the fly during computation and transfer output as input to the
 next stage of computation.  The data of a matrix are not stored physically.
-All GenOps output virtual matrices.
-Virtual matrices are assembled to construct a directed
-acyclic graph (DAG) that represents a matrix computation.
+All GenOps output virtual matrices. A GenOp on a \textit{block matrix} outputs
+a block \textit{virtual matrix}. Virtual matrices are assembled to construct
+a directed acyclic graph (DAG) that represents a matrix computation.
 
+\noindent \textbf{Sink matrices}: Some of the GenOps output \textit{virtual
+matrices} that have different \textit{partition dimensize} size from
+the large input matrices (\dz{a better name?}). We refer to these
+\textit{virtual matrices} as \textit{sink matrices}. %The GenOps that
+%generate \textit{sink matrices} are shown in Table \ref{tbl:sink}.
+%In general, \textit{sink matrices} are small and their materialized results
+%are always stored in memory. The maximal size of the output matrix from
+%an aggregation is $\sqrt{N}$, where $N$ is the number of elements in the input
+%matrix. Although the results of groupby and inner product can potentially be
+%large, they are small in practice in most of machine learning and data analyis
+%tasks because $k$, the number of classes, and $p1$ and $p2$ are usually much
+%smaller than the \textit{partition dimension} of a matrix in these tasks.
+In general, sink matrices are small and stored in memory in order to minimize
+data written to SSDs. The maximal size of the output matrix from an aggregation
+is $\sqrt{N}$ for $N$ elements in the input matrix. The maximal size of
+the output matrix from a groupby is $k \times \sqrt{N}$ for $k$ classes.
+%For most of machine learning and data analysis tasks, 
+The output matrix of the inner product of a wide matrix with a tall matrix is usually small because
+the long dimension of these matrices is much larger than the short dimension.
 
-%In many cases, we do not need to store the data of a matrix physically. Instead,
-%we compute and generate its data on the fly. Such matrices are essential for
-%lazy evaluation and we refer to these matrices as \textit{virtual matrices}.
-
-%This strategy is essential to reduce data
-%movement in the memory hierarchy and memory allocation overhead for creating
-%new matrices.
-
-\subsection{Reducing data movement}
-When evaluating a sequence of matrix operations, FlashMatrix grows a DAG as
-large as possible to increase the ratio of computation to I/O.
-Then it performs computation in a DAG all together to minimize data movement
-in the memory hierarchy.
-
-\begin{figure}
-	\centering
-	\includegraphics[scale=0.7]{FlashMatrix_figs/KMeans.pdf}
-	\caption{A directed acyclic graph of computing an iteration of k-means
-	show in Figure \ref{fig:kmeans}.}
-	\label{fig:DAG}
-\end{figure}
-
-Figure \ref{fig:DAG} (a) shows a DAG for the k-means of Figure
-\ref{fig:kmeans}. A DAG comprises a set of matrix nodes (rectangles)
-and computation nodes (ellipses). The majority of matrix nodes are
-virtual matrices (dashed line rectangles).
-%, which only contains the corresponding matrix operations and input matrices. 
-For k-means, only the input matrix \textit{X} has materialized data.
-A computation node references a \dz{GenOp} \rb{is this correct} and input matrices and
-it may contain some immutable computation state, such as scalar variables and
-small matrices needed by the computation. 
-
-To grow a DAG, FlashMatrix allows virtual matrices of different shapes
-(Figure \ref{fig:DAG} (b)). To simplify evaluation and data flow, 
-all virtual matrices in the internal matrix
-nodes need to have the same \textit{long dimension}.  Matrices with 
-different size in both dimensions must be an edge node in the DAG and will be materialized.
-%, because
-%any computation that uses these \textit{virtual matrices} cannot be connected
-%to the same DAG.  
-We refer to these as \textit{sink matrices}. 
-% GenOps that aggregate, groupby, or compute inner products generate sink matrices.
-
+% TODO I think we need more formal definition on sink matrices.
 %\begin{table}
 %\begin{center}
 %\footnotesize
@@ -293,17 +234,44 @@ We refer to these as \textit{sink matrices}.
 %%\label{tbl:sink}
 %\end{table}
 
-Access to elements of a \textit{sink matrix} triggers materialization of a DAG.
-FlashMatrix by default saves only the computation results of sink matrices. 
-In general, sink matrices are small and stored in memory in order 
-to minimize data written to SSDs. 
-The maximal size of the output matrix from an aggregation is $\sqrt{N}$ for $N$ elements in the input
-matrix. The maximal size of the output matrix from a groupby is $k \times \sqrt{N}$
-for $k$ classes.
-%For most of machine learning and data analysis tasks, 
-The output matrix of the inner product of a wide matrix with a tall matrix is usually small because
-the long dimension of these matrices is much larger than the short dimension.
+%In many cases, we do not need to store the data of a matrix physically. Instead,
+%we compute and generate its data on the fly. Such matrices are essential for
+%lazy evaluation and we refer to these matrices as \textit{virtual matrices}.
 
+%This strategy is essential to reduce data
+%movement in the memory hierarchy and memory allocation overhead for creating
+%new matrices.
+
+\subsection{Reducing data movement}
+When evaluating a sequence of matrix operations, FlashMatrix lazily evaluates
+GenOps and constructs a DAG automatically because most of the GenOps do not
+contain enough computation to achieve in-memory performance. FlashMatrix grows
+a DAG as large as possible to increase the ratio of computation to I/O.
+Then it performs computation in a DAG all together to minimize data movement
+in the memory hierarchy.
+
+Figure \ref{fig:kmeans} (b) shows a DAG for the k-means of Figure
+\ref{fig:kmeans}. A DAG comprises a set of matrix nodes (rectangles)
+and computation nodes (ellipses). The majority of matrix nodes are
+virtual matrices (dashed line rectangles).
+%, which only contains the corresponding matrix operations and input matrices. 
+For k-means, only the input matrix \textit{X} has materialized data.
+A computation node references a GenOp and input matrices and
+it may contain some immutable computation state, such as scalar variables and
+small matrices \dz{more explanation on the small matrices?} needed by
+the computation. 
+
+To grow a DAG, FlashMatrix allows virtual matrices of different shapes
+(Figure \ref{fig:kmeans} (b)). To simplify evaluation and data flow, 
+all virtual matrices in the internal matrix nodes need to have the same
+\textit{partition dimension}. \textit{Sink matrices} must be an edge node
+in the DAG and will be materialized.
+%, because
+%any computation that uses these \textit{virtual matrices} cannot be connected
+%to the same DAG.  
+
+Access to elements of a \textit{sink matrix} triggers materialization of a DAG.
+FlashMatrix by default saves only the computation results of sink matrices.
 In exceptional cases, especially for iterative algorithms,
 FlashMatrix will materialize some non-\textit{sink matrices} to avoid
 redundant computation and I/O across iterations.  We allow users to
@@ -317,10 +285,9 @@ or SSDs during computation, similar to caching an RDD in Spark.
 	\label{fig:mater}
 \end{figure}
 
-FlashMatrix partitions matrices in a DAG in the long dimension and
+FlashMatrix partitions matrices in a DAG in the partition dimension and
 materializes partitions separately (Figure \ref{fig:mater}). This is possible
-because all matrices, except sink matrices, 
-share the same long dimension. 
+because all matrices, except sink matrices, share the same partition dimension. 
 A partition $i$ of a virtual matrix requires data only from partitions
 $i$ of the parent matrices.
 %Owing to
@@ -345,11 +312,11 @@ Matrix \textit{CNT} triggers materialization of CPU-partitions of
 \textit{I} and \textit{one}, which in turn triggers 
 partitions of \textit{D}, and so on. Eventually, the process triggers data access
 to an I/O-partition of input matrix \textit{X} from SSDs.
-Upon materializing output to a sink matrix, the thread passes the output as input to the subsequent
+\dz{Upon materializing output to a sink matrix, the thread passes the output as input to the subsequent
 DAG, instead of materializing the next CPU-partition in the same thread.
 A CPU-partition is sufficiently small to fit in the CPU cache so that
 the partition still resides in the CPU cache when the subsequent DAG consumes
-it. This significantly reduces data movement between CPU and memory. In each
+it.} This significantly reduces data movement between CPU and memory. In each
 thread, all intermediate matrices have only one CPU-partitions materialized
 at any time to reduce CPU cache pollution and increase CPU cache hits.
 %To reduce CPU cache polution, a CPU-level partition is discarded once it is
