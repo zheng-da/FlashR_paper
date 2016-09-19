@@ -29,9 +29,9 @@ Singular value decomposition (SVD) is the canonical approach to
 reducing dimension based on eigensolving.  Correlation 
 (pair-wise Pearson's correlation \cite{cor}) is commonly used in statistics.
 Summary computes a suite of multivariate statistics:
-column-wise minimum, maximum, mean, L1 norm, L2 norm, the number of non-zero values and
+column-wise minimum, maximum, mean, L1 norm, L2 norm, number of non-zero values and
 		variance.
-These algorithms exhibit various ratios of computation to I/O, which should aid
+Algorithms exhibit various ratios of computation to I/O, which aids
 a thorough evaluation.
 %hich helps to evaluate perforamnce %of FlashMatrix
 %on SSDs 
@@ -104,6 +104,7 @@ GMM (1 iteration) & $O(n \times p^2 \times k + p^3 \times k)$ & $O(n \times p + 
 \end{tabular}
 \normalsize
 \end{center}
+\vspace{-10pt}
 \caption{Computation and I/O complexity. 
 $n$ is the number of data points, $p$ 
 is the number of the features in a point, and $k$ is the number of
@@ -139,19 +140,22 @@ Random-65M & 65M & 8-512 & 4-248GB \\
 \end{tabular}
 \normalsize
 \end{center}
+\vspace{-10pt}
 \caption{Datasets ($n \times p$ matrices).}
 \label{tbl:data}
+\vspace{-10pt}
 \end{table}
 
 K-means and GMM typically run on a dataset with a small number of features
-in each data point due to curse of dimensionality \cite{Jain00} while
-the other algorithms may be applied to datasets with various numbers of
-features.
+in each data point due to curse of dimensionality \cite{Jain00}.
+% while
+%the other algorithms may be applied to datasets with various numbers of
+%features.
 We run k-means and GMM on
 the Friendster-32 matrix, constructed from 32 eigenvectors of the Friendster
 graph \cite{friendster}, as well as the MixGaussian-1B
 sampled from 10 mixtures of multivariate Gaussian distributions.
-The other three algorithms on all of the matrices (Table \ref{tbl:data}),
+The other algorithms run on all matrices (Table \ref{tbl:data}),
 including random matrices with 65 million rows and columns
 varying from 8 to 512.
 
@@ -163,13 +167,13 @@ varying from 8 to 512.
 
 %with the identity covariance matrix and different means. 
 
-\vspace{-8pt}
-\subsection{Comparative performance}
-\vspace{-4pt}
-
-We compare the performance of the FlashMatrix implementations with the ones in
-Spark MLlib \cite{mllib} and the R framework. We run the MLlib implementations
-with their native Scala interface and use a very large heap size to ensure that
+%\vspace{-8pt}
+%\subsection{Comparative performance}
+%\vspace{-4pt}
+\para{Comparative performance}
+We evaluate FlashMatrix against
+Spark MLlib \cite{mllib} and R. We run the MLlib algorithms
+with their native Scala interface and use a large heap size to ensure that
 all data are cached in memory. We use 48 threads for both FlashMatrix and
 MLlib. %to run on the MixGaussian-1B matrix.
 The R framework provides C implementations for correlation, SVD and k-means.
@@ -179,31 +183,33 @@ The R package mclust \cite{mclust} provides a FORTRAN implementation of GMM.
 %FORTRAN implementations on the Friendster-32 matrix.
 
 \begin{figure}
+  \vspace{-5pt}
 	\centering
 	\footnotesize
 	\begin{subfigure}{.5\textwidth}
 		\includegraphics{FlashMatrix_figs/FM-vs-spark.eps}
 		\label{perf:rt}
-		\vspace{-10pt}
+		\vspace{-12pt}
 		\caption{Runtime}
 	\end{subfigure}
 
-	\vspace{5pt}
+	\vspace{3pt}
 	\begin{subfigure}{.5\textwidth}
 		\includegraphics{FlashMatrix_figs/FM-vs-spark-mem.eps}
 		\label{perf:mem}
-		\vspace{-10pt}
+		\vspace{-12pt}
 		\caption{Memory consumption}
 	\end{subfigure}
 	\caption{The performance and memory consumption of FlashMatrix both
 		in memory (FM-IM) and on SSDs (FM-EM) compared with Spark MLlib
 		on the MixGaussian-1B matrix.}
 	\label{perf:fm}
+  \vspace{-10pt}
 \end{figure}
 
 FlashMatrix both in memory and on SSDs outperforms Spark MLlib significantly
-in all algorithms (Figure \ref{perf:fm} (a)). For some algorithms
-such as correlation, SVD and GMM, both FlashMatrix and MLlib
+in all algorithms (Figure \ref{perf:fm} (a)). For 
+correlation, SVD and GMM, both FlashMatrix and MLlib
 rely on BLAS for matrix multiplication; the differences lie in data access patterns.
 MLlib materializes operations such as aggregation separately and implements
 non-BLAS operations with Scala.
@@ -277,35 +283,39 @@ computation complexity. The performance results in Figure \ref{fig:fmR} and Figu
 performance comparable to parallel C or FORTRAN implementations.
 \end{comment}
 
-\vspace{-8pt}
-\subsection{Out-of-core v. in-memory performance}
-\vspace{-4pt}
-
+%\vspace{-8pt}
+%\subsection{Out-of-core v. in-memory performance}
+%\vspace{-4pt}
+\para{Out-of-core versus in-memory performance}
 We further measure the in-memory and external-memory performance of FlashMatrix
 thoroughly with different datasets and different parameters. We run the first
 three algorithms on random-65M matrices
 with the number of columns varying from 8 to 512. We run k-means
 and GMM on the Friendster-32 matrix and vary the number of clusters from 2 to 64.
 
-\begin{figure}
+\begin{figure}[t]
 	\begin{center}
 		\footnotesize
 		\includegraphics{FlashMatrix_figs/IM-vs-EM-stat.eps}
-		\caption{The relative performance of FlashMatrix on SSDs for
-			statistics computation on random-65M matrices with the number of
-			columns varying from 8 to 512, normalized by its performance
-			in memory. As the number of columns increases, the external-memory
-			performance of these implementations approach to its in-memory
-		performance.}
+		\includegraphics{FlashMatrix_figs/IM-vs-EM-clust.eps}
+		\caption{{\em FlashMatrix} scaleup: The performance on SSDs  (FM-EM)
+      normalized to in-memory performance (FM-IM) on random-65M 
+      while varying the number of columns (top) and for
+clustering algorithms while varying the number of clusters (bottom).}
+%normalized by its performance
+%			in memory. 
+%      As the number of columns increases, performance out-of-core
+%			approaches in-memory performance.}
 		\label{perf:stat}
 	\end{center}
+  \vspace{-15pt}
 \end{figure}
 
 As the number of features or the number of clusters increases,
 the performance gap between in-memory and external-memory execution
 narrows and eventually the external-memory performance gets almost 100\%
-of in-memory performance for some algorithms (Figure \ref{perf:stat} and
-\ref{perf:clust}).
+of in-memory performance for some algorithms (Figure \ref{perf:stat}).
+% and \ref{perf:clust}).
 This observation conforms with the computation and I/O complexity of
 the algorithms in Table \ref{tbl:algs}. When the number of features
 gets larger, the computation of matrix multiplication in
@@ -319,24 +329,26 @@ of clusters gets larger. Given an I/O throughput of 10 GB/s, the algorithms
 do not require many features or clusters to have their external-memory
 performance close to their in-memory performance.
 
-\begin{figure}
-	\begin{center}
-		\footnotesize
-		\includegraphics{FlashMatrix_figs/IM-vs-EM-clust.eps}
-		\caption{The relative performance of FlashMatrix on SSDs for
-			clustering algorithms with different numbers of clusters, normalized
-			by its performance in memory. As the number of clusters increases,
-			the external-memory performance of these implementations approach
-			to their in-memory performance.}
-		\label{perf:clust}
-	\end{center}
-\end{figure}
+%\begin{figure}
+%	\begin{center}
+%		\footnotesize
+%		\includegraphics{FlashMatrix_figs/IM-vs-EM-clust.eps}
+%		\caption{{\em Clustering} scaleup: FlashMatrix performance on SSDs 
+%      normalized to in-memory performance as the number of clusters vary. 
+%%      KMeans operates on the \rb{Friendster32} matrix and GMM on the  
+%%			by its performance in memory. As the number of clusters increases,
+%%			the external-memory performance of these implementations approach
+%%			to their in-memory performance.}
+%}
+%		\label{perf:clust}
+%	\end{center}
+%\end{figure}
 
-\vspace{-8pt}
-\subsection{Effectiveness of optimizations}
-\vspace{-4pt}
-
-In this section, we illustrate the effectiveness of our memory and CPU
+%\vspace{-8pt}
+%\subsection{Effectiveness of optimizations}
+%\vspace{-4pt}
+\para{Effectiveness of optimizations}
+We illustrate the effectiveness of our memory and CPU
 optimizations in FlashMatrix. To reduce memory overhead, we focus on three
 main optimizations: \textit{(i)} reusing memory chunks for new in-memory
 matrices and I/O access to reduce large memory allocation (mem-alloc),
@@ -366,10 +378,12 @@ the overall performance of all algorithms.
 		\footnotesize
 		\includegraphics{FlashMatrix_figs/opts-EM.eps}
 		\label{perf:em_opts}
+    \vspace{-10pt}
 		\caption{The effectiveness of optimizations on different algorithms
 		running on SSDs. The three optimizations are applied to FlashMatrix
 		incrementally.}
 	\end{center}
+  \vspace{-15pt}
 \end{figure}
 
 \begin{comment}

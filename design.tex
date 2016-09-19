@@ -188,7 +188,8 @@ on a group of matrices into operations on individual matrices in the group
 to take advantage of the optimizations on TAS matrices.
 Coupled with the I/O partitioning on TAS matrices, this strategy enables
 2D-partitioning on a dense matrix and each partition fits in main memory.
-\dz{Should we explain GenOps on block matrices in more details?}
+%\dz{Should we explain GenOps on block matrices in more details?}
+%RB maybe -- not sure how to keep it short and clear.
 
 %\subsubsection{Virtual matrices} \label{virt_mat}
 \noindent \textbf{Virtual matrices}:
@@ -274,13 +275,14 @@ virtual matrices (dashed line rectangles).
 For k-means, only the input matrix \textit{X} has materialized data.
 A computation node references a GenOp and input matrices and
 it may contain some immutable computation state, such as scalar variables and
-small matrices \dz{more explanation on the small matrices?} needed by
+small matrices %\dz{more explanation on the small matrices?}  RB -- I found this no problem
+needed by
 the computation. 
 
 To grow a DAG, FlashMatrix allows virtual matrices of different shapes
 (Figure \ref{fig:kmeans} (b)). To simplify evaluation and data flow, 
-all virtual matrices in the internal matrix nodes need to have the same
-\textit{partition dimension}. \textit{Sink matrices} must be an edge node
+all virtual matrices matrix nodes need to have the same
+\textit{partition dimension}. \textit{Sink matrices} are edge nodes
 in the DAG and will be materialized.
 %, because
 %any computation that uses these \textit{virtual matrices} cannot be connected
@@ -303,7 +305,7 @@ or SSDs during computation, similar to caching an RDD in Spark.
   \vspace{-8pt}
 \end{figure}
 
-FlashMatrix partitions matrices in a DAG in the partition dimension and
+FlashMatrix partitions matrices in a DAG and
 materializes partitions separately (Figure \ref{fig:mater}). This is possible
 because all matrices, except sink matrices, share the same partition dimension. 
 A partition $i$ of a virtual matrix requires data only from partitions
