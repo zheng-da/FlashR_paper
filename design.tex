@@ -136,30 +136,34 @@ kmeans.iter <- function(X,C) {
 \vspace{-8pt}
 \subsection{Dense matrices}
 \vspace{-4pt}
-Dense matrices are the main data types in FlashMatrix. A vector is stored
-as a one-column dense matrix. A dense matrix can be stored
-physically in memory or on SSDs or represented virtually by a sequence of
+FlashMatrix optimizes for matrices that are rectangular because
+of their frequent occurence in machine learning and statistics.
+Most input data matrices are tall-and-skinny (TAS); they contain a large number of samples with a relatively
+few features \cite{}. 
+Even if the original data matrices have many features,
+the first algorithmic step is usually dimension reduction \cite{}. 
+Other wide-and-short (WAS) matrices contain a large number of features with
+few samples \cite{}. Intermediate matrices and output matrices are usually small and may be square. 
+We store vectors as a one-column dense matrix. 
+Dense matrices can be stored physically in memory or on SSDs or represented virtually by a sequence of
 computations.
-For most of data analysis tasks, input data matrices are large and rectangular.
-Many of them contain a large number of samples with a relatively
-few features \cite{}, while many other contain a large number of features with
-a relatively few samples \cite{}. Intermediate matrices and output matrices
-from the computation are usually small and may be square. As such, we optimize
-dense matrices differently based on their size and shape.
-Our treatment describes the data format for tall matrices. 
-Wide matrices use similar strategies.
+We describe FlashMatrix using tall-and-skinny matrices.  We use similar strategies for wide-and-short matrices.
+
+%As such, FlashMatrix optimizes
+%for dense matrices that are either tall and skinny or wide and short.   based on their size and shape.
+%Our treatment describes the data format for tall matrices.  Wide matrices use similar strategies.
 
 %\subsubsection{Tall-and-skinny matrices} \label{sec:tas_mat}
-\noindent \textbf{Tall-and-skinny matrices}:
-FlashMatrix optimizes for \textit{tall-and-skinny} (TAS) dense matrices due to their
-frequent occurrence in data analysis. Many data matrices contain
-a large number of samples with a relatively few features, so data matrices
-are tall and skinny; even if the original data matrices have many features,
-the first step is usually dimension reduction \cite{} to reduce the number
-of features.. FlashMatrix supports both row-major and column-major
+%\noindent \textbf{Tall-and-skinny (TAS) matrices}:
+%FlashMatrix optimizes for \textit{tall-and-skinny} (TAS) dense matrices due to their
+%frequent occurrence in data analysis. Many data matrices contain
+%a large number of samples with a relatively few features, so data matrices
+%are tall and skinny; 
+
+FlashMatrix supports both row-major and column-major
 layouts (Figure \ref{fig:den_mat} (a) and (b)).  Supporting both formats
 allows FlashMatrix to transpose data without a copy. A TAS matrix is stored
-as an SAFS file.
+as an SAFS file \cite{safs}.
 
 \begin{figure}
 	\centering
@@ -170,8 +174,10 @@ as an SAFS file.
 \end{figure}
 
 A TAS matrix is partitioned physically into I/O-partitions (Figure
-\ref{fig:den_mat}). We refer to the dimension that are partitioned as
-\textit{partition dimension}. All elements in an I/O-partition are stored
+\ref{fig:den_mat}). 
+%We refer to the dimension that are partitioned as
+%\textit{partition dimension}. 
+All elements in an I/O-partition are stored
 contiguously regardless of the data layout in the matrix. All 
 I/O-partitions have the same number of rows regardless of
 the number of columns in a TAS matrix. The number of rows in
@@ -179,6 +185,7 @@ an I/O-partition is always $2^i$. This produces column-major TAS
 matrices whose data are well aligned in memory to help CPU vectorization.
 
 %\subsubsection{Block matrices} \label{sec:block_mat}
+\vspace{3pt}
 \noindent \textbf{Block matrices}:
 FlashMatrix represents a tall matrix with a group of TAS matrices (Figure
 \ref{fig:den_mat} (c)), each with $32$ columns except the last one. We refer
@@ -192,6 +199,7 @@ Coupled with the I/O partitioning on TAS matrices, this strategy enables
 %RB maybe -- not sure how to keep it short and clear.
 
 %\subsubsection{Virtual matrices} \label{virt_mat}
+\vspace{3pt}
 \noindent \textbf{Virtual matrices}:
 To support lazy evaluation, FlashMatrix uses \textit{virtual matrices} that
 materialize data on the fly during computation and transfer output as input to the
@@ -200,11 +208,11 @@ All GenOps output virtual matrices. A GenOp on a \textit{block matrix} may outpu
 a block \textit{virtual matrix}. Virtual matrices are assembled to construct
 a directed acyclic graph (DAG) that represents a sequence of matrix computations.
 
+\vspace{3pt}
 \noindent \textbf{Sink matrices}: Some of the GenOps, such as aggregation and
-groupby, output \textit{virtual
-matrices} that have different \textit{partition dimensize} size from
-the large input matrices (\dz{a better name?}). We refer to these
-\textit{virtual matrices} as \textit{sink matrices}. %The GenOps that
+groupby, output matrices
+that have different partition size from the input matrices. We refer to these
+matrices as \textit{sink matrices}. %The GenOps that
 %generate \textit{sink matrices} are shown in Table \ref{tbl:sink}.
 %In general, \textit{sink matrices} are small and their materialized results
 %are always stored in memory. The maximal size of the output matrix from

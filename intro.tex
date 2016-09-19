@@ -16,8 +16,8 @@ The I/O performance of solid-state drives (SSDs) has advanced tremendously.
 Recent works \cite{flashgraph, gridgraph} demonstrate that SSD-based 
 graph analysis matches the performance of 
 state-of-the-art in-memory data analysis, while scaling to arbitrarily large datasets.
-This work extends these findings to dense matrix operations: matrixes are the most
-prevalent and inituitive representation for machine learning and data analysis tasks.
+This work extends these findings to dense matrix operations: matrices are the most
+prevalent and intuitive representation for machine learning and data analysis tasks.
 
 %Unlike graph analysis, dense matrix based data analysis generates sequential data access patterns.
 
@@ -103,7 +103,7 @@ of magnitude slower than RAM.
 %the performance of the data analysis tasks is usually limited by memory
 %bandwidth instead of computing power.
 
-To minmize data movement, FlashMatrix evaluates expressions lazily and fuses
+To minimize data movement, FlashMatrix evaluates expressions lazily and fuses
 operations aggressively in a single parallel execution job.
 FlashMatrix builds a directed acyclic graph (DAG) to represent all operations
 in a single execution. When evaluating the computation in a DAG, FlashMatrix
@@ -134,10 +134,11 @@ achieves performance comparable to the in-memory execution,
 while significantly outperforming the same algorithms in Spark MLlib
 \cite{spark}. FlashMatrix effortlessly scales to datasets with billions
 of data points and its out-of-core execution uses a small fraction of
-resources required by in-memory implementations. When
-running in a single thread, the FlashMatrix implementations
-outperform the C and FORTRAN optimized implementations of the R framework.
-In addition, FlashMatrix achieves near-linear speedup in a multicore NUMA
+resources required by in-memory implementations. 
+When run in a single thread, FlashMatrix 
+outperforms the C and FORTRAN implementations of the R framework.
+%In addition, 
+FlashMatrix achieves near-linear speedup in a multicore NUMA
 machine for all algorithms. 
 
 We believe that FlashMatrix significantly lowers the requirements for writing parallel
