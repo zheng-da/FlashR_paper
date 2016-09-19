@@ -55,7 +55,9 @@
 \date{}
 
 %make title bold and 14 pt font (Latex default is non-bold, 16 pt)
-\title{FlashMatrix: Out-of-Core, Parallel Statistics and Machine Learning through Asynchronous, Fast I/O}
+\title{FlashMatrix: Out-of-Core, Parallel Statistics and Machine Learning}
+
+\author{}
 
 %for single author (just remove % characters)
 %\author{
@@ -71,6 +73,8 @@
 %} % end author
 
 \maketitle
+
+\vspace{-25pt}
 
 % Use the following at camera-ready time to suppress page numbers.
 % Comment it out when you first submit the paper for review.
@@ -105,11 +109,12 @@ SSDs.
 %parallel and out of core automatically. 
 %The functions passed to GenOps
 %are vectorized to reduce the overhead of function calls. 
-We implement many of the top machine learning algorithms in R to benchmark
-the performance of FlashMatrix.
-Performance meets or exceeds optimized C implementations.
+%We implement many of the top machine learning algorithms in R to benchmark
+%the performance of FlashMatrix.
+% learning Performance meets or exceeds optimized C implementations.
 %When scaling beyond memory capacity on a large parallel machine, 
-Out-of-core execution has little overhead when compared with the in-memory execution
+On a variety of machine-learning and statistics algorithms, 
+out-of-core execution has minimal overhead when compared with the in-memory execution
 for billion-scale datasets.
 %in FlashMatrix has performance comparable
 %to in-memory execution on a billion-scale dataset. 
@@ -117,17 +122,23 @@ Both in-memory and out-of-core execution outperform the in-memory execution of
 Spark MLlib by a factor of \dz{3 to 30}.
 % DZTODO -- check 
 
+\vspace{-10pt}
 \section{Introduction}
+\vspace{-5pt}
 \input{intro}
 
+\vspace{-10pt}
 \section{Related Work}
+\vspace{-5pt}
 \input{relwork}
 
 \input{design}
 
 \input{eval}
 
+\vspace{-10pt}
 \section{Conclusion}
+\vspace{-5pt}
 \input{conclusion}
 
 %\section{Acknowledgments}

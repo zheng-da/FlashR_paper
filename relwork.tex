@@ -13,7 +13,7 @@ require users to manually parallelize the remaining matrix operations.
 %Each GenOp covers a large number of matrix operations.
 
 %There are many distributed data processing frameworks.
-The MapReduce \cite{mapreduce} large-scale data processing framework
+MapReduce \cite{mapreduce} 
 provides a single primitive that takes two user-defined functions. 
 % RB not true
 %written in low-level programming languages such as C/C++ and Java. 
@@ -32,8 +32,8 @@ SystemML \cite{systemml} has a focus on machine learning.
 DryadLINQ \cite{dryadlinq} expresses data analysis tasks on Dryad. 
 %Performance is determined by the underlying distributed execution engines.
 
-Spark \cite{spark} is a distributed, in-memory framework.
-It provides a highly-optimized machine learning library called MLlib \cite{mllib}.
+The Spark \cite{spark} distributed, in-memory framework
+provides a highly-optimized machine learning library (MLlib, \cite{mllib}).
 Spark also provides an R programming interface called SparkR.  
 We compare FlashMatrix with MLlib; Spark is the most efficient distributed engine.
 %, which

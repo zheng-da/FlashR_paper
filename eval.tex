@@ -1,4 +1,6 @@
+\vspace{-10pt}
 \section{Experimental evaluation}
+\vspace{-5pt}
 We evaluate the performance of FlashMatrix on statistics and machine learning
 algorithms both in memory and on SSDs. We compare their performance with
 the implementations in Spark MLlib \cite{mllib}, a highly-optimized parallel
@@ -161,7 +163,9 @@ varying from 8 to 512.
 
 %with the identity covariance matrix and different means. 
 
-\subsection{Comparative performance of FlashMatrix}
+\vspace{-8pt}
+\subsection{Comparative performance}
+\vspace{-4pt}
 
 We compare the performance of the FlashMatrix implementations with the ones in
 Spark MLlib \cite{mllib} and the R framework. We run the MLlib implementations
@@ -273,7 +277,9 @@ computation complexity. The performance results in Figure \ref{fig:fmR} and Figu
 performance comparable to parallel C or FORTRAN implementations.
 \end{comment}
 
-\subsection{Performance of FlashMatrix in memory and on SSDs}
+\vspace{-8pt}
+\subsection{Out-of-core v. in-memory performance}
+\vspace{-4pt}
 
 We further measure the in-memory and external-memory performance of FlashMatrix
 thoroughly with different datasets and different parameters. We run the first
@@ -326,7 +332,9 @@ performance close to their in-memory performance.
 	\end{center}
 \end{figure}
 
+\vspace{-8pt}
 \subsection{Effectiveness of optimizations}
+\vspace{-4pt}
 
 In this section, we illustrate the effectiveness of our memory and CPU
 optimizations in FlashMatrix. To reduce memory overhead, we focus on three

@@ -1,4 +1,6 @@
+\vspace{-10pt}
 \section{Design}
+\vspace{-5pt}
 
 FlashMatrix is a matrix-oriented programming framework for general data analysis.
 This work mainly focuses on dense matrices and scales dense matrix operations
@@ -17,11 +19,14 @@ throughput of SSDs and deploys a set of I/O optimizations.
 \begin{figure}
 \centering
 \includegraphics[scale=0.3]{FlashMatrix_figs/architecture.pdf}
+\vspace{-2pt}
 \caption{The architecture of FlashMatrix}
 \label{fig:arch}
 \end{figure}
 
+\vspace{-8pt}
 \subsection{Programming interface}
+\vspace{-4pt}
 
 \begin{table}
 \begin{center}
@@ -55,9 +60,11 @@ $C=inner.prod(A, B, f1, f2)$ & $t=f1(A_{i,k}, B_{k,j})$,
 \end{tabular}
 \normalsize
 \end{center}
+\vspace{-12pt}
 \caption{Generalized operators (GenOps) in FlashMatrix.
 $A$, $B$ and $C$ are matrices, and $c$ is a scalar.}
 \label{tbl:genops}
+\vspace{-10pt}
 \end{table}
 
 FlashMatrix provides a matrix-oriented functional programming interface.
@@ -109,6 +116,7 @@ kmeans.iter <- function(X,C) {
 	list(C=C,I=I)
 }
 	\end{minted}
+  \vspace{-4pt}
 	\label{fig:code}
 		\caption{R code \rb{this looks bad.}}
 	\hspace{20pt}
@@ -119,11 +127,15 @@ kmeans.iter <- function(X,C) {
 	\label{fig:dag}
 	\caption{DAG}
 	\end{subfigure}
-	\caption{An example of using GenOps to implement k-means.}
+  \vspace{-12pt}
+	\caption{k-means implemented with GenOps.}
 	\label{fig:kmeans}
+  \vspace{-8pt}
 \end{figure}
 
+\vspace{-8pt}
 \subsection{Dense matrices}
+\vspace{-4pt}
 Dense matrices are the main data types in FlashMatrix. A vector is stored
 as a one-column dense matrix. A dense matrix can be stored
 physically in memory or on SSDs or represented virtually by a sequence of
@@ -154,6 +166,7 @@ as an SAFS file.
 	\includegraphics[scale=0.5]{FlashMatrix_figs/dense_matrix2.pdf}
 	\caption{The format of a tall dense matrix.}
 	\label{fig:den_mat}
+  \vspace{-12pt}
 \end{figure}
 
 A TAS matrix is partitioned physically into I/O-partitions (Figure
@@ -243,7 +256,9 @@ the long dimension of these matrices is much larger than the short dimension.
 %movement in the memory hierarchy and memory allocation overhead for creating
 %new matrices.
 
+\vspace{-8pt}
 \subsection{Reducing data movement}
+\vspace{-4pt}
 When evaluating a sequence of matrix operations, FlashMatrix lazily evaluates
 GenOps and constructs a DAG automatically because most of the GenOps do not
 contain enough computation to achieve in-memory performance. FlashMatrix grows
@@ -282,8 +297,10 @@ or SSDs during computation, similar to caching an RDD in Spark.
 \begin{figure}
 	\centering
 	\includegraphics[scale=0.6]{FlashMatrix_figs/materialize.pdf}
-	\caption{Materialization of partitions of matrices in a DAG.}
+  \vspace{-4pt}
+	\caption{Materializing matrix partitions in a DAG.}
 	\label{fig:mater}
+  \vspace{-8pt}
 \end{figure}
 
 FlashMatrix partitions matrices in a DAG in the partition dimension and
@@ -332,7 +349,9 @@ at any time to reduce CPU cache pollution and increase CPU cache hits.
 %to reduce the number of memory buffers used in the computation and avoid CPU
 %cache polution.
 
+\vspace{-8pt}
 \subsection{Parallel execution and I/O access}
+\vspace{-4pt}
 FlashMatrix dispatches computation to threads so that they
 %When materializing a DAG in parallel, FlashMatrix dispatches computation tasks
 issue large reads and writes to SSDs, while still achieving good load balancing.
