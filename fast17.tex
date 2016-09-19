@@ -101,7 +101,7 @@ operations (GenOps) upon which we reimplement a large fraction of the dense
 matrix functions of the R framework.
 We vectorize the execution of GenOps to reduce the overhead of function calls
 and increase parellelism.
-In addition, FlashMatrix fuses matrix operations to reduce data movement between CPU and
+FlashMatrix also fuses matrix operations to reduce data movement between CPU and
 SSDs. 
 %that require some functions to define the computation on
 %elements of the input matrices. It reimplements
@@ -118,8 +118,8 @@ out-of-core execution has minimal overhead when compared with the in-memory exec
 for billion-scale datasets.
 %in FlashMatrix has performance comparable
 %to in-memory execution on a billion-scale dataset. 
-Both in-memory and out-of-core execution outperform the in-memory execution of
-Spark MLlib by a factor of \dz{3 to 30}.
+In-memory and out-of-core execution outperform the in-memory execution of
+Spark MLlib by a factor of 5 to 50.
 % DZTODO -- check 
 
 \vspace{-10pt}

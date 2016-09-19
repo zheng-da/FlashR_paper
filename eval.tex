@@ -208,11 +208,13 @@ The R package mclust \cite{mclust} provides a FORTRAN implementation of GMM.
 \end{figure}
 
 FlashMatrix both in memory and on SSDs outperforms Spark MLlib significantly
-in all algorithms (Figure \ref{perf:fm} (a)). For 
+in all algorithms (Figure \ref{perf:fm}(a)). For 
 correlation, SVD and GMM, both FlashMatrix and MLlib
 rely on BLAS for matrix multiplication; the differences lie in data access patterns.
 MLlib materializes operations such as aggregation separately and implements
-non-BLAS operations with Scala.
+non-BLAS operations with Scala.  The virtual matrix and fusion optimizations of FlashMatrix result in a 5 to 50 
+times performance gain when compared with MLlib and I/O-reduction optimizations keeps the performance of out-of-core
+FlashGraph 5 times better than in-memory MLlib.
 
 % FlashMatrix outperforms MLlib significantly owing to our heavy optimizations on GenOps
 %such as aggressive matrix operation fusion and VEleFuns. In contrast, 
@@ -223,17 +225,23 @@ non-BLAS operations with Scala.
 
 %Even though FlashMatrix provides a matrix-oriented functional programming
 %interface, it 
-FlashMatrix easily scales to datasets with billions of data points. Its
-scalability is bound by the capacity of SSDs (Figure \ref{perf:fm} (b)).
+FlashMatrix easily scales to datasets with billions of data points
+(Figure \ref{perf:fm}(b)) and uses negligible amounts of memory when running out-of-core.
+%. Its
+%scalability is bound by the capacity of SSDs 
 For out-of-core execution, FlashMatrix keeps large matrices on
-SSDs and has a very small memory footprint.  Because of lazy evaluation and virtual matrices,
+SSDs.  % and has a very small memory footprint.  
+Lazy evaluation and virtual matrices make it so that data are streamed from inputs to outputs
+  on SSDs.  Memory consumption is below 10 MB for all inputs.
+We have not found the scalability limits of out-of-core FlashMatrix, but it will not be 
+from running out of memory.
 %The functional programming
 %interface generates a new matrix in each matrix operation, which potentially
 %leads to high memory consumption. 
 %Owing to lazy evaluation, FlashMatrix does not store majority of matrices in the computation physically.
 %As such, its in-memory 
-out-of-core execution barely increases memory consumption from
-the minimum memory requirement of the algorithms. 
+%out-of-core execution barely increases memory consumption from
+%the minimum memory requirement of the algorithms. 
 %This indicates that the out-of-core execution consumes small space on SSDs, which leads to
 %very high scalability.
 
@@ -287,9 +295,9 @@ performance comparable to parallel C or FORTRAN implementations.
 %\subsection{Out-of-core v. in-memory performance}
 %\vspace{-4pt}
 \para{Out-of-core versus in-memory performance}
-We further measure the in-memory and external-memory performance of FlashMatrix
-thoroughly with different datasets and different parameters. We run the first
-three algorithms on random-65M matrices
+We further compare the in-memory and external-memory performance of FlashMatrix.
+%thoroughly with different datasets and different parameters. 
+We run the first three algorithms on random-65M matrices
 with the number of columns varying from 8 to 512. We run k-means
 and GMM on the Friendster-32 matrix and vary the number of clusters from 2 to 64.
 
@@ -311,23 +319,28 @@ clustering algorithms while varying the number of clusters (bottom).}
   \vspace{-15pt}
 \end{figure}
 
-As the number of features or the number of clusters increases,
+As the number of features or clusters increases,
 the performance gap between in-memory and external-memory execution
-narrows and eventually the external-memory performance gets almost 100\%
-of in-memory performance for some algorithms (Figure \ref{perf:stat}).
+narrows and the external-memory performance approaches 
+in-memory performance for all algorithms but Summary (Figure \ref{perf:stat}).
 % and \ref{perf:clust}).
 This observation conforms with the computation and I/O complexity of
-the algorithms in Table \ref{tbl:algs}. When the number of features
-gets larger, the computation of matrix multiplication in
-correlation and SVD grows more rapidly than I/O and eventually CPU becomes
-the bottleneck. The current implementation of correlation requires an additional
-pass on the input matrix to compute column-wise mean values, which results in
-lower external-memory performance. Similarly, as the number of clusters
-increases, the computation of k-means and GMM increases rapidly and
-these algorithms are dominated by their CPU computation as the number
-of clusters gets larger. Given an I/O throughput of 10 GB/s, the algorithms
-do not require many features or clusters to have their external-memory
-performance close to their in-memory performance.
+the algorithms in Table \ref{tbl:algs}.
+For Correlation, SVD, k-means, and GMM, the number of clusters or features causes computation
+to grow more quickly than the I/O, driving performance toward a compute bound.
+% When the number of features
+%gets larger, the computation of matrix multiplication in
+%correlation and SVD grows more rapidly than I/O and eventually CPU becomes
+%the bottleneck. The current implementation of correlation requires an additional
+%pass on the input matrix to compute column-wise mean values, which results in
+%lower external-memory performance. Similarly, as the number of clusters
+%increases, the computation of k-means and GMM increases rapidly and
+%these algorithms are dominated by their CPU computation as the number
+%of clusters gets larger. 
+The compute bound can be realized on few features or clusters and an I/O throughput of 10GB/s.
+%Given an I/O throughput of 10 GB/s, the algorithms
+%do not require many features or clusters to have their external-memory
+%performance close to their in-memory performance.
 
 %\begin{figure}
 %	\begin{center}
@@ -358,19 +371,22 @@ fusion in CPU cache to reduce data movement between main memory and CPU cache
 (cache-fuse).
 
 Each memory optimization has significant performance improvement on most of
-the algorithms when FlashMatrix runs on SSDs (Figure \ref{perf:opts} (a)).
+the algorithms when FlashMatrix runs on SSDs (Figure \ref{perf:opts}(a)).
 Operation fusion in main memory achieves
 the highest performance improvement in almost all algorithms, even in GMM,
 which has the highest asymptotic computation complexity. Even though the SSDs
 deliver an I/O throughput of 10GB/s, materializing every matrix operation
 separately causes SSDs to be the main bottleneck in the system.
-Fusing matrix operations in memory significantly reduces I/O access to SSDs and
-improves performance by a large factor. Operation fusion in the CPU cache also
-has very positive performance impact on some algorithms even when
-the algorithms run on SSDs. This suggests that with sufficient I/O optimizations,
-many machine learning algorithms that run on fast SSDs can be bottlenecked by
-the bandwidth of main memory, instead of I/O. Even though it is less noticeable,
-reducing large memory allocation improves I/O performance and almost doubles
+Fusing matrix operations in memory significantly reduces I/O access to SSDs.
+% and improves performance by a large factor. 
+Operation fusion in the CPU cache also improves performance even when algorithms run on SSDs,
+which suggests that memory bandwidth is a limiting performance factor once 
+I/O has been optimized.
+ %This suggests that with sufficient 
+%I/O optimizations, many machine learning algorithms that run on fast SSDs can be bottlenecked by
+%the bandwidth of main memory, instead of I/O. 
+%Even though it is less noticeable,
+Finally, reducing large memory allocation improves I/O performance and almost doubles
 the overall performance of all algorithms.
 
 \begin{figure}
@@ -389,7 +405,7 @@ the overall performance of all algorithms.
 \begin{comment}
 The same memory optimizations also have very positive impact on the performance
 of most of the algorithms when FlashMatrix runs in memory (Figure
-\ref{perf:opts} (b)). Operation fusion in CPU cache has performance improvement
+\ref{perf:opts}(b)). Operation fusion in CPU cache has performance improvement
 on all algorithms because reducing data movement between main memory and CPU
 cache in a sequence of matrix operations always improves performance.
 Operation fusion in main memory further reduces memory allocation overhead when

@@ -3,36 +3,41 @@ data analysis. FlashMatrix scales to large datasets by utilizing commodity SSDs.
 It provides a high-level functional programming interface for users to write
 data analysis algorithms in R and
 executes the R implementations in parallel and out of core automatically.
-For simplicity and generality, the core of FlashMatrix only implements
-a small number of generalized matrix operators (GenOps). It reimplements
-many matrix operations in R \textit{base} package with GenOps to provide
-a familiar programming environment to users. To improve performance,
-FlashMatrix uses vectorized element functions (VEleFuns) to reduce the
-overhead of function calls and fuses matrix operations to reduce data movement
-between CPU and SSDs.
+%For simplicity and generality, the core of FlashMatrix only implements
+%a small number of generalized matrix operators (GenOps). It reimplements
+%many matrix operations in R \textit{base} package with GenOps to provide
+%a familiar programming environment to users. To improve performance,
+%FlashMatrix uses vectorized element functions (VEleFuns) to reduce the
+%overhead of function calls and fuses matrix operations to reduce data movement
+%between CPU and SSDs.
 
 We demonstrate that the matrix-oriented functional programming interface in
-FlashMatrix can achieve high performance and scalability for many data analysis
-algorithms. We implement multiple statistics and
-machine learning algorithms in R and compare their performance with Spark
-MLlib, a highly-optimized parallel machine learning library, on large datasets.
-The R implementations executed in FlashMatrix significantly outperforms
-the implementations in Spark MLlib. We further demonstrate that
-the R implementations running FlashMatrix with a single thread can outperform
-the C and FORTRAN implementations in the R framework. In addition, FlashMatrix
-also achieves linear speedup with multithreading in all of these algorithms.
+FlashMatrix achieves high performance and scalability for many machine learning and 
+statistics algorithms.  R implementations executed in FlashMatrix outperforms
+Spark MLlib on all inputs by a factor of five, using the same shared memory hardware.
+Furthermore, executing R programs with a single thread in FlashMatrix is more
+efficient than the C and Fortran optimized implementations of native R packages.
+
+%We implement multiple statistics and
+%machine learning algorithms in R and compare their performance with Spark
+%MLlib, a highly-optimized parallel machine learning library, on large datasets.
+%The R implementations executed in FlashMatrix significantly outperforms
+%the implementations in Spark MLlib. We further demonstrate that
+%the R implementations running FlashMatrix with a single thread can outperform
+%the C and FORTRAN implementations in the R framework. In addition, FlashMatrix
+%also achieves linear speedup with multithreading in all of these algorithms.
 
 Even though SSDs are still an order of magnitude slower than DRAM, the external-memory
 execution of many data analysis algorithms in FlashMatrix can achieve performance
-comparable to their in-memory execution. We demonstrate that an I/O throughput
+that approaches to their in-memory execution. We demonstrate that an I/O throughput
 of 10 GB/s is able to saturate CPU for many algorithms, even in a large parallel
-NUMA machine. As such, the external-memory execution also benefits from many
-in-memory optimizations.
+NUMA machine. 
+%As such, the external-memory execution also benefits from many in-memory optimizations.
 
-FlashMatrix simplifies significantly the programming effort of writing
+FlashMatrix simplifies the programming effort of writing
 parallel and out-of-core implementations for large-scale data analysis. It
 provides domain experts a familiar programming environment for implementing
-their algorithms designed to process large datasets. It also significantly
+their algorithms. It also significantly
 increases productivity of writing an efficient implementation with performance
 comparable to low-level programming languages. We believe FlashMatrix opens
 a new opportunity for large-scale data analysis.
