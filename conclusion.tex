@@ -14,9 +14,9 @@ executes the R implementations in parallel and out of core automatically.
 We demonstrate that the matrix-oriented functional programming interface in
 FlashMatrix achieves high performance and scalability for many machine learning and 
 statistics algorithms.  R implementations executed in FlashMatrix outperforms
-Spark MLlib on all inputs by a factor of five, using the same shared memory hardware.
+Spark MLlib on all inputs by a factor of 3 to 10, using the same shared memory hardware.
 Furthermore, executing R programs with a single thread in FlashMatrix is more
-efficient than the C and Fortran optimized implementations of native R packages.
+efficient than the optimized C and Fortran implementations of native R packages.
 
 %We implement multiple statistics and
 %machine learning algorithms in R and compare their performance with Spark

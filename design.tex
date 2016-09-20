@@ -8,13 +8,13 @@ beyond memory capacity by utilizing fast I/O devices, such as solid-state drives
 (SSDs), in a non-uniform memory architecture (NUMA).
 
 Figure \ref{fig:arch} shows the architecture of FlashMatrix. 
-A small number of generalized matrix operators (GenOps)
- simplify the implementation and improve expressiveness of
+A small number of generalized operations (GenOps)
+simplify the implementation and improve expressiveness of
 the framework. The optimizer aggressively merges operations to
 reduce data movement in the memory hierarchy and achieve better parallelization.
 It stores matrices on SSDs through SAFS \cite{safs},
 a user-space filesystem for SSD arrays, to fully utilize high I/O
-throughput of SSDs and deploys a set of I/O optimizations.
+throughput of SSDs.
 
 \begin{figure}
 \centering
@@ -61,7 +61,7 @@ $C=inner.prod(A, B, f1, f2)$ & $t=f1(A_{i,k}, B_{k,j})$,
 \normalsize
 \end{center}
 \vspace{-12pt}
-\caption{Generalized operators (GenOps) in FlashMatrix.
+\caption{Generalized operations (GenOps) in FlashMatrix.
 $A$, $B$ and $C$ are matrices, and $c$ is a scalar.}
 \label{tbl:genops}
 \vspace{-10pt}
@@ -69,7 +69,7 @@ $A$, $B$ and $C$ are matrices, and $c$ is a scalar.}
 
 FlashMatrix provides a matrix-oriented functional programming interface.
 Table \ref{tbl:genops} lists all GenOps, each of which takes matrices and
-some functions as input and output new matrices that store computation results.
+some functions as input and output new matrices that represent computation results.
 The input function defines computation on individual elements in input matrices.
 The GenOps can be classified into four categories: (a) \textit{apply} for
 element-wise operations, (b) \textit{agg} for aggregation on a matrix
@@ -78,12 +78,12 @@ into groups and computing aggregates in each group,
 (d) \textit{inner product} for the inner product of two matrices.
 
 The example in Figure \ref{fig:kmeans} computes an iteration of k-means
-\cite{kmeans} using GenOps. It first uses \textit{fm.inner.prod} to
+\cite{kmeans} using GenOps. It first uses \textit{inner.prod} to
 compute the Euclidean distance between every data point and every cluster center
 and outputs a matrix with each row representing the distances to centers.  
-It uses \textit{fm.agg.row} to find the closest
+It uses \textit{agg.row} to find the closest
 cluster for each data point.  The output matrix 
-assigns data points to clusters. It then uses \textit{fm.groupby.row} to count
+assigns data points to clusters. It then uses \textit{groupby.row} to count
 the number of data points in each cluster and compute the mean of each cluster.
 
 \begin{figure}
@@ -138,15 +138,15 @@ kmeans.iter <- function(X,C) {
 \vspace{-4pt}
 FlashMatrix optimizes for matrices that are rectangular because
 of their frequent occurence in machine learning and statistics.
-Most input data matrices are tall-and-skinny (TAS); they contain a large number of samples with a relatively
-few features \cite{}. 
+Most input data matrices are tall-and-skinny (TAS); they contain
+a large number of samples with a relatively few features \cite{}. 
 Even if the original data matrices have many features,
 the first algorithmic step is usually dimension reduction \cite{}. 
-Other wide-and-short (WAS) matrices contain a large number of features with
-few samples \cite{}. Intermediate matrices and output matrices are usually small and may be square. 
-We store vectors as a one-column dense matrix. 
-Dense matrices can be stored physically in memory or on SSDs or represented virtually by a sequence of
-computations.
+Wide-and-short (WAS) matrices contain a large number of features with
+a few samples \cite{}. Intermediate matrices and output matrices may
+be small and square. We store vectors as a one-column dense matrix.
+Dense matrices can be stored physically in memory or on SSDs or represented
+virtually by a sequence of computations.
 We describe FlashMatrix using tall-and-skinny matrices.  We use similar strategies for wide-and-short matrices.
 
 %As such, FlashMatrix optimizes
@@ -210,9 +210,9 @@ a directed acyclic graph (DAG) that represents a sequence of matrix computations
 
 \vspace{3pt}
 \noindent \textbf{Sink matrices}: Some of the GenOps, such as aggregation and
-groupby, output matrices
-that have different partition size from the input matrices. We refer to these
-matrices as \textit{sink matrices}. %The GenOps that
+groupby, output virtual matrices that have a different partition size from
+the input matrices. We refer to these virtual matrices as \textit{sink matrices}.
+%The GenOps that
 %generate \textit{sink matrices} are shown in Table \ref{tbl:sink}.
 %In general, \textit{sink matrices} are small and their materialized results
 %are always stored in memory. The maximal size of the output matrix from
@@ -221,10 +221,11 @@ matrices as \textit{sink matrices}. %The GenOps that
 %large, they are small in practice in most of machine learning and data analyis
 %tasks because $k$, the number of classes, and $p1$ and $p2$ are usually much
 %smaller than the \textit{partition dimension} of a matrix in these tasks.
-In general, sink matrices are small and stored in memory in order to minimize
-data written to SSDs. The maximal size of the output matrix from an aggregation
+In general, sink matrices are small and their materialized results can be
+stored in memory in order to minimize data written to SSDs. The maximal size
+of an output sink matrix from an aggregation
 is $\sqrt{N}$ for $N$ elements in the input matrix. The maximal size of
-the output matrix from a groupby is $k \times \sqrt{N}$ for $k$ classes.
+an output sink matrix from a groupby is $k \times \sqrt{N}$ for $k$ classes.
 %For most of machine learning and data analysis tasks, 
 The output matrix of the inner product of a wide matrix with a tall matrix is usually small because
 the long dimension of these matrices is much larger than the short dimension.
@@ -289,9 +290,9 @@ the computation.
 
 To grow a DAG, FlashMatrix allows virtual matrices of different shapes
 (Figure \ref{fig:kmeans} (b)). To simplify evaluation and data flow, 
-all virtual matrices matrix nodes need to have the same
+all internal matrix nodes need to have the same
 \textit{partition dimension}. \textit{Sink matrices} are edge nodes
-in the DAG and will be materialized.
+in the DAG.
 %, because
 %any computation that uses these \textit{virtual matrices} cannot be connected
 %to the same DAG.  
@@ -341,12 +342,13 @@ Pcache-partitions of \textit{I} and \textit{one}, which in turn triggers
 partitions of \textit{D}, and so on. Eventually, the process triggers data access
 to an I/O-partition of input matrix \textit{X} from SSDs. Upon materializing
 output to a sink matrix, the thread passes the output as input to the subsequent
-GenOp, instead of materializing the next Pcache-partition in the same thread.
+GenOp, instead of materializing the next Pcache-partition of the virtual matrix
+in the same thread.
 A Pcache-partition is sufficiently small to fit in the CPU cache so that
 the partition still resides in the CPU cache when the subsequent GenOp consumes
 it. This significantly reduces data movement between CPU and memory. In each
 thread, all intermediate matrices have only one Pcache-partitions materialized
-at any time to reduce CPU cache pollution and increase CPU cache hits.
+at any time to reduce CPU cache pollution.
 %To reduce CPU cache polution, a CPU-level partition is discarded once it is
 %used by all children matrices.
 

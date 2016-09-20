@@ -35,7 +35,8 @@ prevalent and intuitive representation for machine learning and data analysis ta
 
 Most of prior work on disk-based matrix computation focus on the I/O
 complexity of matrix operations~\cite{}. However, to achieve performance
-comparable to state-of-the-art in-memory implementations, it is essential
+comparable to state-of-the-art in-memory implementations, it is insufficient
+to only reduce I/O complexity. It is essential
 to move data efficiently both from SSDs to memory and from memory to CPU
 caches.
 
@@ -60,7 +61,7 @@ parallelization and out-of-core execution for large-scale data analysis.
 FlashMatrix focuses on optimizations in a single machine (often with multiple
 CPUs and many cores) and scales matrix operations beyond memory capacity by 
 utilizing solid-state drives (SSDs).  
-This paper does not address distributed matrix multiplication, but, 
+This paper does not address distributed matrix operations, but, 
 FlashMatrix primitives are suitable for executing the local part of a distributed 
 computation.   
 Our evaluation does show that we can solve billion row, Internet-scale 
@@ -87,7 +88,8 @@ expense, and power consumption of distributed systems when they are not strictly
 We overcome many technical challenges to move data from SSDs to CPU efficiently,
 notably the large speed disparity between CPU and memory, as well as between
 memory and SSDs. The speed disparity of CPU and DRAM has increased exponentially
-over the past decades \cite{Wilkes01}. Even though the I/O performance of SSDs
+over the past decades \cite{Wilkes01}. \dz{NUMA memory}.
+Even though the I/O performance of SSDs
 has advanced to outperform hard drives by a large factor, they remain an order
 of magnitude slower than RAM.  
 %Most matrix computation engines increase data movement,
@@ -135,11 +137,11 @@ while significantly outperforming the same algorithms in Spark MLlib
 \cite{spark}. FlashMatrix effortlessly scales to datasets with billions
 of data points and its out-of-core execution uses a small fraction of
 resources required by in-memory implementations. 
-When run in a single thread, FlashMatrix 
+When running in a single thread, FlashMatrix 
 outperforms the C and FORTRAN implementations of the R framework.
 %In addition, 
-FlashMatrix achieves near-linear speedup in a multicore NUMA
-machine for all algorithms. 
+%FlashMatrix achieves near-linear speedup in a multicore NUMA
+%machine for all algorithms. 
 
 We believe that FlashMatrix significantly lowers the requirements for writing parallel
 and scalable implementations of data analysis algorithms; it also offers new

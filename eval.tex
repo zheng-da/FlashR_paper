@@ -212,9 +212,9 @@ in all algorithms (Figure \ref{perf:fm}(a)). For
 correlation, SVD and GMM, both FlashMatrix and MLlib
 rely on BLAS for matrix multiplication; the differences lie in data access patterns.
 MLlib materializes operations such as aggregation separately and implements
-non-BLAS operations with Scala.  The virtual matrix and fusion optimizations of FlashMatrix result in a 5 to 50 
-times performance gain when compared with MLlib and I/O-reduction optimizations keeps the performance of out-of-core
-FlashGraph 5 times better than in-memory MLlib.
+non-BLAS operations with Scala. The matrix fusion and materialization of
+two-level partitioning of FlashMatrix result in a 3 to 10 times performance
+gain when compared with MLlib.
 
 % FlashMatrix outperforms MLlib significantly owing to our heavy optimizations on GenOps
 %such as aggressive matrix operation fusion and VEleFuns. In contrast, 
@@ -232,7 +232,7 @@ FlashMatrix easily scales to datasets with billions of data points
 For out-of-core execution, FlashMatrix keeps large matrices on
 SSDs.  % and has a very small memory footprint.  
 Lazy evaluation and virtual matrices make it so that data are streamed from inputs to outputs
-  on SSDs.  Memory consumption is below 10 MB for all inputs.
+  on SSDs.  Memory consumption is below 10 GB for all inputs.
 We have not found the scalability limits of out-of-core FlashMatrix, but it will not be 
 from running out of memory.
 %The functional programming
@@ -245,7 +245,6 @@ from running out of memory.
 %This indicates that the out-of-core execution consumes small space on SSDs, which leads to
 %very high scalability.
 
-\begin{comment}
 \begin{figure}
 	\begin{center}
 		\footnotesize
@@ -267,6 +266,7 @@ We exclude ``Summary'' because R does not provide all statistics.
 %results indicate that FlashMatrix executes R code efficiently to even outperform
 %some optimized C and FORTRAN implementations when processing large datasets.
 
+\begin{comment}
 \begin{figure}
 	\begin{center}
 		\footnotesize
@@ -337,7 +337,7 @@ to grow more quickly than the I/O, driving performance toward a compute bound.
 %increases, the computation of k-means and GMM increases rapidly and
 %these algorithms are dominated by their CPU computation as the number
 %of clusters gets larger. 
-The compute bound can be realized on few features or clusters and an I/O throughput of 10GB/s.
+The compute bound can be realized on few features or clusters for an I/O throughput of 10GB/s.
 %Given an I/O throughput of 10 GB/s, the algorithms
 %do not require many features or clusters to have their external-memory
 %performance close to their in-memory performance.
@@ -361,7 +361,7 @@ The compute bound can be realized on few features or clusters and an I/O through
 %\subsection{Effectiveness of optimizations}
 %\vspace{-4pt}
 \para{Effectiveness of optimizations}
-We illustrate the effectiveness of our memory and CPU
+We illustrate the effectiveness of our memory
 optimizations in FlashMatrix. To reduce memory overhead, we focus on three
 main optimizations: \textit{(i)} reusing memory chunks for new in-memory
 matrices and I/O access to reduce large memory allocation (mem-alloc),
@@ -371,7 +371,7 @@ fusion in CPU cache to reduce data movement between main memory and CPU cache
 (cache-fuse).
 
 Each memory optimization has significant performance improvement on most of
-the algorithms when FlashMatrix runs on SSDs (Figure \ref{perf:opts}(a)).
+the algorithms when FlashMatrix runs on SSDs (Figure \ref{perf:em_opts}).
 Operation fusion in main memory achieves
 the highest performance improvement in almost all algorithms, even in GMM,
 which has the highest asymptotic computation complexity. Even though the SSDs
@@ -393,67 +393,11 @@ the overall performance of all algorithms.
 	\begin{center}
 		\footnotesize
 		\includegraphics{FlashMatrix_figs/opts-EM.eps}
-		\label{perf:em_opts}
-    \vspace{-10pt}
+		\vspace{-10pt}
 		\caption{The effectiveness of optimizations on different algorithms
 		running on SSDs. The three optimizations are applied to FlashMatrix
 		incrementally.}
+		\label{perf:em_opts}
 	\end{center}
   \vspace{-15pt}
 \end{figure}
-
-\begin{comment}
-The same memory optimizations also have very positive impact on the performance
-of most of the algorithms when FlashMatrix runs in memory (Figure
-\ref{perf:opts}(b)). Operation fusion in CPU cache has performance improvement
-on all algorithms because reducing data movement between main memory and CPU
-cache in a sequence of matrix operations always improves performance.
-Operation fusion in main memory further reduces memory allocation overhead when
-FlashMatrix runs in memory. Thus, like the optimization of reducing large
-memory allocation, its effectiveness heavily depend on the computation patterns
-in the algorithms. Both of the optimizations are more effective for
-the algorithms such as statistical summary and k-means, which require to
-generate new large matrices but do not have very heavy computation.
-
-\begin{figure}
-	\centering
-	\footnotesize
-	\begin{subfigure}{.5\textwidth}
-		\includegraphics{FlashMatrix_figs/opts-EM.eps}
-		\label{perf:em_opts}
-		\caption{on SSDs}
-	\end{subfigure}
-
-	\vspace{5pt}
-	\begin{subfigure}{.5\textwidth}
-		\includegraphics{FlashMatrix_figs/opts-IM.eps}
-		\label{perf:im_opts}
-		\caption{in memory}
-	\end{subfigure}
-	\caption{The effectiveness of memory optimizations on different
-			algorithms running on SSDs. The three memory optimizations are
-		applied to FlashMatrix incrementally.}
-	\label{perf:opts}
-\end{figure}
-
-VEleFuns improve the performance of the algorithms that rely on GenOps
-for computation (Figure \ref{perf:opts_CPU}). In this experiment, the base
-implementations deploy all memory optimizations to avoid memory from being
-the bottleneck of the system, and invoke functions on individual elements.
-The FlashMatrix implementations of statistical summary and k-means solely
-rely on GenOps. Therefore, their performance is almost doubled
-when we use VEleFuns. The main computation in correlation and GMM is matrix
-multiplication, but they still rely on GenOps for the remaining computation.
-As such, the use of VEleFuns helps their performance. SVD solely uses matrix
-multiplication, so switching to VEleFuns has no performance impact.
-
-\begin{figure}
-	\begin{center}
-		\footnotesize
-		\includegraphics{FlashMatrix_figs/opts-CPU.eps}
-		\caption{The effectiveness of using VEleFuns on different algorithms
-		running in memory.}
-		\label{perf:opts_CPU}
-	\end{center}
-\end{figure}
-\end{comment}
