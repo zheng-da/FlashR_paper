@@ -34,7 +34,7 @@ prevalent and intuitive representation for machine learning and data analysis ta
 
 
 Most of prior work on disk-based matrix computation focus on the I/O
-complexity of matrix operations~\cite{}. However, to achieve performance
+complexity of matrix operations~\cite{Toledo99}. However, to achieve performance
 comparable to state-of-the-art in-memory implementations, it is insufficient
 to only reduce I/O complexity. It is essential
 to move data efficiently both from SSDs to memory and from memory to CPU
@@ -88,7 +88,7 @@ expense, and power consumption of distributed systems when they are not strictly
 We overcome many technical challenges to move data from SSDs to CPU efficiently,
 notably the large speed disparity between CPU and memory, as well as between
 memory and SSDs. The speed disparity of CPU and DRAM has increased exponentially
-over the past decades \cite{Wilkes01}. \dz{NUMA memory}.
+over the past decades \cite{Wilkes01}.
 Even though the I/O performance of SSDs
 has advanced to outperform hard drives by a large factor, they remain an order
 of magnitude slower than RAM.  
@@ -105,26 +105,18 @@ of magnitude slower than RAM.
 %the performance of the data analysis tasks is usually limited by memory
 %bandwidth instead of computing power.
 
-To minimize data movement, FlashMatrix evaluates expressions lazily and fuses
-operations aggressively in a single parallel execution job.
+To achieve in-memory performance for out-of-core matrix operations,
+FlashMatrix evaluates expressions lazily and fuses operations aggressively
+in a single parallel execution job to minimize data movement.
 FlashMatrix builds a directed acyclic graph (DAG) to represent all operations
 in a single execution. When evaluating the computation in a DAG, FlashMatrix
 performs two levels of matrix partitioning to improve data utilization in
 the memory hierarchy and reduce data movement between memory and SSDs
-as well as between CPU and memory. To access data stored on SSDs, FlashMatrix
+as well as between CPU and memory.
+To access data stored on SSDs, FlashMatrix
 streams data from SSDs to maximize I/O throughput.  
-%FlashMatrix adapts to dense matrices with different dimensions automatically.
-
-%FlashMatrix determines data placement of matrices based on their shapes.
-%In general, a 
-%formalization of data placement in FlashMatrix. Can this be considered as
-%semi-external memory?
-
-%FlashMatrix adapts to dense matrices with different dimensions automatically.
 
 %One of the important questions is how SSDs make the design different.
-
-%\dz{maybe we should say something about optimization on memory allocation?}
 
 % What are it's key features?
 

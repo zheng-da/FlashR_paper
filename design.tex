@@ -142,7 +142,7 @@ Most input data matrices are tall-and-skinny (TAS); they contain
 a large number of samples with a relatively few features \cite{}. 
 Even if the original data matrices have many features,
 the first algorithmic step is usually dimension reduction \cite{}. 
-Wide-and-short (WAS) matrices contain a large number of features with
+Wide-and-short (WAS) data matrices contain a large number of features with
 a few samples \cite{}. Intermediate matrices and output matrices may
 be small and square. We store vectors as a one-column dense matrix.
 Dense matrices can be stored physically in memory or on SSDs or represented
@@ -290,7 +290,7 @@ the computation.
 
 To grow a DAG, FlashMatrix allows virtual matrices of different shapes
 (Figure \ref{fig:kmeans} (b)). To simplify evaluation and data flow, 
-all internal matrix nodes need to have the same
+all virtual matrices in internal matrix nodes need to have the same
 \textit{partition dimension}. \textit{Sink matrices} are edge nodes
 in the DAG.
 %, because
@@ -365,22 +365,18 @@ at any time to reduce CPU cache pollution.
 \subsection{Parallel execution and I/O access}
 \vspace{-4pt}
 FlashMatrix dispatches computation to threads so that they
-%When materializing a DAG in parallel, FlashMatrix dispatches computation tasks
 issue large reads and writes to SSDs, while still achieving good load balancing.
-%
 FlashMatrix uses a global task scheduler to assign 
 I/O-partitions to threads dynamically. Initially,
 the scheduler assigns multiple contiguous I/O-partitions to a thread.
 The thread reads these sequentially in a single I/O.
-%so that the thread can read these I/O-level partitions from a matrix with
-%a single I/O. 
 As the computation nears an end, the scheduler dispatches single I/O-partitions. 
 The scheduler always ensures that all threads are working on I/O-partitions that are adjacent to
 each other on storage.
 In this way, if the DAG stores the materialized result of a non-\textit{sink matrix}, 
 contiguous regions make it easier for the file system to merge
 writes from multiple threads, which helps to sustain write throughout and reduces
-write amplification \cite{}.
+write amplification \cite{ripq}.
 
 %For a block matrix with many TAS matrices, we parallelize the computation and
 %I/O access differently. One of the goals is to reduce memory consumption.
