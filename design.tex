@@ -99,9 +99,7 @@ the number of data points in each cluster and compute the mean of each cluster.
 # X is the data matrix.
 # C is cluster centers.
 kmeans.iter <- function(X,C) {
-	# Compute pair-wise distance
-	# between data points and
-	# centers.
+	# Compute pair-wise distance.
 	D<-inner.prod(X,t(C),
 			"euclidean","+")
 	# Find the closest center.
@@ -118,11 +116,12 @@ kmeans.iter <- function(X,C) {
 	\end{minted}
   \vspace{-4pt}
 	\label{fig:code}
-		\caption{R code \rb{this looks bad.}}
+		\caption{R code.}
 	\hspace{20pt}
 	\end{subfigure}%
 	\begin{subfigure}{.25\textwidth}
 	\centering
+  \vspace{-8pt}
 	\includegraphics[scale=0.5]{FlashMatrix_figs/DAG.pdf}
 	\label{fig:dag}
 	\caption{DAG}
@@ -167,7 +166,7 @@ as an SAFS file \cite{safs}.
 
 \begin{figure}
 	\centering
-	\includegraphics[scale=0.5]{FlashMatrix_figs/dense_matrix2.pdf}
+	\includegraphics[scale=0.4]{FlashMatrix_figs/dense_matrix2.pdf}
 	\caption{The format of a tall dense matrix.}
 	\label{fig:den_mat}
   \vspace{-12pt}
@@ -189,8 +188,10 @@ matrices whose data are well aligned in memory to help CPU vectorization.
 \noindent \textbf{Block matrices}:
 FlashMatrix represents a tall matrix with a group of TAS matrices (Figure
 \ref{fig:den_mat} (c)), each with $32$ columns except the last one. We refer
-to such a matrix as a \textit{block matrix}. Each of the TAS matrices is
-stored as a separate file on SAFS. We decompose a matrix operation
+to such a matrix as a \textit{block matrix} and an individual TAS matrix as
+a \textit{block}. We choose a small block size so that an Pcache-partition
+(Section \ref{sec:datamove}) can fit in CPU L1/L2 cache. Each of the TAS
+matrices is stored as a separate file on SAFS. We decompose a matrix operation
 on a group of matrices into operations on individual matrices in the group
 to take advantage of the optimizations on TAS matrices.
 Coupled with the I/O partitioning on TAS matrices, this strategy enables
@@ -267,7 +268,7 @@ the long dimension of these matrices is much larger than the short dimension.
 %new matrices.
 
 \vspace{-8pt}
-\subsection{Reducing data movement}
+\subsection{Reducing data movement}\label{sec:datamove}
 \vspace{-4pt}
 When evaluating a sequence of matrix operations, FlashMatrix lazily evaluates
 GenOps and constructs a DAG automatically because most of the GenOps do not
@@ -370,6 +371,8 @@ FlashMatrix uses a global task scheduler to assign
 I/O-partitions to threads dynamically. Initially,
 the scheduler assigns multiple contiguous I/O-partitions to a thread.
 The thread reads these sequentially in a single I/O.
+The number of contiguous I/O-partitions assigned to a thread is determined by
+the block size of SAFS.
 As the computation nears an end, the scheduler dispatches single I/O-partitions. 
 The scheduler always ensures that all threads are working on I/O-partitions that are adjacent to
 each other on storage.

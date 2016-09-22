@@ -12,6 +12,11 @@ require users to manually parallelize the remaining matrix operations.
 %represent common data access patterns. 
 %Each GenOp covers a large number of matrix operations.
 
+Recent works on out-of-core linear algebra \cite{Toledo99, Quintana-Orti12}
+focus on redesigning algorithms to achieve efficient I/O access and reduce I/O
+complexity. These works are orthogonal to our work and can be adopted to
+achieve in-memory performance for these linear algebra routines.
+
 %There are many distributed data processing frameworks.
 MapReduce \cite{mapreduce} 
 provides a single primitive that takes two user-defined functions. 

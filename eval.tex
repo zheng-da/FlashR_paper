@@ -245,6 +245,16 @@ from running out of memory.
 %This indicates that the out-of-core execution consumes small space on SSDs, which leads to
 %very high scalability.
 
+FlashMatrix running both in memory and on SSDs significantly outperforms R
+(Figure \ref{fig:fmR}).  Because, R's implementations are single threaded,
+we run FlashMatrix in a single thread. 
+%for all algorithms even with a single thread in all of these algorithms 
+We exclude ``Summary'' because R does not provide all statistics.
+%a C or FORTRAN implementation of computing the same statistics. 
+%The performance
+%results indicate that FlashMatrix executes R code efficiently to even outperform
+%some optimized C and FORTRAN implementations when processing large datasets.
+
 \begin{figure}
 	\begin{center}
 		\footnotesize
@@ -255,16 +265,6 @@ from running out of memory.
 		\label{fig:fmR}
 	\end{center}
 \end{figure}
-
-FlashMatrix running both in memory and on SSDs significantly outperforms R
-(Figure \ref{fig:fmR}).  Because, R's implementations are single threaded,
-we run FlashMatrix in a single thread. 
-%for all algorithms even with a single thread in all of these algorithms 
-We exclude ``Summary'' because R does not provide all statistics.
-%a C or FORTRAN implementation of computing the same statistics. 
-%The performance
-%results indicate that FlashMatrix executes R code efficiently to even outperform
-%some optimized C and FORTRAN implementations when processing large datasets.
 
 \begin{comment}
 \begin{figure}

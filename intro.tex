@@ -33,10 +33,10 @@ prevalent and intuitive representation for machine learning and data analysis ta
 %and data analysis experts. 
 
 
-Most of prior work on disk-based matrix computation focus on the I/O
-complexity of matrix operations~\cite{Toledo99}. However, to achieve performance
-comparable to state-of-the-art in-memory implementations, it is insufficient
-to only reduce I/O complexity. It is essential
+Most of prior work on disk-based matrix computation focus on the I/O complexity
+and efficient I/O access of matrix operations~\cite{Toledo99, Quintana-Orti12}.
+However, to achieve performance comparable to state-of-the-art in-memory
+implementations, it is insufficient to only optimize I/O. It is essential
 to move data efficiently both from SSDs to memory and from memory to CPU
 caches.
 
@@ -88,10 +88,11 @@ expense, and power consumption of distributed systems when they are not strictly
 We overcome many technical challenges to move data from SSDs to CPU efficiently,
 notably the large speed disparity between CPU and memory, as well as between
 memory and SSDs. The speed disparity of CPU and DRAM has increased exponentially
-over the past decades \cite{Wilkes01}.
-Even though the I/O performance of SSDs
-has advanced to outperform hard drives by a large factor, they remain an order
-of magnitude slower than RAM.  
+over the past decades \cite{Wilkes01}. Furthermore, modern multiprocessor
+machines are all non-uniform memory architecture (NUMA), in which a processor
+accesses local memory much faster than remote memory. Even though the I/O
+performance of SSDs has advanced to outperform hard drives by a large factor,
+they remain an order of magnitude slower than RAM.
 %Most matrix computation engines increase data movement,
 %because they perform an operation on an entire input matrix prior to moving 
 %to the next operation.
@@ -107,14 +108,16 @@ of magnitude slower than RAM.
 
 To achieve in-memory performance for out-of-core matrix operations,
 FlashMatrix evaluates expressions lazily and fuses operations aggressively
-in a single parallel execution job to minimize data movement.
-FlashMatrix builds a directed acyclic graph (DAG) to represent all operations
-in a single execution. When evaluating the computation in a DAG, FlashMatrix
+in a single parallel execution job to minimize data movement. FlashMatrix
+builds a directed acyclic graph (DAG) to represent matrix operations
+in a computation and grows a DAG as much as possible to increase the ratio of
+computation to I/O. When evaluating the computation in a DAG, FlashMatrix
 performs two levels of matrix partitioning to improve data utilization in
 the memory hierarchy and reduce data movement between memory and SSDs
-as well as between CPU and memory.
-To access data stored on SSDs, FlashMatrix
-streams data from SSDs to maximize I/O throughput.  
+as well as between CPU and memory. FlashMatrix by default materializes
+only \dz{sink matrices} in a DAG and keep their materialized results in
+memory to minimize data written to SSDs. As such, FlashMatrix only streams
+data from SSDs to maximize I/O throughput for most of data analysis tasks.
 
 %One of the important questions is how SSDs make the design different.
 
