@@ -210,7 +210,7 @@ The R package mclust \cite{mclust} provides a FORTRAN implementation of GMM.
 FlashMatrix both in memory and on SSDs outperforms Spark MLlib significantly
 in all algorithms (Figure \ref{perf:fm}(a)). For 
 correlation, SVD and GMM, both FlashMatrix and MLlib
-rely on BLAS for matrix multiplication; the differences lie in data access patterns.
+rely on BLAS for matrix multiplication; the differences lie in data access.
 MLlib materializes operations such as aggregation separately and implements
 non-BLAS operations with Scala. The matrix fusion and materialization of
 two-level partitioning of FlashMatrix result in a 3 to 10 times performance

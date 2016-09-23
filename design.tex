@@ -2,7 +2,8 @@
 \section{Design}
 \vspace{-5pt}
 
-FlashMatrix is a matrix-oriented programming framework for general data analysis.
+FlashMatrix is a matrix-oriented programming framework for machine learning and
+statistics.
 This work mainly focuses on dense matrices and scales dense matrix operations
 beyond memory capacity by utilizing fast I/O devices, such as solid-state drives
 (SSDs), in a non-uniform memory architecture (NUMA).
@@ -71,7 +72,8 @@ FlashMatrix provides a matrix-oriented functional programming interface.
 Table \ref{tbl:genops} lists all GenOps, each of which takes matrices and
 some functions as input and output new matrices that represent computation results.
 The input function defines computation on individual elements in input matrices.
-The GenOps can be classified into four categories: (a) \textit{apply} for
+The GenOps can be classified into four categories and each of them represents
+a data access pattern: (a) \textit{apply} for
 element-wise operations, (b) \textit{agg} for aggregation on a matrix
 or on rows/columns, (c) \textit{groupby} for splitting rows/columns
 into groups and computing aggregates in each group,
@@ -188,12 +190,10 @@ matrices whose data are well aligned in memory to help CPU vectorization.
 \noindent \textbf{Block matrices}:
 FlashMatrix represents a tall matrix with a group of TAS matrices (Figure
 \ref{fig:den_mat} (c)), each with $32$ columns except the last one. We refer
-to such a matrix as a \textit{block matrix} and an individual TAS matrix as
-a \textit{block}. We choose a small block size so that an Pcache-partition
-(Section \ref{sec:datamove}) can fit in CPU L1/L2 cache. Each of the TAS
+to such a matrix as a \textit{block matrix}. Each of the TAS
 matrices is stored as a separate file on SAFS. We decompose a matrix operation
-on a group of matrices into operations on individual matrices in the group
-to take advantage of the optimizations on TAS matrices.
+on a block matrix into operations on individual TAS matrices to take advantage
+of the optimizations on TAS matrices and reduce data movement.
 Coupled with the I/O partitioning on TAS matrices, this strategy enables
 2D-partitioning on a dense matrix and each partition fits in main memory.
 %\dz{Should we explain GenOps on block matrices in more details?}
@@ -203,8 +203,8 @@ Coupled with the I/O partitioning on TAS matrices, this strategy enables
 \vspace{3pt}
 \noindent \textbf{Virtual matrices}:
 To support lazy evaluation, FlashMatrix uses \textit{virtual matrices} that
-materialize data on the fly during computation and transfer output as input to the
-next stage of computation.  The data of a matrix are not stored physically.
+materialize data on the fly during computation and transfer output as input to
+the matrix operation. The data of a matrix are not stored physically.
 All GenOps output virtual matrices. A GenOp on a \textit{block matrix} may outputs
 a block \textit{virtual matrix}. Virtual matrices are assembled to construct
 a directed acyclic graph (DAG) that represents a sequence of matrix computations.
@@ -222,9 +222,8 @@ the input matrices. We refer to these virtual matrices as \textit{sink matrices}
 %large, they are small in practice in most of machine learning and data analyis
 %tasks because $k$, the number of classes, and $p1$ and $p2$ are usually much
 %smaller than the \textit{partition dimension} of a matrix in these tasks.
-In general, sink matrices are small and their materialized results can be
-stored in memory in order to minimize data written to SSDs. The maximal size
-of an output sink matrix from an aggregation
+In general, sink matrices are small and their materialized results are stored
+in memory. The maximal size of an output sink matrix from an aggregation
 is $\sqrt{N}$ for $N$ elements in the input matrix. The maximal size of
 an output sink matrix from a groupby is $k \times \sqrt{N}$ for $k$ classes.
 %For most of machine learning and data analysis tasks, 
@@ -277,20 +276,18 @@ a DAG as large as possible to increase the ratio of computation to I/O.
 Then it performs computation in a DAG all together to minimize data movement
 in the memory hierarchy.
 
-Figure \ref{fig:kmeans} (b) shows a DAG for the k-means of Figure
-\ref{fig:kmeans}. A DAG comprises a set of matrix nodes (rectangles)
+Figure \ref{fig:kmeans} (b) shows a DAG for k-means. A DAG comprises a set of
+matrix nodes (rectangles)
 and computation nodes (ellipses). The majority of matrix nodes are
 virtual matrices (dashed line rectangles).
 %, which only contains the corresponding matrix operations and input matrices. 
 For k-means, only the input matrix \textit{X} has materialized data.
 A computation node references a GenOp and input matrices and
-it may contain some immutable computation state, such as scalar variables and
-small matrices %\dz{more explanation on the small matrices?}  RB -- I found this no problem
-needed by
-the computation. 
+may contain some immutable computation state, such as scalar variables and
+small matrices needed by the computation. 
 
 To grow a DAG, FlashMatrix allows virtual matrices of different shapes
-(Figure \ref{fig:kmeans} (b)). To simplify evaluation and data flow, 
+(Figure \ref{fig:mater}). To simplify evaluation and data flow, 
 all virtual matrices in internal matrix nodes need to have the same
 \textit{partition dimension}. \textit{Sink matrices} are edge nodes
 in the DAG.
@@ -301,7 +298,7 @@ in the DAG.
 Access to elements of a \textit{sink matrix} triggers materialization of a DAG.
 FlashMatrix by default saves only the computation results of sink matrices.
 In exceptional cases, especially for iterative algorithms,
-FlashMatrix will materialize some non-\textit{sink matrices} to avoid
+FlashMatrix materializes some non-\textit{sink matrices} to avoid
 redundant computation and I/O across iterations.  We allow users to
 set a flag on non-\textit{sink matrices} to cache the materialized data in memory
 or SSDs during computation, similar to caching an RDD in Spark.
@@ -319,10 +316,9 @@ FlashMatrix partitions matrices in a DAG and
 materializes partitions separately (Figure \ref{fig:mater}). This is possible
 because all matrices, except sink matrices, share the same partition dimension. 
 A partition $i$ of a virtual matrix requires data only from partitions
-$i$ of the parent matrices.
-%Owing to
-%the storage scheme of in-memory matrices, partitions $i$ of all in-memory
-%matrices are stored on the same NUMA node, which minimizes remote memory access.
+$i$ of the parent matrices. When a partition is assigned to a thread, it is
+processed by the subsequent matrix operations in the same thread to minimize
+remote memory access in a NUMA machine.
 When materializing a sink matrix, each thread computes partial
 aggregation results on the partitions assigned to the thread. 
 Then, FlashMatrix merges per-thread partial results to construct the output.
@@ -334,24 +330,26 @@ to a thread as a parallel task.
 %computation, skew, and memory consumption. 
 It further splits I/O-partitions into Pcache-partitions (processor cache
 partitions) at run time and each thread materializes one Pcache-partition
-at a time. 
-%Materialization of a CPU-level partition
-%is triggered recursively. As shown in 
-Figure \ref{fig:mater} shows how Pcache-partitions
-materialize recursively. Matrix \textit{CNT} triggers materialization of
+at a time. Matrix operations run on TAS matrices or block matrices that are
+divided into TAS matrices so that a Pcache-partition can fit in CPU L1/L2 cache.
+Figure \ref{fig:mater} shows recursive materialization of Pcache-partitions.
+Matrix \textit{CNT} triggers materialization of
 Pcache-partitions of \textit{I} and \textit{one}, which in turn triggers 
 partitions of \textit{D}, and so on. Eventually, the process triggers data access
 to an I/O-partition of input matrix \textit{X} from SSDs. Upon materializing
-output to a sink matrix, the thread passes the output as input to the subsequent
+output to a virtual matrix, the thread passes the output as input to the subsequent
 GenOp, instead of materializing the next Pcache-partition of the virtual matrix
-in the same thread.
-A Pcache-partition is sufficiently small to fit in the CPU cache so that
-the partition still resides in the CPU cache when the subsequent GenOp consumes
+in the same thread. As such, a Pcache-partition still resides in the CPU cache
+when the subsequent GenOp consumes
 it. This significantly reduces data movement between CPU and memory. In each
 thread, all intermediate matrices have only one Pcache-partitions materialized
 at any time to reduce CPU cache pollution.
 %To reduce CPU cache polution, a CPU-level partition is discarded once it is
 %used by all children matrices.
+To reduce memory allocation overhead, we recycle memory buffers used for both
+I/O and intermediate computation results.
+
+%materialization on block matrices.
 
 %In a DAG, a matrix may be
 %required by multiple GenOps. As such, each matrix always buffers one materialized
@@ -367,10 +365,9 @@ at any time to reduce CPU cache pollution.
 \vspace{-4pt}
 FlashMatrix dispatches computation to threads so that they
 issue large reads and writes to SSDs, while still achieving good load balancing.
-FlashMatrix uses a global task scheduler to assign 
-I/O-partitions to threads dynamically. Initially,
-the scheduler assigns multiple contiguous I/O-partitions to a thread.
-The thread reads these sequentially in a single I/O.
+FlashMatrix uses a global task scheduler to assign I/O-partitions to threads
+dynamically. Initially, the scheduler assigns multiple contiguous I/O-partitions
+to a thread. The thread reads these in a single large I/O.
 The number of contiguous I/O-partitions assigned to a thread is determined by
 the block size of SAFS.
 As the computation nears an end, the scheduler dispatches single I/O-partitions. 

@@ -101,8 +101,9 @@ It scales matrix operations
 beyond memory capacity by utilizing solid-state drives (SSDs) in a non-uniform
 memory architecture (NUMA). It provides a small number of generalized 
 operations (GenOps) upon which we reimplement a large fraction of the dense 
-matrix functions of the R framework. FlashMatrix fuses matrix operations and
-deploy two-level partitioning to reduce data movement between CPU and SSDs. 
+matrix functions of the R framework. FlashMatrix evaluate matrix operations
+lazily and fuses them with two-level partitioning to reduce data movement
+between CPU and SSDs. 
 %that require some functions to define the computation on
 %elements of the input matrices. It reimplements
 % a large number of matrix operations in the R framework with GenOps to execute R code in
