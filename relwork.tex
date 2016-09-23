@@ -12,17 +12,17 @@ require users to manually parallelize the remaining matrix operations.
 %Each GenOp covers a large number of matrix operations.
 
 Recent works on out-of-core linear algebra \cite{Toledo99, Quintana-Orti12}
-focus on redesigning algorithms to achieve efficient I/O access and reduce I/O
-complexity. These works are orthogonal to our work and can be adopted to
-achieve in-memory performance for these linear algebra routines.
+redesign algorithms to achieve efficient I/O access and reduce I/O
+complexity. These works are orthogonal to our work and can be adopted.
+% to achieve in-memory performance for these linear algebra routines.
 
 %There are many distributed data processing frameworks.
-MapReduce \cite{mapreduce} 
-provides a single primitive that takes two user-defined functions. 
+%MapReduce \cite{mapreduce} 
+%provides a single primitive that takes two user-defined functions. 
 % RB not true
 %written in low-level programming languages such as C/C++ and Java. 
-For matrixes, MapReduce algorithms are inefficient, because they lack
-primitives for matrix data access patterns.
+For matrices, MapReduce \cite{mapreduce} algorithms are inefficient because 
+its I/O streaming primitives do not match matrix data access patterns.
 Dryad \cite{dryad} and Naiad \cite{naiad} provide more primitives 
 that support various data access patterns more efficiently.
 
@@ -39,7 +39,7 @@ DryadLINQ \cite{dryadlinq} expresses data analysis tasks on Dryad.
 The Spark \cite{spark} distributed, in-memory framework
 provides a highly-optimized machine learning library (MLlib, \cite{mllib}).
 Spark also provides an R programming interface called SparkR.  
-We compare FlashMatrix with MLlib; Spark is the most efficient distributed engine.
+We compare FlashMatrix with MLlib. Spark is the most efficient distributed engine.
 %, which
 %focuses on computation on data frames, a table-like data structure in R.
 % DZTODO  what are data frames?

@@ -147,7 +147,7 @@ Random-65M & 65M & 8-512 & 4-248GB \\
 \end{table}
 
 K-means and GMM typically run on a dataset with a small number of features
-in each data point due to curse of dimensionality \cite{Jain00}.
+in each data point, owing to curse of dimensionality \cite{Jain00}.
 % while
 %the other algorithms may be applied to datasets with various numbers of
 %features.
@@ -207,10 +207,10 @@ The R package mclust \cite{mclust} provides a FORTRAN implementation of GMM.
   \vspace{-10pt}
 \end{figure}
 
-FlashMatrix both in memory and on SSDs outperforms Spark MLlib significantly
-in all algorithms (Figure \ref{perf:fm}(a)). For 
+FlashMatrix outperforms Spark MLlib significantly
+on all algorithms (Figure \ref{perf:fm}(a)). For 
 correlation, SVD and GMM, both FlashMatrix and MLlib
-rely on BLAS for matrix multiplication; the differences lie in data access.
+rely on BLAS for matrix multiplication; the differences lie in memory access.
 MLlib materializes operations such as aggregation separately and implements
 non-BLAS operations with Scala. The matrix fusion and materialization of
 two-level partitioning of FlashMatrix result in a 3 to 10 times performance
@@ -229,12 +229,13 @@ FlashMatrix easily scales to datasets with billions of data points
 (Figure \ref{perf:fm}(b)) and uses negligible amounts of memory when running out-of-core.
 %. Its
 %scalability is bound by the capacity of SSDs 
-For out-of-core execution, FlashMatrix keeps large matrices on
-SSDs.  % and has a very small memory footprint.  
-Lazy evaluation and virtual matrices make it so that data are streamed from inputs to outputs
-  on SSDs.  Memory consumption is below 10 GB for all inputs.
-We have not found the scalability limits of out-of-core FlashMatrix, but it will not be 
-from running out of memory.
+%For out-of-core execution, FlashMatrix keeps large matrices on
+%SSDs.  % and has a very small memory footprint.  
+Lazy evaluation and virtual matrices make it so that data are streamed from 
+inputs to outputs with SSD I/O.  Memory consumption is below 10 GB for all inputs.
+%We did not encounter the scalability limits of FlashMatirx
+%We have not found the scalability limits of out-of-core FlashMatrix, but it will not be 
+%from running out of memory.
 %The functional programming
 %interface generates a new matrix in each matrix operation, which potentially
 %leads to high memory consumption. 
@@ -246,7 +247,7 @@ from running out of memory.
 %very high scalability.
 
 FlashMatrix running both in memory and on SSDs significantly outperforms R
-(Figure \ref{fig:fmR}).  Because, R's implementations are single threaded,
+(Figure \ref{fig:fmR}).  Because R's implementations are single threaded,
 we run FlashMatrix in a single thread. 
 %for all algorithms even with a single thread in all of these algorithms 
 We exclude ``Summary'' because R does not provide all statistics.
@@ -255,15 +256,16 @@ We exclude ``Summary'' because R does not provide all statistics.
 %results indicate that FlashMatrix executes R code efficiently to even outperform
 %some optimized C and FORTRAN implementations when processing large datasets.
 
-\begin{figure}
+\begin{figure}[b]
+  \vspace{-10pt}
 	\begin{center}
 		\footnotesize
 		\includegraphics{FlashMatrix_figs/FM-vs-R.eps}
-		\caption{The performance of FlashMatrix in a single thread both in
-			memory (FM-IM) and on SSDs (FM-EM) compared with the C and FORTRAN
-		implementations in the R framework on the Friendster-32 matrix.}
+		\caption{In-memory (FM-IM) and out-of-fore (FM-EM) FlashMatrix 
+        in a single thread compared with R's C and FORTRAN implementations on Friendster-32.}
 		\label{fig:fmR}
 	\end{center}
+  \vspace{-15pt}
 \end{figure}
 
 \begin{comment}
@@ -364,7 +366,7 @@ The compute bound can be realized on few features or clusters for an I/O through
 We illustrate the effectiveness of our memory
 optimizations in FlashMatrix. To reduce memory overhead, we focus on three
 main optimizations: \textit{(i)} reusing memory chunks for new in-memory
-matrices and I/O access to reduce large memory allocation (mem-alloc),
+matrices to reduce large memory allocation (mem-alloc),
 \textit{(ii)} matrix operation fusion in main memory to reduce data movement
 between SSDs and main memory (mem-fuse), \textit{(iii)} matrix operation
 fusion in CPU cache to reduce data movement between main memory and CPU cache
@@ -372,21 +374,22 @@ fusion in CPU cache to reduce data movement between main memory and CPU cache
 
 Each memory optimization has significant performance improvement on most of
 the algorithms when FlashMatrix runs on SSDs (Figure \ref{perf:em_opts}).
-Operation fusion in main memory achieves
-the highest performance improvement in almost all algorithms, even in GMM,
-which has the highest asymptotic computation complexity. Even though the SSDs
-deliver an I/O throughput of 10GB/s, materializing every matrix operation
-separately causes SSDs to be the main bottleneck in the system.
-Fusing matrix operations in memory significantly reduces I/O access to SSDs.
+Operation fusion in main memory (mem-fuse) achieves
+the largest performance improvement in most algorithms, even in GMM,
+which has the highest asymptotic computation complexity. 
+%Even though the SSDs deliver an I/O throughput of 10GB/s, 
+Materializing every matrix operation
+separately causes SSDs to be the main bottleneck in the system and
+fusing matrix operations in memory significantly reduces I/O access to SSDs.
 % and improves performance by a large factor. 
-Operation fusion in the CPU cache also improves performance even when algorithms run on SSDs,
+Operation fusion in the CPU cache (cache-fuse) also improves performance,
 which suggests that memory bandwidth is a limiting performance factor once 
 I/O has been optimized.
  %This suggests that with sufficient 
 %I/O optimizations, many machine learning algorithms that run on fast SSDs can be bottlenecked by
 %the bandwidth of main memory, instead of I/O. 
 %Even though it is less noticeable,
-Finally, reducing large memory allocation improves I/O performance and almost doubles
+Finally, reducing large memory allocation (mem-alloc) improves I/O performance and almost doubles
 the overall performance of all algorithms.
 
 \begin{figure}

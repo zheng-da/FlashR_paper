@@ -33,12 +33,13 @@ and intuitive representation for machine learning and data analysis tasks.
 %and data analysis experts. 
 
 
-Most of prior work on disk-based matrix computation focus on I/O complexity
-and efficient I/O access of matrix operations~\cite{Toledo99, Quintana-Orti12}.
-However, optimizing I/O alone is insufficient to achieve the best performance
-from fast I/O. It is essential to move data efficiently both from
-SSDs to memory and from memory to CPU caches in order to achieve performance
-comparable to state-of-the-art in-memory implementations. 
+Most prior work on disk-based matrix computation focus on I/O complexity
+and efficient I/O access~\cite{Toledo99, Quintana-Orti12}.
+Optimizing I/O alone is insufficient.
+To achieve performance comparable to state-of-the-art in-memory implementations,
+is essential to move data efficiently both from
+SSDs to memory and from memory to CPU caches.
+ 
 
 %In today's big data era, we face the challenges in both the explosion of
 %data volume and the increasing complexity of data analysis. Experiments,
@@ -85,14 +86,20 @@ expense, and power consumption of distributed systems when they are not strictly
 
 % Why is it new/different/special?
 
-We overcome many technical challenges to move data from SSDs to CPU efficiently,
-notably the large speed disparity between CPU and memory, as well as between
-memory and SSDs. The speed disparity of CPU and DRAM has increased exponentially
-over the past decades \cite{Wilkes01}. The speed disparity also exists between
-local and remote memory in non-uniform memory architecture (NUMA), a prevalent
-architecture for modern multiprocessor machines. Even though the I/O
-performance of SSDs has advanced to outperform hard drives by a large factor,
-they remain an order of magnitude slower than RAM.
+We overcome many challenges to move data from SSDs to CPU efficiently,
+notably the large performance disparities between CPU and memory and between
+memory and SSDs. The ``memory gap'' \cite{Wilkes91} continues to grow, with 
+the difference between CPU and DRAM performance growing exponentially. 
+% speed disparity of CPU and DRAM has increased exponentially
+%over the past decades \cite{Wilkes01}. 
+There are also performance differences between
+local and remote memory in a non-uniform memory architecture (NUMA), which are prevalent
+in modern multiprocessor machines. 
+RAM outperformans SSDs by an order of magnitude for both latency and throughput.
+%Even though the I/O
+%performance of SSDs has advanced to outperform hard drives by a large factor,
+%FDespite advances in SSD I/O performance, 
+%they remain an order of magnitude slower than RAM.
 %Most matrix computation engines increase data movement,
 %because they perform an operation on an entire input matrix prior to moving 
 %to the next operation.
@@ -113,10 +120,10 @@ builds a directed acyclic graph (DAG) to represent a sequence of matrix
 operations and grows a DAG as much as possible to increase the ratio of
 computation to I/O. When evaluating the computation in a DAG, FlashMatrix
 performs two levels of matrix partitioning to improve data utilization in
-the memory hierarchy and reduce data movement between memory and SSDs
-as well as between CPU and memory. FlashMatrix by default materializes
-only \dz{sink matrices} in a DAG and keep their materialized results in
-memory to minimize data written to SSDs. FlashMatrix streams
+the memory hierarchy and reduce data movement.
+FlashMatrix by default materializes
+only the output matrices (leaf nodes) of a DAG and keeps materialized results in
+memory in order to minimize data written to SSDs. FlashMatrix streams
 data from SSDs to maximize I/O throughput for most of computation tasks.
 
 %One of the important questions is how SSDs make the design different.

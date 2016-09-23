@@ -4,14 +4,14 @@
 
 FlashMatrix is a matrix-oriented programming framework for machine learning and
 statistics.
-This work mainly focuses on dense matrices and scales dense matrix operations
+This work focuses mainly on dense matrices and scales dense matrix operations
 beyond memory capacity by utilizing fast I/O devices, such as solid-state drives
 (SSDs), in a non-uniform memory architecture (NUMA).
-
 Figure \ref{fig:arch} shows the architecture of FlashMatrix. 
-A small number of generalized operations (GenOps)
+R programs invoke a few classes of operations.  Few classes
 simplify the implementation and improve expressiveness of
-the framework. The optimizer aggressively merges operations to
+the framework. 
+The optimizer aggressively merges operations to
 reduce data movement in the memory hierarchy and achieve better parallelization.
 It stores matrices on SSDs through SAFS \cite{safs},
 a user-space filesystem for SSD arrays, to fully utilize high I/O
@@ -79,7 +79,7 @@ or on rows/columns, (c) \textit{groupby} for splitting rows/columns
 into groups and computing aggregates in each group,
 (d) \textit{inner product} for the inner product of two matrices.
 
-The example in Figure \ref{fig:kmeans} computes an iteration of k-means
+The example in Figure \ref{fig:kmeans}(a) computes an iteration of k-means
 \cite{kmeans} using GenOps. It first uses \textit{inner.prod} to
 compute the Euclidean distance between every data point and every cluster center
 and outputs a matrix with each row representing the distances to centers.  
@@ -144,7 +144,7 @@ a large number of samples with a relatively few features \cite{}.
 Even if the original data matrices have many features,
 the first algorithmic step is usually dimension reduction \cite{}. 
 Wide-and-short (WAS) data matrices contain a large number of features with
-a few samples \cite{}. Intermediate matrices and output matrices may
+a few samples \cite{}. Intermediate matrices and output matrices tend to
 be small and square. We store vectors as a one-column dense matrix.
 Dense matrices can be stored physically in memory or on SSDs or represented
 virtually by a sequence of computations.
@@ -162,9 +162,9 @@ We describe FlashMatrix using tall-and-skinny matrices.  We use similar strategi
 %are tall and skinny; 
 
 FlashMatrix supports both row-major and column-major
-layouts (Figure \ref{fig:den_mat} (a) and (b)).  Supporting both formats
-allows FlashMatrix to transpose data without a copy. A TAS matrix is stored
-as an SAFS file \cite{safs}.
+layouts (Figure \ref{fig:den_mat}(a) and (b)), which allows 
+FlashMatrix to transpose data without a copy.
+% A TAS matrix is stored as an SAFS file \cite{safs}.
 
 \begin{figure}
 	\centering
@@ -188,10 +188,11 @@ matrices whose data are well aligned in memory to help CPU vectorization.
 %\subsubsection{Block matrices} \label{sec:block_mat}
 \vspace{3pt}
 \noindent \textbf{Block matrices}:
-FlashMatrix represents a tall matrix with a group of TAS matrices (Figure
-\ref{fig:den_mat} (c)), each with $32$ columns except the last one. We refer
-to such a matrix as a \textit{block matrix}. Each of the TAS
-matrices is stored as a separate file on SAFS. We decompose a matrix operation
+FlashMatrix represents a tall matrix as a \textit{block matrix} 
+(Figure \ref{fig:den_mat}(c)) comprised of TAS blocks with $32$ columns each,
+except the last block. 
+Each of the TAS matrices is stored as a separate file on SAFS. 
+We decompose a matrix operation
 on a block matrix into operations on individual TAS matrices to take advantage
 of the optimizations on TAS matrices and reduce data movement.
 Coupled with the I/O partitioning on TAS matrices, this strategy enables
@@ -207,12 +208,15 @@ materialize data on the fly during computation and transfer output as input to
 the matrix operation. The data of a matrix are not stored physically.
 All GenOps output virtual matrices. A GenOp on a \textit{block matrix} may outputs
 a block \textit{virtual matrix}. Virtual matrices are assembled to construct
-a directed acyclic graph (DAG) that represents a sequence of matrix computations.
+a directed acyclic graph (DAG) that represents a sequence of matrix computations
+(Figure \ref{fig:kmeans}(b)). 
 
 \vspace{3pt}
-\noindent \textbf{Sink matrices}: Some of the GenOps, such as aggregation and
-groupby, output virtual matrices that have a different partition size from
-the input matrices. We refer to these virtual matrices as \textit{sink matrices}.
+\noindent \textbf{Sink matrices}:  The leaf nodes in a DAG are \textit{sink matrices}.
+These are produced by aggregation, grouby, and inner product GenOps for which 
+the output matrices have a different partition size than the input matrices.  
+\textit{Sink matrices} tend to be small
+%.  These We refer to these virtual matrices as 
 %The GenOps that
 %generate \textit{sink matrices} are shown in Table \ref{tbl:sink}.
 %In general, \textit{sink matrices} are small and their materialized results
@@ -222,13 +226,16 @@ the input matrices. We refer to these virtual matrices as \textit{sink matrices}
 %large, they are small in practice in most of machine learning and data analyis
 %tasks because $k$, the number of classes, and $p1$ and $p2$ are usually much
 %smaller than the \textit{partition dimension} of a matrix in these tasks.
-In general, sink matrices are small and their materialized results are stored
-in memory. The maximal size of an output sink matrix from an aggregation
-is $\sqrt{N}$ for $N$ elements in the input matrix. The maximal size of
-an output sink matrix from a groupby is $k \times \sqrt{N}$ for $k$ classes.
+%In general, sink matrices are small 
+and we store their results in memory. 
+The maximum size of a sink matrix from an aggregation
+is $\sqrt{N}$ for $N$ elements in the input matrix and for
+groupby $k \times \sqrt{N}$ for $k$ classes.
 %For most of machine learning and data analysis tasks, 
-The output matrix of the inner product of a wide matrix with a tall matrix is usually small because
-the long dimension of these matrices is much larger than the short dimension.
+The output of inner product of a wide matrix with a tall matrix is 
+square in the small dimension of the inputs and tends to be small.
+% because
+%the long dimension of these matrices is much larger than the short dimension.
 
 % TODO I think we need more formal definition on sink matrices.
 %\begin{table}
@@ -269,39 +276,45 @@ the long dimension of these matrices is much larger than the short dimension.
 \vspace{-8pt}
 \subsection{Reducing data movement}\label{sec:datamove}
 \vspace{-4pt}
-When evaluating a sequence of matrix operations, FlashMatrix lazily evaluates
-GenOps and constructs a DAG automatically because most of the GenOps do not
-contain enough computation to achieve in-memory performance. FlashMatrix grows
-a DAG as large as possible to increase the ratio of computation to I/O.
-Then it performs computation in a DAG all together to minimize data movement
-in the memory hierarchy.
+To optimize evaluation, FlashMatrix constructs one or more directed-acyclic graphs (DAGs) 
+connecting GenOps and matrices.
+Figure \ref{fig:kmeans} (b) shows the DAG for k-means.
+FlashMatrix grows each DAG as large as possible to increase the ratio of 
+computation to I/O.
+Then it performs all computation for each input row to a DAG all together 
+to minimize data movement in the memory hierarchy.
+This data-driven, lazy evaluation allows out-of-core problems 
+to approach in-memory performance.
 
-Figure \ref{fig:kmeans} (b) shows a DAG for k-means. A DAG comprises a set of
-matrix nodes (rectangles)
+%and lazily evaluates operations within the DAG.
+%GenOps and constructs a DAG automatically because most of the GenOps do not
+%contain enough computation to achieve in-memory performance. 
+
+A DAG comprises a set of matrix nodes (rectangles)
 and computation nodes (ellipses). The majority of matrix nodes are
 virtual matrices (dashed line rectangles).
 %, which only contains the corresponding matrix operations and input matrices. 
 For k-means, only the input matrix \textit{X} has materialized data.
 A computation node references a GenOp and input matrices and
 may contain some immutable computation state, such as scalar variables and
-small matrices needed by the computation. 
+small matrices. 
 
 To grow a DAG, FlashMatrix allows virtual matrices of different shapes
 (Figure \ref{fig:mater}). To simplify evaluation and data flow, 
 all virtual matrices in internal matrix nodes need to have the same
-\textit{partition dimension}. \textit{Sink matrices} are edge nodes
-in the DAG.
+\textit{partition dimension}. 
+%\textit{Sink matrices} are edge nodes in the DAG.
 %, because
 %any computation that uses these \textit{virtual matrices} cannot be connected
 %to the same DAG.  
 
-Access to elements of a \textit{sink matrix} triggers materialization of a DAG.
-FlashMatrix by default saves only the computation results of sink matrices.
+Access to elements of a \textit{sink matrix} (leaf node) triggers materialization.
+By default, FlashMatrix saves only the computation results of sink matrices.
 In exceptional cases, especially for iterative algorithms,
-FlashMatrix materializes some non-\textit{sink matrices} to avoid
+it is helpful to materialize some non-\textit{sink matrices} to avoid
 redundant computation and I/O across iterations.  We allow users to
-set a flag on non-\textit{sink matrices} to cache the materialized data in memory
-or SSDs during computation, similar to caching an RDD in Spark.
+set a flag on any matrix to materialize and cache data in memory
+or on SSDs during computation, similar to caching an RDD in Spark.
 
 \begin{figure}
 	\centering
@@ -313,12 +326,13 @@ or SSDs during computation, similar to caching an RDD in Spark.
 \end{figure}
 
 FlashMatrix partitions matrices in a DAG and
-materializes partitions separately (Figure \ref{fig:mater}). This is possible
-because all matrices, except sink matrices, share the same partition dimension. 
+materializes partitions separately (Figure \ref{fig:mater}). 
+%This is possible
+%because all matrices, except sink matrices, share the same partition dimension. 
 A partition $i$ of a virtual matrix requires data only from partitions
-$i$ of the parent matrices. When a partition is assigned to a thread, it is
-processed by the subsequent matrix operations in the same thread to minimize
-remote memory access in a NUMA machine.
+$i$ of the parent matrices.  All DAG operations in a partition are processed by 
+the same thread, whcih minimizes
+remote memory accesses in a NUMA machine.
 When materializing a sink matrix, each thread computes partial
 aggregation results on the partitions assigned to the thread. 
 Then, FlashMatrix merges per-thread partial results to construct the output.
@@ -328,26 +342,32 @@ to reduce data movement between SSDs and CPU. It assigns I/O-partitions
 to a thread as a parallel task.
 %A small partition size (\rb{How?}) balances the overhead of accessing a partition,
 %computation, skew, and memory consumption. 
-It further splits I/O-partitions into Pcache-partitions (processor cache
-partitions) at run time and each thread materializes one Pcache-partition
+It further splits I/O-partitions into processor cache (Pcache)
+partitions at run time.  Each thread materializes one Pcache-partition
 at a time. Matrix operations run on TAS matrices or block matrices that are
-divided into TAS matrices so that a Pcache-partition can fit in CPU L1/L2 cache.
-Figure \ref{fig:mater} shows recursive materialization of Pcache-partitions.
+divided into TAS matrices so that a Pcache-partition fits in the CPU L1/L2 cache.
+Figure \ref{fig:mater} shows recursive materialization.
 Matrix \textit{CNT} triggers materialization of
 Pcache-partitions of \textit{I} and \textit{one}, which in turn triggers 
 partitions of \textit{D}, and so on. Eventually, the process triggers data access
-to an I/O-partition of input matrix \textit{X} from SSDs. Upon materializing
-output to a virtual matrix, the thread passes the output as input to the subsequent
-GenOp, instead of materializing the next Pcache-partition of the virtual matrix
-in the same thread. As such, a Pcache-partition still resides in the CPU cache
-when the subsequent GenOp consumes
-it. This significantly reduces data movement between CPU and memory. In each
-thread, all intermediate matrices have only one Pcache-partitions materialized
+to an I/O-partition of input matrix \textit{X} from SSDs. 
+
+FlashMatrix takes efforts to increase hits in the CPU cache, which 
+significantly reduces data movement between CPU and memory.
+When materializing output to a virtual matrix, the thread passes
+ the output as input to the subsequent
+GenOp, instead of materializing the next Pcache-partition.
+% of the virtual matrix in the same thread. 
+This helps ensure that a Pcache-partition resides in the CPU cache
+when the next GenOp consumes it. 
+In each thread, all intermediate matrices have only one 
+Pcache-partitions materialized
 at any time to reduce CPU cache pollution.
 %To reduce CPU cache polution, a CPU-level partition is discarded once it is
 %used by all children matrices.
-To reduce memory allocation overhead, we recycle memory buffers used for both
-I/O and intermediate computation results.
+
+We recycle memory buffers used for I/O and intermediate results.
+to reduce memory allocation overhead. 
 
 %materialization on block matrices.
 
@@ -371,10 +391,13 @@ to a thread. The thread reads these in a single large I/O.
 The number of contiguous I/O-partitions assigned to a thread is determined by
 the block size of SAFS.
 As the computation nears an end, the scheduler dispatches single I/O-partitions. 
-The scheduler always ensures that all threads are working on I/O-partitions that are adjacent to
-each other on storage.
-In this way, if the DAG stores the materialized result of a non-\textit{sink matrix}, 
-contiguous regions make it easier for the file system to merge
+% DZTODO -- "always is wrong"  -- consider out of order execution
+%The scheduler always ensures that all threads are working on I/O-partitions that are adjacent to
+%each other on storage.
+The scheduler dispatches I/O-partitions sequentially to maximize contiguity in memory
+and on SSD.
+When the DAG stores the materialized result of a non-\textit{sink matrix}, 
+contiguity makes it easier for the file system to merge
 writes from multiple threads, which helps to sustain write throughout and reduces
 write amplification \cite{ripq}.
 
