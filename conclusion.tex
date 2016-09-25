@@ -1,8 +1,8 @@
 We present FlashMatrix, a matrix-oriented programming framework for general
-data analysis. FlashMatrix scales to large datasets by utilizing commodity SSDs.
-It provides a high-level functional programming interface for users to write
-data analysis algorithms in R and executes the R code in parallel and out of
-core automatically.
+machine learning and data analysis. FlashMatrix scales to large datasets by
+utilizing commodity SSDs. It provides a high-level functional programming
+interface for users to write machine learning and data analysis algorithms
+in R and executes the R code in parallel and out of core automatically.
 %For simplicity and generality, the core of FlashMatrix only implements
 %a small number of generalized matrix operators (GenOps). It reimplements
 %many matrix operations in R \textit{base} package with GenOps to provide
@@ -28,7 +28,7 @@ efficient than optimized C and Fortran implementations of native R packages.
 %also achieves linear speedup with multithreading in all of these algorithms.
 
 Even though SSDs are still an order of magnitude slower than DRAM, the external-memory
-execution of many data analysis algorithms in FlashMatrix can achieve performance
+execution of many machine learning and statistics algorithms in FlashMatrix can achieve performance
 that approaches to their in-memory execution. We demonstrate that an I/O throughput
 of 10 GB/s is able to saturate CPU for many algorithms, even in a large parallel
 NUMA machine. 
