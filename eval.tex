@@ -250,7 +250,8 @@ FlashMatrix running both in memory and on SSDs significantly outperforms R
 (Figure \ref{fig:fmR}).  Because R's implementations are single threaded,
 we run FlashMatrix in a single thread. 
 %for all algorithms even with a single thread in all of these algorithms 
-We exclude ``Summary'' because R does not provide all statistics.
+We exclude ``Summary'' because R does not provide an implementation for
+the same statistics.
 %a C or FORTRAN implementation of computing the same statistics. 
 %The performance
 %results indicate that FlashMatrix executes R code efficiently to even outperform
@@ -363,34 +364,32 @@ The compute bound can be realized on few features or clusters for an I/O through
 %\subsection{Effectiveness of optimizations}
 %\vspace{-4pt}
 \para{Effectiveness of optimizations}
-We illustrate the effectiveness of our memory
-optimizations in FlashMatrix. To reduce memory overhead, we focus on three
-main optimizations: \textit{(i)} reusing memory chunks for new in-memory
-matrices to reduce large memory allocation (mem-alloc),
-\textit{(ii)} matrix operation fusion in main memory to reduce data movement
-between SSDs and main memory (mem-fuse), \textit{(iii)} matrix operation
-fusion in CPU cache to reduce data movement between main memory and CPU cache
-(cache-fuse).
+We illustrate the effectiveness of our memory optimizations in FlashMatrix.
+We focus on two main optimizations: matrix operation fusion in main memory
+to reduce data movement between SSDs and main memory (mem-fuse), and matrix
+operation fusion in CPU cache to reduce data movement between main memory and
+CPU cache (cache-fuse).
 
-Each memory optimization has significant performance improvement on most of
-the algorithms when FlashMatrix runs on SSDs (Figure \ref{perf:em_opts}).
+Both optimizations have significant performance improvement on all
+algorithms when FlashMatrix runs on SSDs (Figure \ref{perf:em_opts}).
 Operation fusion in main memory (mem-fuse) achieves
-the largest performance improvement in most algorithms, even in GMM,
+substantial performance improvement in most algorithms, even in GMM,
 which has the highest asymptotic computation complexity. 
 %Even though the SSDs deliver an I/O throughput of 10GB/s, 
 Materializing every matrix operation
 separately causes SSDs to be the main bottleneck in the system and
-fusing matrix operations in memory significantly reduces I/O access to SSDs.
+fusing matrix operations in memory significantly reduces I/O.
 % and improves performance by a large factor. 
-Operation fusion in the CPU cache (cache-fuse) also improves performance,
+Operation fusion in the CPU cache (cache-fuse) doubles or even triples
+performance in some of the algorithms,
 which suggests that memory bandwidth is a limiting performance factor once 
 I/O has been optimized.
  %This suggests that with sufficient 
 %I/O optimizations, many machine learning algorithms that run on fast SSDs can be bottlenecked by
 %the bandwidth of main memory, instead of I/O. 
 %Even though it is less noticeable,
-Finally, reducing large memory allocation (mem-alloc) improves I/O performance and almost doubles
-the overall performance of all algorithms.
+%Finally, reducing large memory allocation (mem-alloc) improves I/O performance and almost doubles
+%the overall performance of all algorithms.
 
 \begin{figure}
 	\begin{center}
@@ -398,7 +397,7 @@ the overall performance of all algorithms.
 		\includegraphics{FlashMatrix_figs/opts-EM.eps}
 		\vspace{-10pt}
 		\caption{The effectiveness of optimizations on different algorithms
-		running on SSDs. The three optimizations are applied to FlashMatrix
+		running on SSDs. The optimizations are applied to FlashMatrix
 		incrementally.}
 		\label{perf:em_opts}
 	\end{center}
