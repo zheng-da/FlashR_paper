@@ -16,7 +16,7 @@ The I/O performance of solid-state drives (SSDs) has advanced tremendously.
 Recent works \cite{flashgraph, gridgraph} demonstrate that SSD-based 
 graph analysis matches the performance of state-of-the-art in-memory graph
 analysis, while scaling to arbitrarily large datasets. This work extends
-these findings to dense matrix operations: matrices are the most prevalent
+these findings to dense matrix operations. Matrices are the most prevalent
 and intuitive representation for machine learning and data analysis tasks.
 
 %Unlike graph analysis, dense matrix based data analysis generates sequential data access patterns.
@@ -59,11 +59,11 @@ SSDs to memory and from memory to CPU caches.
 We present FlashMatrix, a programming framework that provides a high-level
 functional programming interface and supports automatic
 parallelization and out-of-core execution for large-scale data analysis.
-FlashMatrix focuses on optimizations in a single machine (often with multiple
+FlashMatrix focuses on optimizations in a single machine (with multiple
 CPUs and many cores) and scales matrix operations beyond memory capacity by 
 utilizing solid-state drives (SSDs).  
 This paper does not address distributed matrix operations, but, 
-FlashMatrix primitives are suitable for executing the local part of a distributed 
+FlashMatrix is suitable for executing the local part of a distributed 
 computation.   
 Our evaluation does show that we can solve billion row, Internet-scale 
 clustering problems on a single thick node, which can prevent the complexity,
@@ -89,13 +89,13 @@ expense, and power consumption of distributed systems when they are not strictly
 We overcome many challenges to move data from SSDs to CPU efficiently,
 notably the large performance disparities between CPU and memory and between
 memory and SSDs. The ``memory gap'' \cite{Wilkes01} continues to grow, with 
-the difference between CPU and DRAM performance growing exponentially. 
+the difference between CPU and DRAM performance increasing exponentially. 
 % speed disparity of CPU and DRAM has increased exponentially
 %over the past decades \cite{Wilkes01}. 
 There are also performance differences between
 local and remote memory in a non-uniform memory architecture (NUMA), which are prevalent
 in modern multiprocessor machines. 
-RAM outperformans SSDs by an order of magnitude for both latency and throughput.
+RAM outperforms SSDs by an order of magnitude for both latency and throughput.
 %Even though the I/O
 %performance of SSDs has advanced to outperform hard drives by a large factor,
 %FDespite advances in SSD I/O performance, 
@@ -134,7 +134,7 @@ We implement multiple machine learning algorithms, including k-means \cite{kmean
 and Gaussian Mixture Models \cite{gmm} in FlashMatrix with its R programming
 interface. On a large parallel machine with 48
 CPU cores and fast SSDs, the out-of-core execution of these R implementations
-achieves performance comparable to the in-memory execution,
+achieves performance comparable to in-memory execution,
 while significantly outperforming the same algorithms in Spark MLlib
 \cite{spark}. FlashMatrix effortlessly scales to datasets with billions
 of data points and its out-of-core execution uses a small fraction of

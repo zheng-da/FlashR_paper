@@ -3,10 +3,9 @@ matrix operations for shared memory. There exist a few highly-optimized BLAS
 implementations, such as MKL \cite{mkl} and ATLAS \cite{atlas}. 
 
 Distributed-memory libraries \cite{trilinos, petsc, elemental}
-scale to larger matrices. 
-These build on BLAS and distribute computation with MPI.
-They provide a limited set of predefined matrix operations and
-require users to manually parallelize the remaining matrix operations.
+build on BLAS and distribute computation with MPI.
+BLAS provides a limited set of matrix operations, which requires
+users to manually parallelize the remaining matrix operations.
 %In contrast, FlashMatrix provides a few parallelized GenOps that 
 %represent common data access patterns. 
 %Each GenOp covers a large number of matrix operations.
@@ -26,12 +25,12 @@ its I/O streaming primitives do not match matrix data access patterns.
 Dryad \cite{dryad} and Naiad \cite{naiad} provide more primitives 
 that support various data access patterns more efficiently.
 
-Many frameworks that reduce programming complexity have been developed on top of distributed engines.
+Frameworks built on top of distributed engines reduce programming complexity.
 %Due to complexity of programming in the distributed execution engines, many
 %programming frameworks have been developed on top of the distributed execution
 %engines. 
 Pig Latin \cite{pig} and FlumeJava \cite{flumejava}
-provide high-level operations for general data analysis on MapReduce.
+provide high-level operations for MapReduce.
 SystemML \cite{systemml} has a focus on machine learning. 
 DryadLINQ \cite{dryadlinq} expresses data analysis tasks on Dryad. 
 %Performance is determined by the underlying distributed execution engines.

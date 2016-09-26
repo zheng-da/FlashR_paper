@@ -68,12 +68,12 @@ $A$, $B$ and $C$ are matrices, and $c$ is a scalar.}
 \vspace{-10pt}
 \end{table}
 
-FlashMatrix provides a matrix-oriented functional programming interface.
-Table \ref{tbl:genops} lists all GenOps, each of which takes matrices and
+FlashMatrix provides a matrix-oriented functional programming interface
+built on Generalized Operations (GenOps).  GenOps (Table \ref{tbl:genops}) take matrices and
 some functions as input and output new matrices that represent computation results.
 The input function defines computation on individual elements in input matrices.
-The GenOps can be classified into four categories and each of them represents
-a data access pattern: (a) \textit{apply} for
+GenOps are classified into four categories that describe
+different data access patterns: (a) \textit{apply} for
 element-wise operations, (b) \textit{agg} for aggregation on a matrix
 or on rows/columns, (c) \textit{groupby} for splitting rows/columns
 into groups and computing aggregates in each group,
@@ -139,18 +139,22 @@ kmeans.iter <- function(X,C) {
 \vspace{-8pt}
 \subsection{Dense matrices}
 \vspace{-4pt}
-FlashMatrix optimizes for matrices that are rectangular because
-of their frequent occurence in machine learning and statistics.
+FlashMatrix optimizes for matrices that are rectangular---with a longer and shorter 
+dimension---because
+of their frequent occurrence in machine learning and statistics.
 Many input data matrices are tall-and-skinny (TAS); they contain
 a large number of samples with a relatively few features.
 %Even if the original data matrices have many features,
 %the first algorithmic step is usually dimension reduction \cite{}. 
 Wide-and-short (WAS) data matrices contain a large number of features with
-a few samples. Intermediate matrices and output matrices tend to be small.
+a few samples. 
+%RB can't say without a cite
+%Intermediate matrices and output matrices tend to be small.
 We store vectors as a one-column dense matrix.
 Dense matrices can be stored physically in memory or on SSDs or represented
 virtually by a sequence of computations.
-We describe FlashMatrix using tall-and-skinny matrices.  We use similar strategies for wide-and-short matrices.
+We describe FlashMatrix using tall-and-skinny matrices.  We use similar strategies to
+optimize wide-and-short matrices.
 
 %As such, FlashMatrix optimizes
 %for dense matrices that are either tall and skinny or wide and short.   based on their size and shape.
@@ -215,7 +219,7 @@ a directed acyclic graph (DAG) that represents a sequence of matrix computations
 
 \vspace{3pt}
 \noindent \textbf{Sink matrices}:  The leaf nodes in a DAG are \textit{sink matrices}.
-These are produced by aggregation, grouby, and inner product GenOps for which 
+These are produced by aggregation, groupby, and inner product GenOps for which 
 the output matrices have a different \textit{partition dimension} size than
 the input matrices. \textit{Sink matrices} tend to be small
 %.  These We refer to these virtual matrices as 

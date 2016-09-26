@@ -104,7 +104,7 @@ GMM (1 iteration) & $O(n \times p^2 \times k + p^3 \times k)$ & $O(n \times p + 
 \end{tabular}
 \normalsize
 \end{center}
-\vspace{-10pt}
+\vspace{-5pt}
 \caption{Computation and I/O complexity. 
 $n$ is the number of data points, $p$ 
 is the number of the features in a point, and $k$ is the number of
@@ -140,10 +140,10 @@ Random-65M & 65M & 8-512 & 4-248GB \\
 \end{tabular}
 \normalsize
 \end{center}
-\vspace{-10pt}
+\vspace{-5pt}
 \caption{Datasets ($n \times p$ matrices).}
 \label{tbl:data}
-\vspace{-10pt}
+\vspace{-5pt}
 \end{table}
 
 K-means and GMM typically run on a dataset with a small number of features
@@ -250,8 +250,8 @@ FlashMatrix running both in memory and on SSDs significantly outperforms R
 (Figure \ref{fig:fmR}).  Because R's implementations are single threaded,
 we run FlashMatrix in a single thread. 
 %for all algorithms even with a single thread in all of these algorithms 
-We exclude ``Summary'' because R does not provide an implementation for
-the same statistics.
+We exclude ``Summary'' because R does not provide an implementation of
+several of the statistics.
 %a C or FORTRAN implementation of computing the same statistics. 
 %The performance
 %results indicate that FlashMatrix executes R code efficiently to even outperform
@@ -309,10 +309,10 @@ and GMM on the Friendster-32 matrix and vary the number of clusters from 2 to 64
 		\footnotesize
 		\includegraphics{FlashMatrix_figs/IM-vs-EM-stat.eps}
 		\includegraphics{FlashMatrix_figs/IM-vs-EM-clust.eps}
-		\caption{{\em FlashMatrix} scaleup: The performance on SSDs  (FM-EM)
-      normalized to in-memory performance (FM-IM) on random-65M 
-      while varying the number of columns (top) and for
-clustering algorithms while varying the number of clusters (bottom).}
+		\caption{The performance on SSDs of FlashMatrix out-of-core  (FM-EM)
+      normalized to in-memory (FM-IM) on random-65M 
+      while varying the number of columns (top) and
+       varying the number of clusters (bottom).}
 %normalized by its performance
 %			in memory. 
 %      As the number of columns increases, performance out-of-core

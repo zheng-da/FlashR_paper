@@ -101,9 +101,9 @@ It scales matrix operations
 beyond memory capacity by utilizing solid-state drives (SSDs) in a non-uniform
 memory architecture (NUMA). It provides a small number of generalized 
 operations (GenOps) upon which we reimplement a large fraction of the dense 
-matrix functions of the R framework. FlashMatrix evaluate matrix operations
-lazily and fuses them with two-level partitioning to reduce data movement
-between CPU and SSDs. 
+matrix functions of the R framework. To reduce data movement between CPU and SSDs, 
+FlashMatrix evaluates matrix operations lazily, fuses operations at runtime, and 
+uses cache-aware, two-level matrix partitioning.
 %that require some functions to define the computation on
 %elements of the input matrices. It reimplements
 % a large number of matrix operations in the R framework with GenOps to execute R code in
@@ -114,13 +114,15 @@ between CPU and SSDs.
 %the performance of FlashMatrix.
 % learning Performance meets or exceeds optimized C implementations.
 %When scaling beyond memory capacity on a large parallel machine, 
-On a variety of machine learning and statistics algorithms,
-out-of-core execution has minimal overhead when compared with the in-memory execution
-for billion-scale datasets.
+We evaluate FlashMatrix on a variety of machine learning and statistics algorithms 
+on inputs of up to one billion rows.  
+Flashmatrix out-of-core tracks closely the performance of FlashMatrix in-memory and 
+both variants outperform the in-memory execution of Spark MLlib by a factor of 3 to 10.
+
+%out-of-core execution has minimal overhead when compared with in-memory execution.
 %in FlashMatrix has performance comparable
 %to in-memory execution on a billion-scale dataset. 
-In-memory and out-of-core execution outperform the in-memory execution of
-Spark MLlib by a factor of 3 to 10.
+%Also, 
 % DZTODO -- check 
 
 \vspace{-10pt}
