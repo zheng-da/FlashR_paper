@@ -6,3 +6,5 @@ sbt package
 
 # logistic regression
 ../bin/spark-submit  --master local[48] --class org.apache.spark.examples.mllib.LogisticRegressionWithLBFGSExample target/scala-2.10/simple-project_2.10-1.0.jar /mnt/nfs/zhengda/data/Criteo/day_1.factor
+
+../bin/spark-submit  --master local[48] --class org.apache.spark.examples.mllib.NaiveBayesExample target/scala-2.10/simple-project_2.10-1.0.jar /mnt/nfs/zhengda/data/Criteo_2days_scale.txt

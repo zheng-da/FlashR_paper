@@ -1,43 +1,43 @@
-We present FlashMatrix, a matrix-oriented programming framework for general
-machine learning and data analysis. FlashMatrix scales to large datasets by
+We present FlashR, a matrix-oriented programming framework for general
+machine learning and data analysis. FlashR scales to large datasets by
 utilizing commodity SSDs. It provides a high-level functional programming
 interface for users to write machine learning and data analysis algorithms
 in R and executes the R code in parallel and out of core automatically.
-%For simplicity and generality, the core of FlashMatrix only implements
+%For simplicity and generality, the core of FlashR only implements
 %a small number of generalized matrix operators (GenOps). It reimplements
 %many matrix operations in R \textit{base} package with GenOps to provide
 %a familiar programming environment to users. To improve performance,
-%FlashMatrix uses vectorized element functions (VEleFuns) to reduce the
+%FlashR uses vectorized element functions (VEleFuns) to reduce the
 %overhead of function calls and fuses matrix operations to reduce data movement
 %between CPU and SSDs.
 
 We demonstrate that the matrix-oriented functional programming interface in
-FlashMatrix achieves high performance and scalability for many machine learning and 
-statistics algorithms.  R implementations executed in FlashMatrix outperforms
+FlashR achieves high performance and scalability for many machine learning and 
+statistics algorithms.  R implementations executed in FlashR outperforms
 Spark MLlib on all inputs by a factor of 3 to 10, using the same shared memory hardware.
-Furthermore, executing R programs with a single thread in FlashMatrix is more
+Furthermore, executing R programs with a single thread in FlashR is more
 efficient than optimized C and Fortran implementations of native R packages.
 
 %We implement multiple statistics and
 %machine learning algorithms in R and compare their performance with Spark
 %MLlib, a highly-optimized parallel machine learning library, on large datasets.
-%The R implementations executed in FlashMatrix significantly outperforms
+%The R implementations executed in FlashR significantly outperforms
 %the implementations in Spark MLlib. We further demonstrate that
-%the R implementations running FlashMatrix with a single thread can outperform
-%the C and FORTRAN implementations in the R framework. In addition, FlashMatrix
+%the R implementations running FlashR with a single thread can outperform
+%the C and FORTRAN implementations in the R framework. In addition, FlashR
 %also achieves linear speedup with multithreading in all of these algorithms.
 
 Even though SSDs are still an order of magnitude slower than DRAM, the external-memory
-execution of many machine learning and statistics algorithms in FlashMatrix can achieve performance
+execution of many machine learning and statistics algorithms in FlashR can achieve performance
 that approaches to their in-memory execution. We demonstrate that an I/O throughput
 of 10 GB/s saturates the CPU for many algorithms, even in a large parallel
 NUMA machine. 
 %As such, the external-memory execution also benefits from many in-memory optimizations.
 
-FlashMatrix simplifies the programming effort of writing
+FlashR simplifies the programming effort of writing
 parallel and out-of-core implementations for large-scale data analysis. It
 provides domain experts a familiar programming environment for implementing
 their algorithms. It also significantly
 increases productivity of writing an efficient implementation with performance
-comparable to low-level programming languages. We believe FlashMatrix opens
+comparable to low-level programming languages. We believe FlashR opens
 a new opportunity for large-scale data analysis.

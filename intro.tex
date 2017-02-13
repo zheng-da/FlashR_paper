@@ -1,83 +1,53 @@
 % What problem are you going to solve.
 
-%The National Strategic Computing Initiative (NSCI \cite{NSCI}) puts forth
-%a critical problem as we move to exascale: {\em ``Increasing coherence between
-%the technology base used for 
-%modeling and simulation and that used for data analytic computing.''}  
-%A key challenge lies in providing statistical analysis and machine learning 
-%tools that are simple and efficient.
-%Simple tools need to be programmable, interactive, and extensible, 
-%allowing scientists to encode and deploy complex algorithms. 
-%Successful examples include R, SciPy, and Matlab.  Efficiency dictates that
-%tools should  leverage modern HPC architectures, including scalable parallelism,
-%high-speed networking, and fast I/O from memory and solid-state storage.
+The explosion of data volume and the increasing complexity of data analysis
+generate a growing demand for scalable statistical analysis and machine
+learning tools that are simple and efficient.
+Simple tools need to be programmable, interactive, and extensible, 
+allowing scientists to encode and deploy complex algorithms. 
+Successful examples include R, SciPy, and Matlab.  Efficiency dictates that
+tools should leverage modern computer architectures, including scalable parallelism,
+high-speed networking, and fast I/O from memory and solid-state storage.
 
-The I/O performance of solid-state drives (SSDs) has advanced tremendously.
-Recent works \cite{flashgraph, gridgraph} demonstrate that SSD-based 
-graph analysis matches the performance of state-of-the-art in-memory graph
+While conventional wisdom addresses large-scale data analysis with clusters
+\cite{mapreduce,spark,h2o,systemml,tensorflow,petuum}, recent works
+\cite{flashgraph,gridgraph,Matveev17,hotos} demonstrate a single-machine solution
+can deal with large-scale data analysis problems efficiently in a multicore
+machine. The advance of solid-state drives (SSDs) creates new opportunities
+for a single-machine solution to tackle data analysis efficiently at a larger scale
+with a cheaper price. SSD-based graph analysis frameworks \cite{flashgraph, gridgraph}
+have demonstrated the comparable efficiency to state-of-the-art in-memory graph
 analysis, while scaling to arbitrarily large datasets. This work extends
-these findings to dense matrix operations. Matrices are the most prevalent
+these findings to matrix operations using SSDs. Matrices are the most prevalent
 and intuitive representation for machine learning and data analysis tasks.
-
-%Unlike graph analysis, dense matrix based data analysis generates sequential data access patterns.
-
-%that are based on dense matrix operations. 
-
-%Matrix operations are an intuitive formulation for many computation tasks. 
-%For example, we store samples
-%collected from an experiment in a matrix with rows corresponding to samples
-%and columns corresponding to attributes.
-%Consequently, we express the computation on the data matrix with a sequence
-%of matrix operations. Such a formulation simplifies the implementation of
-%data analysis algorithms and is very intuitive for many machine learning
-%and data analysis experts. 
-
-
-Most prior work on disk-based matrix computation focus on I/O complexity
-and efficient I/O access~\cite{Toledo99, Quintana-Orti12}.
-Optimizing I/O alone is insufficient.
-To achieve performance comparable to state-of-the-art in-memory implementations,
-is essential to move data efficiently both from
-SSDs to memory and from memory to CPU caches.
+\dz{we need to say more about the advantage of a single-machine solution
+compare with cluster solutions.}
  
-
-%In today's big data era, we face the challenges in both the explosion of
-%data volume and the increasing complexity of data analysis. Experiments,
-%simulations and observations generate terabytes or
-%even petabytes in many scientific and business areas. After collecting
-%a massive amount of data, we often need to perform complex data analysis
-%and machine learning techniques to extract value from the data. To handle
-%the increasing volume size and effectively extract value from the data,
-%the field of data mining and machine learning evolves rapidly and the community
-%is developing many new algorithms to process large datasets.
-
 % How have others addressed the problem?
 
 % Why is it hard?
 
 % What is the nature of your solution?
-We present FlashMatrix, a programming framework that provides a high-level
-functional programming interface and supports automatic
-parallelization and out-of-core execution for large-scale data analysis.
-FlashMatrix focuses on optimizations in a single machine (with multiple
-CPUs and many cores) and scales matrix operations beyond memory capacity by 
+We present FlashR, an interactive R-based programming framework that uses
+the existing R programming interface and executes R code in parallel and
+out of core automatically for large-scale data analysis. FlashR stores large
+vectors and matrices on SSDs and overrides many R functions in the R
+\textit{base} package for these external-memory vectors and matrices.
+As such, FlashR executes existing R code without or with little modification.
+FlashR focuses on optimizations in a single machine (with multiple CPUs and
+many cores) and scales matrix operations beyond memory capacity by 
 utilizing solid-state drives (SSDs).  
-This paper does not address distributed matrix operations, but, 
-FlashMatrix is suitable for executing the local part of a distributed 
-computation.   
-Our evaluation does show that we can solve billion row, Internet-scale 
-clustering problems on a single thick node, which can prevent the complexity,
-expense, and power consumption of distributed systems when they are not strictly necessary
-\cite{hotos}.
-
-
+%This paper does not address distributed matrix operations, but, 
+%FlashR is suitable for executing the local part of a distributed 
+%computation.   
+Our evaluation shows that we can solve billion row, Internet-scale 
+problems on a single thick node, which can prevent the complexity,
+expense, and power consumption of distributed systems when they are
+not strictly necessary \cite{hotos}.
 
 %This design choice conforms with a current trend of
 %hardware design that scales up a single machine for high performance computing
 %\cite{Ang14}.  It is also supported by 
-
-
-%, including analysis of data stored on SSDs of I/O burst buffers \cite{burst}.
 
 %These machines typically have multiple processors with many CPU cores and
 %a large amount of memory. They are also equipped with fast flash
@@ -86,7 +56,8 @@ expense, and power consumption of distributed systems when they are not strictly
 
 % Why is it new/different/special?
 
-We overcome many challenges to move data from SSDs to CPU efficiently,
+We overcome many challenges to move data from SSDs to CPU efficiently for
+matrix computations,
 notably the large performance disparities between CPU and memory and between
 memory and SSDs. The ``memory gap'' \cite{Wilkes01} continues to grow, with 
 the difference between CPU and DRAM performance increasing exponentially. 
@@ -114,38 +85,36 @@ RAM outperforms SSDs by an order of magnitude for both latency and throughput.
 %bandwidth instead of computing power.
 
 To achieve in-memory performance for out-of-core matrix operations,
-FlashMatrix evaluates expressions lazily and fuses operations aggressively
-in a single parallel execution job to minimize data movement. FlashMatrix
+FlashR evaluates expressions lazily and fuses operations aggressively
+in a single parallel execution job to minimize data movement. FlashR
 builds a directed acyclic graph (DAG) to represent a sequence of matrix
 operations and grows a DAG as much as possible to increase the ratio of
-computation to I/O. When evaluating the computation in a DAG, FlashMatrix
+computation to I/O. When evaluating the computation in a DAG, FlashR
 performs two levels of matrix partitioning to improve data utilization in
 the memory hierarchy and reduce data movement.
-FlashMatrix by default materializes
+FlashR by default materializes
 only the output matrices (leaf nodes) of a DAG and keeps materialized results in
-memory in order to minimize data written to SSDs. FlashMatrix streams
+memory in order to minimize data written to SSDs. FlashR streams
 data from SSDs to maximize I/O throughput for most of computation tasks.
 
 %One of the important questions is how SSDs make the design different.
 
 % What are it's key features?
 
-We implement multiple machine learning algorithms, including k-means \cite{kmeans}
-and Gaussian Mixture Models \cite{gmm} in FlashMatrix with its R programming
-interface. On a large parallel machine with 48
-CPU cores and fast SSDs, the out-of-core execution of these R implementations
-achieves performance comparable to in-memory execution,
-while significantly outperforming the same algorithms in Spark MLlib
-\cite{spark}. FlashMatrix effortlessly scales to datasets with billions
-of data points and its out-of-core execution uses a small fraction of
-resources required by in-memory implementations. 
-When running in a single thread, FlashMatrix 
-outperforms the C and FORTRAN implementations of the R framework.
-%In addition, 
-%FlashMatrix achieves near-linear speedup in a multicore NUMA
-%machine for all algorithms. 
+We implement multiple machine learning algorithms, including principal component
+analysis, logistic regression and k-means, in FlashR. On a large parallel machine
+with 48 CPU cores and fast SSDs, the out-of-core execution of these R implementations
+achieves performance comparable to in-memory execution, while significantly
+outperforming the same algorithms in H2O \cite{h2o} and Spark MLlib
+\cite{spark}. FlashR effortlessly scales to datasets with billions
+of data points and its out-of-core execution uses a negligible amount of memory
+compared with the dataset size. In addition, FlashR executes the R functions
+in the R MASS \cite{mass} package with little modification and outperforms
+the execution of the same functions in Revolution R Open \cite{rro} by more
+than an order of magnitude.
 
-We believe that FlashMatrix significantly lowers the requirements for writing parallel
-and scalable implementations of data analysis algorithms; it also offers new
+We believe that FlashR significantly lowers the requirements for writing
+parallel and scalable implementations of machine learning algorithms; it also
+offers new
 design possibilities for data analysis clusters, replacing memory with larger
 and cheaper SSDs and processing bigger problems on fewer nodes.

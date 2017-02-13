@@ -27,7 +27,7 @@ some functions as input and output new matrices that represent computation resul
 The input function defines computation on individual elements in input matrices.
 GenOps provide a flexible and concise programming interface and, thus,
 we focus on optimizing the small set of matrix operations. All of
-the GenOps are lazily evaluated to gain performance (Section
+the GenOps are lazily evaluated to gain efficiency (Section
 \ref{sec:datamove}).
 
 \begin{table}
@@ -70,41 +70,41 @@ $A$, $B$ and $C$ are matrices, and $c$ is a scalar.}
 
 GenOps are classified into four categories that describe different data access
 patterns.
-\begin{itemize}
-	\item \textbf{Element-wise operations}:
-		\textit{sapply} is an element-wise unary operation; \textit{mapply}
-		is an element-wise binary operation; \textit{mapply.row} and
-		\textit{mapply.col} perform element-wise binary operations on
-		the input vector with every row or column of the input matrix
-		and output a matrix of the same shape as the input matrix.
-	\item \textbf{Aggregation}: \textit{agg} computes aggregation over
-		all elements in a matrix and outputs a scalar value; \textit{agg.row}
-		computes over all elements in every row and outputs a vector;
-		\textit{agg.col} computes over all elements in every column and
-		outputs a vector.
-	\item \textbf{Groupby}: \textit{groupby} splits the elements of a matrix
-		into groups, applies \textit{agg} on each group and outputs a vector;
-		\textit{groupby.row} splits rows into groups and applies \textit{agg.col}
-		on each group; \textit{groupby.col} splits columns into groups and applies
-		\textit{agg.row} on each group. Both \textit{agg.row} and \textit{agg.col}
-		output a matrix.
-	\item \textbf{inner product} is a generalized matrix multiplication.
-		It replaces multiplication and addition in matrix multiplication with
-		two functions. Because matrix multiplication is a commonly-used and
-		computation-intensive operation, FlashR uses highly optimized matrix
-		multiplication implementations to achieve efficiency. For example,
-		FlashR uses BLAS for dense floating-point matrices and uses a customized
-		matrix multiplication for sparse matrices \cite{SEM_SpMM}.
-\end{itemize}
+
+\noindent \textbf{Element-wise operations}:
+\textit{sapply} is an element-wise unary operation; \textit{mapply}
+is an element-wise binary operation; \textit{mapply.row} and
+\textit{mapply.col} perform element-wise binary operations on
+the input vector with every row or column of the input matrix
+and output a matrix of the same shape as the input matrix.
+
+\noindent \textbf{Aggregation}: \textit{agg} computes aggregation over
+all elements in a matrix and outputs a scalar value; \textit{agg.row}
+computes over all elements in every row and outputs a vector;
+\textit{agg.col} computes over all elements in every column and
+outputs a vector.
+
+\noindent \textbf{Groupby}: \textit{groupby} splits the elements of a matrix
+into groups, applies \textit{agg} on each group and outputs a vector;
+\textit{groupby.row} splits rows into groups and applies \textit{agg.col}
+on each group; \textit{groupby.col} splits columns into groups and applies
+\textit{agg.row} on each group. Both \textit{agg.row} and \textit{agg.col}
+output a matrix.
+
+\noindent \textbf{Inner product} is a generalized matrix multiplication.
+It replaces multiplication and addition in matrix multiplication with
+two functions. Because matrix multiplication is a commonly-used and
+computation-intensive operation, FlashR uses highly optimized matrix
+multiplication implementations to achieve efficiency. For example,
+FlashR uses BLAS for dense floating-point matrices and uses a customized
+matrix multiplication for sparse matrices \cite{SEM_SpMM}.
 
 We reimplement a large number of matrix functions in the R \textit{base}
 package with the GenOps to provide users a familar programming interface.
-Although GenOps provide a set of flexible matrix operations, it is not
-the most convenient way to program. Furthermore, by overriding
-existing R matrix functions, FlashR scales and parallelizes existing R code
-without much modification.
-Table \ref{tbl:Rfuns} shows a small subset of R matrix operations and
-their implementations with GenOps.
+By overriding existing R matrix functions, FlashR scales and parallelizes
+existing R code without much modification. Table \ref{tbl:Rfuns} shows
+a small subset of R matrix operations and their implementations
+with GenOps.
 
 \begin{table}
 \begin{center}
@@ -174,64 +174,9 @@ $[]$ & Get rows or columns from a matrix \\
 \end{tabular}
 \normalsize
 \end{center}
-\caption{Some of the utility functions in FlashR.}
+\caption{Some of the matrix creation and matrix access functions in FlashR.}
 \label{tbl:utility}
 \end{table}
-
-The example in Figure \ref{fig:kmeans}(a) illustrates GenOps with k-means
-\cite{kmeans}. It first uses \textit{inner.prod} to
-compute the Euclidean distance between every data point and every cluster center
-and outputs a matrix with each row representing the distances to centers.  
-It uses \textit{agg.row} to find the closest
-cluster for each data point.  The output matrix 
-assigns data points to clusters. It then uses \textit{groupby.row} to count
-the number of data points in each cluster and compute the mean of each cluster.
-
-\begin{figure}
-\centering
-	\footnotesize
-	\begin{subfigure}{.25\textwidth}
-	\vspace{20pt}
-	\centering
-	\begin{minted}[mathescape,
-	fontsize=\scriptsize,
-	frame=single,
-	tabsize=2,
-	]{R}
-# X is the data matrix.
-# C is cluster centers.
-kmeans.iter <- function(X,C) {
-	# Compute pair-wise distance.
-	D<-inner.prod(X,t(C),
-			"euclidean","+")
-	# Find the closest center.
-	I<-agg.row(D,"which.min")
-	# Count the number of data
-	# points in each cluster.
-	one<-rep.int(1,nrow(I))
-	CNT<-groupby(one,I,"+")
-	# Compute the new centers.
-	C<-groupby.row(X,I,"+")
-	C<-mapply.row(C,CNT,"/")
-	list(C=C,I=I)
-}
-	\end{minted}
-	\label{fig:code}
-	\caption{R code.}
-	\hspace{20pt}
-	\end{subfigure}%
-	\begin{subfigure}{.25\textwidth}
-	\centering
-	\includegraphics[scale=0.5]{FlashMatrix_figs/DAG.pdf}
-	\label{fig:dag}
-	\vspace{-4pt}
-	\caption{DAG}
-	\end{subfigure}
-  \vspace{-12pt}
-	\caption{k-means implemented with GenOps.}
-	\label{fig:kmeans}
-  \vspace{-8pt}
-\end{figure}
 
 \subsection{Dense matrices}
 FlashR optimizes for dense matrices that are rectangular---with
@@ -242,13 +187,14 @@ computations.
 
 \subsubsection{Tall-and-skinny (TAS) matrices}
 FlashR optimizes for \textit{tall-and-skinny} (TAS) dense matrices
-due to their frequent occurrence in data analysis. These matrices contain
-a large number of samples with a relatively few features. Wide-and-short
-(WAS) data matrices contain a large number of features with a few samples.
+due to their frequent occurrence in data analysis. A data matrix may contain
+a large number of samples with a relatively few features (tall-and-skinny),
+or a large number of features with a few samples (wide-and-short).
 We use similar strategies to optimize wide-and-short matrices. FlashR
 supports both row-major and column-major layouts (Figure \ref{fig:den_mat}(a)
 and (b)), which allows FlashR to transpose matrices without a copy.
-When a TAS matrix is stored in memory, it is stored as an SAFS file
+\dz{we may need give more explanation on data storage for matrices.}
+When a TAS matrix is stored on SSDs, it is stored as an SAFS file
 \cite{safs}. We store vectors as a one-column TAS matrix.
 
 \begin{figure}
@@ -260,7 +206,7 @@ When a TAS matrix is stored in memory, it is stored as an SAFS file
 \end{figure}
 
 A TAS matrix is partitioned physically into I/O-partitions (Figure
-\ref{fig:den_mat}). We refer to the dimension that are partitioned as
+\ref{fig:den_mat}). We refer to the dimension that is partitioned as
 \textit{partition dimension}. All elements in an I/O-partition are stored
 contiguously regardless of the data layout in the matrix. All 
 I/O-partitions have the same number of rows regardless of
@@ -279,7 +225,7 @@ of the optimizations on TAS matrices and reduce data movement.
 Coupled with the I/O partitioning on TAS matrices, this strategy enables
 2D-partitioning on a dense matrix and each partition fits in main memory.
 
-\dz{Should we explain GenOps on block matrices in more details?}
+%\dz{Should we explain GenOps on block matrices in more details?}
 
 \subsubsection{Virtual matrices} \label{virt_mat}
 To support lazy evaluation, FlashR uses \textit{virtual matrices} that
@@ -288,7 +234,7 @@ the matrix operation. The data of a matrix are not stored physically.
 All GenOps output virtual matrices. A GenOp on a \textit{block matrix} may outputs
 a block \textit{virtual matrix}. Virtual matrices are assembled to construct
 a directed acyclic graph (DAG) that represents a sequence of matrix computations
-(Figure \ref{fig:kmeans}(b)). Virtual matrices are essential to reduce data
+(Section \ref{dag}). Virtual matrices are essential to reduce data
 movement in the memory hierarchy and memory allocation overhead to accelerate
 computation.
 
@@ -299,9 +245,9 @@ the output matrices have a different \textit{partition dimension} size than
 the input matrices. \textit{Sink matrices} tend to be small and we store their
 results in memory. The maximum size of a sink matrix from an aggregation
 is $\sqrt{N}$ for $N$ elements in the input matrix and for groupby
-$k \times \sqrt{N}$ for $k$ classes. For most of machine learning and data
-analysis tasks, the output of inner product of a wide matrix with a tall matrix
-is small because
+$k \times \sqrt{N}$ for $k$ groups, where $k$ is usually a small number.
+For most of machine learning and data analysis tasks, the output of inner product
+of a wide matrix with a tall matrix is small because
 the long dimension of these matrices is much larger than the short dimension.
 
 %\begin{table}
@@ -332,29 +278,35 @@ the long dimension of these matrices is much larger than the short dimension.
 %\end{table}
 
 \subsection{Sparse matrices}
-FlashR supports sparse matrices and mainly optimizes for matrix multiplication
-on sparse matrices.
+FlashR supports sparse matrices and optimizes sparse matrices of different
+shapes differently.
 For large sparse matrices that arise from graphs (e.g., social networks
 and Web graphs), which has a large number of rows and columns, FlashR integrates
-with an efficient implementation \cite{SEM_SpMM} that stores sparse matrices
-in a compact format on SSDs and performs matrix multiplication on such sparse
-matrices in semi-external memory, i.e., we keep the sparse matrix on SSDs and
-the dense matrix or part of the dense matrix in memory.
+with an efficient implementation that stores sparse matrices
+in a compact format on SSDs and performs sparse matrix multiplication
+in semi-external memory, i.e., we keep the sparse matrix on SSDs and
+the dense matrix or part of the dense matrix in memory \cite{SEM_SpMM}.
+Because many graph algorithms can be formulated in sparse matrix multiplication
+\cite{linear_algebra}, we can express these algorithms in FlashR.
 For sparse matrices with many rows and few columns or with many columns
 and few rows, FlashR stores the sparse matrices with the coordinate format
-(COO). These rectangular sparse matrices usually require small memory storage,
-so the current implementation keeps them in memory.
+(COO). These sparse matrices can be used in sparse random projection
+\cite{sparse_proj} or to store categorial values for computation.
+The current implementation of FlashR keeps these sparse matrices in memory
+because they usually require small memory storage.
 
 \subsection{Reducing data movement}\label{sec:datamove}
-To optimize evaluation, FlashR lazily evaluates matrix operations and
-constructs one or more directed-acyclic graphs (DAGs) connecting GenOps and
-matrices. Figure \ref{fig:kmeans} (b) shows the DAG for k-means.
-Then it performs all computation in a DAG together 
-to minimize data movement in the memory hierarchy.
+The key to achieve efficiency is to reduce data movement in memory hierarchy
+when evaluating matrix operations. FlashR lazily evaluates most matrix
+operations, especially the ones that do not contain heavy computation,
+and constructs one or more directed-acyclic graphs (DAGs) connecting GenOps and
+matrices. Figure \ref{fig:kmeans} (b) shows the DAG for k-means. Then it
+performs all computation in a DAG together, which creates opportunities
+of fusing matrix operations to reduce data movement in the memory hierarchy.
 This data-driven, lazy evaluation allows out-of-core problems 
-to approach in-memory performance.
+to approach in-memory efficiency.
 
-\subsubsection{Directed-acyclic graphs (DAGs)}
+\subsubsection{Directed-acyclic graphs (DAGs)} \label{dag}
 A DAG comprises a set of matrix nodes (rectangles) and computation nodes
 (ellipses). The majority of matrix nodes are virtual matrices (dashed line rectangles).
 For k-means, only the input matrix \textit{X} has materialized data.
@@ -369,27 +321,26 @@ all virtual matrices in internal matrix nodes need to have the same
 \textit{partition dimension} size. \textit{Sink matrices} are edge nodes
 in the DAG because they have different \textit{partition dimension} sizes
 from the internal matrices. Any computation that uses these
-\textit{sink matrices} cannot be connected to the same DAG.  
+sink matrices cannot be connected to the same DAG.  
 
 \subsubsection{DAG materialization}
-FlashR allows both explicit and implicit DAG materialization.
-We materialize virtual matrices that access the same set of dense matrices
-stored on SSDs together. To explicitly
-materialize a DAG, a user can invoke \textit{fm.materialize} to materialize
-\dz{more explanation}
+FlashR allows both explicit and implicit DAG materialization to simplify
+programming while still providing the opportunities to tune the code for
+better speed. For explicit materialization, a user can invoke
+\textit{fm.materialize} to materialize a virtual matrix. Access to elements
+of a sink matrix triggers materialization implicitly. Once
+the materialization on a virtual matrix is triggered, FlashR materializes
+the entire DAG where the virtual matrix connects to.
 
-Access to elements of a \textit{sink matrix} (leaf node) triggers materialization
-of the entire DAG where the \textit{sink matrix} connects to. As such,
-FlashR does not require explicit materialization from users in most cases
-to further simplifies programming. By default,
-FlashR saves the computation results of all \textit{sink matrices} of
-the DAG in memory and discard the data of non-\textit{sink matrices} on the fly.
-Because \textit{sink matrices} tend to be small, this materialization
+By default,
+FlashR saves the computation results of all sink matrices of
+the DAG in memory and discard the data of non-sink matrices on the fly.
+Because sink matrices tend to be small, this materialization
 rule leads to small memory consumption.
 In exceptional cases, especially for iterative algorithms,
-it is helpful to save some non-\textit{sink matrices} to avoid
+it is helpful to save some non-sink matrices to avoid
 redundant computation and I/O across iterations.  We allow users to
-set a flag on any matrix to materialize and cache data in memory
+set a flag on any virtual matrix to materialize and cache data in memory
 or on SSDs during computation, similar to caching an RDD in Spark.
 
 \begin{figure}
@@ -464,8 +415,7 @@ As the computation nears an end, the scheduler dispatches single I/O-partitions.
 %The scheduler always ensures that all threads are working on I/O-partitions that are adjacent to
 %each other on storage.
 The scheduler dispatches I/O-partitions sequentially to maximize contiguity in memory
-and on SSD.
-When the DAG stores the materialized result of a non-\textit{sink matrix}, 
+and on SSD. When the DAG stores the materialized result of a non-sink matrix,
 contiguity makes it easier for the file system to merge
 writes from multiple threads, which helps to sustain write throughout and reduces
 write amplification \cite{ripq}.
@@ -477,17 +427,119 @@ write amplification \cite{ripq}.
 %computation and move on to the next TAS matrices in the same range. This is
 %very helpful if the computation is aggregation.
 
-\section{Machine learning algorithms and implementations}
+\section{Machine learning algorithms in FlashR} \label{sec:apps}
+To illustrate the programming interface of FlashR, we showcase some classic
+algorithms written in FlashR.
+Some of the algorithms can be implemented with R \textit{base} functions and
+can run in the existing R framework without any modification.
+
+K-means is a commonly used clustering algorithm and we use this algorithm
+to illustrate programming with GenOps (Figure \ref{fig:kmeans}(a)).
+It first uses \textit{inner.prod} to
+compute the Euclidean distance between every data point and every cluster center
+and outputs a matrix with each row representing the distances to centers.  
+It uses \textit{agg.row} to find the closest
+cluster for each data point.  The output matrix 
+assigns data points to clusters. It then uses \textit{groupby.row} to count
+the number of data points in each cluster and compute the mean of each cluster.
 
 \begin{figure}
 \centering
 	\footnotesize
+	\begin{subfigure}{.25\textwidth}
+	\vspace{20pt}
 	\centering
 	\begin{minted}[mathescape,
-	fontsize=\scriptsize,
+	fontsize=\small,
 	frame=single,
 	tabsize=2,
 	]{R}
+# X is the data matrix.
+# C is cluster centers.
+kmeans.iter <- function(X,C) {
+	# Compute pair-wise distance.
+	D<-inner.prod(X,t(C),
+			"euclidean","+")
+	# Find the closest center.
+	I<-agg.row(D,"which.min")
+	# Count the number of data
+	# points in each cluster.
+	one<-rep.int(1,nrow(I))
+	CNT<-groupby(one,I,"+")
+	# Compute the new centers.
+	C<-groupby.row(X,I,"+")
+	C<-mapply.row(C,CNT,"/")
+	list(C=C,I=I)
+}
+	\end{minted}
+	\label{fig:code}
+	\caption{R code.}
+	\end{subfigure}%
+	\begin{subfigure}{.30\textwidth}
+	\centering
+	\vspace{25pt}
+	\includegraphics[scale=0.6]{FlashMatrix_figs/DAG.pdf}
+	\label{fig:dag}
+	\caption{DAG}
+	\end{subfigure}
+  \vspace{-12pt}
+	\caption{k-means implemented with GenOps.}
+	\label{fig:kmeans}
+  \vspace{-8pt}
+\end{figure}
+
+Logistic regression is a commonly used classification algorithm.
+We implement this algorithm solely with R \textit{base} functions. Figure
+\ref{logistic} implements logistic regression for problems with binary-class
+labels. It uses steepest gradient descent with line search to minimize
+the \textit{cost} function. This example does not have a regularization term
+in the cost function.
+\begin{figure}[H]
+\begin{minted}[mathescape,
+fontsize=\small,
+frame=single,
+tabsize=2,
+]{R}
+logistic.regression <- function(X,y) {
+# `X' is the data matrix, whose rows represent data points
+# and columns represent features. `y' stores the labels of
+# data points. `w' is the weight vector.
+	grad <- function(X,y,w)
+		(t(X)%*%(1/(1+exp(-X%*%t(w)))-y))/length(y)
+	cost <- function(X,y,w)
+		sum(y*(-X%*%t(w))+log(1+exp(X%*%t(w))))/length(y)
+	# Gradient descent with line search.
+	theta <- matrix(rep(0, num.features), nrow=1)
+	for (i in 1:max.iters) {
+		g <- grad(X, y, theta)
+		l <- cost(X, y, theta)
+		eta <- 1
+		delta <- 0.5 * (-g) %*% t(g)
+		while (cost(X, y, theta+eta*(-g)) < l+delta*eta)
+			eta <- eta * 0.2
+		theta <- theta + (-g) * eta
+	}
+	theta
+}
+\end{minted}
+\caption{A simplified implementation of logistic regression using
+steepest gradient descent in FlashR.}
+\label{logistic}
+\end{figure}
+
+PageRank is a well-known algorithm for graph analysis. The matrix formulation
+shown below operates on the adjacency matrix of a graph. It uses a power
+method and perform a sequence of sparse matrix multiplication until
+the algorithm converges.
+\begin{figure}[H]
+\begin{minted}[mathescape,
+fontsize=\small,
+frame=single,
+tabsize=2,
+]{R}
+# `graph' is a sparse matrix that represents the input
+# graph. `d' is a damping factor, `epsilon' is
+# the convergence accuracy.
 pagerank <- function(graph, d=0.15, epsilon=1e-2) {
 	N <- nrow(graph)
 	pr1 <- fm.rep.int(1/N, N)
@@ -502,9 +554,6 @@ pagerank <- function(graph, d=0.15, epsilon=1e-2) {
 	}
 	pr1
 }
-	\end{minted}
-	\label{fig:code}
-	\caption{k-means implemented with GenOps.}
-	\label{fig:kmeans}
-  \vspace{-8pt}
+\end{minted}
+\caption{A simplified implementation of PageRank in FlashR.}
 \end{figure}

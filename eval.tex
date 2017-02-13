@@ -1,13 +1,10 @@
-\vspace{-10pt}
 \section{Experimental evaluation}
-\vspace{-5pt}
-We evaluate the performance of FlashMatrix on statistics and machine learning
-algorithms both in memory and on SSDs. We compare their performance with
-the implementations in Spark MLlib \cite{mllib}, a highly-optimized parallel
-machine learning library, and the C and FORTRAN implementations in the R framework.
-
-%We further illustrate the effectiveness of the optimizations deployed in
-%FlashMatrix when running both in memory and on SSDs.
+We evaluate the efficiency of FlashR on statistics and machine learning
+algorithms both in memory and on SSDs. We compare the R implementations of
+these algorithms with the ones in two highly-optimized parallel machine learning
+libraries H2O \cite{h2o} and Spark MLlib \cite{mllib}. We further use FlashR
+to accelerate existing R functions in the MASS package and compare with
+Revolution R Open \cite{rro}.
 
 We conduct experiments on a NUMA machine with
 four Intel Xeon E7-4860 2.6 GHz processors and 1TB of 
@@ -16,74 +13,45 @@ host bus adapters connected to
 24 OCZ Intrepid 3000 SSDs. The SSDs are capable of
 12 GB/s for read and 10 GB/s for write. The machine runs
 Linux kernel v3.13.0. By default, we use 48 threads. 
-We use Spark v1.5.0 and R v3.2.4.
+We use Spark v2.0.1 and R v3.3.2. We use ATLAS 3.10.1 as the default BLAS library.
 
-%\subsection{Statistics and Machine learning algorithms} \label{sec:apps}
+\subsection{Benchmark algorithms}
+We benchmark FlashR with some commonly used algorithms in Table
+\ref{tbl:algs}. Like the algorithms shown in Section \ref{sec:apps},
+we implement these algorithms completely with the R code and
+rely on FlashR to execute them in parallel and out of core.
 
-Using the R interface of FlashMatrix, we implement the algorithms of 
-Table \ref{tbl:algs}, using the same algorithmic approach as MLlib.
-The two clustering algorithms 
-K-means \cite{kmeans} and Gaussian Mixture Model (GMM) \cite{gmm} 
-were recognized as top 10 data mining algorithms \cite{top10}. 
-Singular value decomposition (SVD) is the canonical approach to 
-reducing dimension based on eigensolving.  Correlation 
-(pair-wise Pearson's correlation \cite{cor}) is commonly used in statistics.
-Summary computes a suite of multivariate statistics:
-column-wise minimum, maximum, mean, L1 norm, L2 norm, number of non-zero values and
-		variance.
-Algorithms exhibit various ratios of computation to I/O, which aids
-a thorough evaluation.
-%hich helps to evaluate perforamnce %of FlashMatrix
-%on SSDs 
-%thoroughly. 
+\noindent \textbf{Correlation} computes pair-wise Pearson's correlation
+\cite{cor} and is commonly used in statistics.
 
+\noindent \textbf{Principal Component Analysis (PCA)} computes uncorrelated
+variables from a large dataset. PCA is commonly used for dimension reduction
+in many data analysis. We compute PCA by computing eigenvalues on the Gramian
+matrix $A^T A$ of the input matrix $A$.
 
+\noindent \textbf{Naive Bayes} is a classifier that applies Bayes' theorem
+with the "naive" assumption of independence between every pair of features.
+Our implementation assumes data follow the normal distribution.
 
-%We implement multiple important algorithms in the field of statistics and
-%machine learning. We implement these
-%algorithms completely with the R interface of FlashMatrix and
-%rely on FlashMatrix to perform computation in parallel and out of core.
-%\begin{itemize}
-%	\item 
-%
-%\para{Multivariate statistical summary} 
-%column-wise minimum,
-%		maximum, mean, L1 norm, L2 norm, the number of non-zero values and
-%		variance.
-%
-%%	\item 
-%\para{Correlation} pair-wise Pearson's correlation \cite{cor}
-%		among multiple series is commonly used in statistics.
-%
-%\para{Singular value decomposition (SVD)} factors a matrix into
-%		three matrices: $U$, $\Sigma$ and $V$ such that $A=U \Sigma V^T$, where
-%		$U$ and $V$ are orthonormal matrices and $\Sigma$ is a diagonal
-%		matrix with non-negative diagonals in descending order. 
-%%To compute SVD
-%%		on a $n \times p$ matrix $A$ ($n \gg p$), we first compute Gramian
-%%		matrix $A^T A$ and compute eigenvalues and eigenvectors to derive singular
-%%		values and singular vectors of the matrix $A$. 
-%SVD is commonly used for dimension reduction. 
-%%In the experiments, we compute 10 singular values.
-%%
-%\para{K-means \cite{kmeans}} an iterative algorithm that partitions 
-%%		data points into $k$ clusters so that each cluster has minimal mean
-%		of distances between the data points and the cluster center. 
-%%K-means
-%%		is one of the most popular clustering algorithms and 
-%is one of the top 10 data mining algorithms \cite{top10}. 
-%In the experiments, we run k-means to split a dataset into 10 clusters by default.
+\noindent \textbf{Logistic regression} is a classifier that applies
+the sigmoid functions on the linear model. We use the Newton-CG algorithm
+to optimize logistic regression.
 
-%\para{Gaussian Mixture Model (GMM) \cite{gmm}} an iterative clustering
-%		algorithm 
-%%that assumes data points are sampled from a mixture of
-%%		Gaussian distributions and 
-%  that use expectation maximization (EM)
-%		to fit data to Gaussian distributions. This is also one
-%		of the top 10 data mining algorithms \cite{top10}. 
-%%In the experiments, we run GMM to split a dataset into 10 clusters by default.
-%%:\end{itemize}
-%
+\noindent \textbf{K-means \cite{kmeans}} is a clustering algorithm that
+partitions data points into $k$ clusters so that each cluster has minimal
+mean of distances between the data points and the cluster center. 
+In the experiments, we run k-means to split a dataset into 10 clusters
+by default.
+
+\noindent \textbf{Multivariate Normal Distribution (mvrnorm)} generates
+samples from the specified multivariate normal distribution. We use
+the implementation in the MASS package.
+
+\noindent \textbf{Linear discriminant analysis (LDA)} is a linear classifier
+that assumes the normal distribution with a different mean for each class
+but sharing the same covariance matrix among classes. Our LDA is adapted from
+the one in the R MASS package only with some trivial modifications.
+
 \begin{table}
 \begin{center}
 \footnotesize
@@ -91,38 +59,34 @@ a thorough evaluation.
 \hline
 Algorithm & Computation & I/O \\
 \hline
-Summary & $O(n \times p)$ & $O(n \times p)$ \\
-\hline
 Correlation & $O(n \times p^2)$ & $O(n \times p)$ \\
 \hline
-SVD & $O(n \times p^2)$ & $O(n \times p)$ \\
+PCA & $O(n \times p^2)$ & $O(n \times p)$ \\
+\hline
+Naive Bayes & $O(n \times p)$ & $O(n \times p)$ \\
+\hline
+mvrnorm & $O(n \times p^2)$ & $O(n \times p)$ \\
+\hline
+LDA & $O(n \times p^2)$ & $O(n \times p)$ \\
+\hline
+Logistic regression  (1 iteration) & $O(n \times p^2)$ & $O(n \times p)$ \\
 \hline
 K-means (1 iteration) & $O(n \times p \times k)$ & $O(n \times p)$ \\
-\hline
-GMM (1 iteration) & $O(n \times p^2 \times k + p^3 \times k)$ & $O(n \times p + n \times k)$ \\
 \hline
 \end{tabular}
 \normalsize
 \end{center}
-\vspace{-5pt}
-\caption{Computation and I/O complexity. 
-$n$ is the number of data points, $p$ 
-is the number of the features in a point, and $k$ is the number of
-clusters. }
+\caption{Computation and I/O complexity. $n$ is the number of data points, $p$
+is the number of the features in a point, and $k$ is the number of clusters.
+	\dz{I need to analyze the computation complexity more carefully.}}
 \label{tbl:algs}
 \end{table}
 
-%These algorithms have various ratios of computation complexity and I/O complexity
-%(Table \ref{tbl:algs}), which helps to evaluate perforamnce %of FlashMatrix
-%%on SSDs 
-%thoroughly. 
-%The first three algorithms require a constant number
-%of passes over the input matrix. K-means and GMM run iteratively and we show
-%their computation and I/O complexity in a single iteration. GMM typically run
-%on a dataset with a small number of features. Therefore, the first term of its
-%computation complexity dominates the computation. Although correlation and SVD
-%have lower asymptotic complexity than GMM, they may run on datasets with many
-%features and, thus, may have very high computation overhead.
+These algorithms have various ratios of computation complexity and I/O complexity
+(Table \ref{tbl:algs}) to thoroughly evaluate perforamnce of FlashR on SSDs.
+The first five algorithms require a constant number of passes over the input
+matrix. Logistic regression and K-means run iteratively and, thus, we show
+their computation and I/O complexity in a single iteration.
 
 \begin{table}
 \begin{center}
@@ -131,174 +95,205 @@ clusters. }
 \hline
 Data Matrix & n & p & size \\
 \hline
-Friendster-32 \cite{friendster} & 65M & 32 & 16GB \\
+PageGraph-32ev \cite{webgraph} & 3.5B & 32 & 800GB \\
 \hline
-MixGaussian-1B & 1B & 32 & 251GB \\
+Criteo \cite{criteo} & 4.3B & 40 & 637GB \\
 \hline
-Random-65M & 65M & 8-512 & 4-248GB \\
+PageGraph-32ev-sub \cite{webgraph} & 336M & 32 & 80GB \\
+\hline
+Criteo-sub \cite{criteo} & 325M & 40 & 48GB \\
 \hline
 \end{tabular}
 \normalsize
 \end{center}
-\vspace{-5pt}
-\caption{Datasets ($n \times p$ matrices).}
+\caption{Datasets ($n \times p$ matrices). PageGraph-32ev-sub and
+	Criteo-sub are the subsets of PageGraph-32ev and Criteo. They
+	have about one tenth of the whole datasets.}
 \label{tbl:data}
 \vspace{-5pt}
 \end{table}
 
-K-means and GMM typically run on a dataset with a small number of features
-in each data point, owing to curse of dimensionality \cite{Jain00}.
-% while
-%the other algorithms may be applied to datasets with various numbers of
-%features.
-We run k-means and GMM on
-the Friendster-32 matrix, constructed from 32 eigenvectors of the Friendster
-graph \cite{friendster}, as well as the MixGaussian-1B
-sampled from 10 mixtures of multivariate Gaussian distributions.
-The other algorithms run on all matrices (Table \ref{tbl:data}),
-including random matrices with 65 million rows and columns
-varying from 8 to 512.
-
-%data points and 32 features in each data point.
-%
-% We use the datasets in Table \ref{tbl:data} for performance
-%evaluation. In all datasets, the number of data points is far more than
-%the number of features. 
-
-%with the identity covariance matrix and different means. 
+We benchmark FlashR with two real-world datasets with billions of data points
+(Table \ref{tbl:data}). The Criteo dataset has over four billion data points
+with binary labels (click vs. no-click), used for advertisement click
+prediction \cite{criteo}. PageGraph-32ev are 32 singular vectors that we
+computed on the largest connected component of the Page graph \cite{webgraph}.
+To compare FlashR with other frameworks, we take part of the datasets to
+create smaller datasets. PageGraph-32ev-sub is the first 336 million data points
+of the PageGraph-32ev dataset. Criteo-sub contains the data points collected
+on the first two days, which is about one tenth of the whole dataset.
 
 %\vspace{-8pt}
-%\subsection{Comparative performance}
+\subsection{Comparative performance}
 %\vspace{-4pt}
-\para{Comparative performance}
-We evaluate FlashMatrix against
-Spark MLlib \cite{mllib} and R. We run the MLlib algorithms
-with their native Scala interface and use a large heap size to ensure that
-all data are cached in memory. We use 48 threads for both FlashMatrix and
-MLlib. %to run on the MixGaussian-1B matrix.
-The R framework provides C implementations for correlation, SVD and k-means.
-The R package mclust \cite{mclust} provides a FORTRAN implementation of GMM.
-%These implementations run in a single thread. We run the FlashMatrix
-%implementations in a single thread and compare their performance with the C and
-%FORTRAN implementations on the Friendster-32 matrix.
+We evaluate FlashR against H2O \cite{h2o} and Spark MLlib \cite{mllib} as well
+as Revolution R Open \cite{rro}. We compare these frameworks in a large
+parallel machine with 48 CPU cores. In addition, we run FlashR in the Amazon
+cloud and compare its speed in a single EC2 instance with Spark MLlib in
+a cluster.
+
+\subsubsection{A large parallel machine}
+
+In this section, we compare the R code of the machine learning algorithms
+in FlashR with the implementations in H2O and Spark MLlib.
+We give H2O and MLlib a large heap size (500GB) to ensure that all data are
+cached in memory. We run logistic regression in H2O and MLlib with Limited-memory
+Broyden-Fletcher-Goldfarb-Shanno algorithm (LBFGS) \cite{lbfgs} to get fast
+convergence. We also use FlashR to parallelize some functions in the R
+MASS package and compare their speed with Revolution R. In all experiments,
+we use 48 threads for all frameworks.
 
 \begin{figure}
   \vspace{-5pt}
 	\centering
 	\footnotesize
-	\begin{subfigure}{.5\textwidth}
-		\includegraphics{FlashMatrix_figs/FM-vs-spark.eps}
-		\label{perf:rt}
-		\vspace{-12pt}
-		\caption{Runtime}
-	\end{subfigure}
-
-	\vspace{3pt}
-	\begin{subfigure}{.5\textwidth}
-		\includegraphics{FlashMatrix_figs/FM-vs-spark-mem.eps}
-		\label{perf:mem}
-		\vspace{-12pt}
-		\caption{Memory consumption}
-	\end{subfigure}
-	\caption{The performance and memory consumption of FlashMatrix both
-		in memory (FM-IM) and on SSDs (FM-EM) compared with Spark MLlib
-		on the MixGaussian-1B matrix.}
-	\label{perf:fm}
+	\includegraphics{FlashMatrix_figs/FlashR-vs-dist.eps}
+	\vspace{-8pt}
+	\caption{The normalized runtime of FlashR in memory (FlashR-IM) and
+	on SSDs (FlashR-EM) compared with H2O and Spark MLlib on a parallel machine
+	with 48 CPU cores. Correlation is not available in H2O. We run k-means on
+	the PageGraph-32ev-sub dataset and all other algorithms on the Criteo-sub
+	dataset.}
+	\label{perf:rt}
   \vspace{-10pt}
 \end{figure}
 
-FlashMatrix outperforms Spark MLlib significantly
-on all algorithms (Figure \ref{perf:fm}(a)). For 
-correlation, SVD and GMM, both FlashMatrix and MLlib
-rely on BLAS for matrix multiplication; the differences lie in memory access.
-MLlib materializes operations such as aggregation separately and implements
-non-BLAS operations with Scala. The matrix fusion and materialization of
-two-level partitioning of FlashMatrix result in a 3 to 10 times performance
-gain when compared with MLlib.
-
-% FlashMatrix outperforms MLlib significantly owing to our heavy optimizations on GenOps
-%such as aggressive matrix operation fusion and VEleFuns. In contrast, 
-%SVD is the only application whose FlashMatrix
-%implementation does not outperform the one in MLlib when being executed out of
-%core because this application requires to read the entire matrix multiple times
-%and output a large matrix.
-
-%Even though FlashMatrix provides a matrix-oriented functional programming
-%interface, it 
-FlashMatrix easily scales to datasets with billions of data points
-(Figure \ref{perf:fm}(b)) and uses negligible amounts of memory when running out-of-core.
-%. Its
-%scalability is bound by the capacity of SSDs 
-%For out-of-core execution, FlashMatrix keeps large matrices on
-%SSDs.  % and has a very small memory footprint.  
-Lazy evaluation and virtual matrices make it so that data are streamed from 
-inputs to outputs with SSD I/O.  Memory consumption is below 10 GB for all inputs.
-%We did not encounter the scalability limits of FlashMatirx
-%We have not found the scalability limits of out-of-core FlashMatrix, but it will not be 
-%from running out of memory.
-%The functional programming
-%interface generates a new matrix in each matrix operation, which potentially
-%leads to high memory consumption. 
-%Owing to lazy evaluation, FlashMatrix does not store majority of matrices in the computation physically.
-%As such, its in-memory 
-%out-of-core execution barely increases memory consumption from
-%the minimum memory requirement of the algorithms. 
-%This indicates that the out-of-core execution consumes small space on SSDs, which leads to
-%very high scalability.
-
-FlashMatrix running both in memory and on SSDs significantly outperforms R
-(Figure \ref{fig:fmR}).  Because R's implementations are single threaded,
-we run FlashMatrix in a single thread. 
-%for all algorithms even with a single thread in all of these algorithms 
-We exclude ``Summary'' because R does not provide an implementation of
-several of the statistics.
-%a C or FORTRAN implementation of computing the same statistics. 
-%The performance
-%results indicate that FlashMatrix executes R code efficiently to even outperform
-%some optimized C and FORTRAN implementations when processing large datasets.
+FlashR outperforms H2O and Spark MLlib significantly on all algorithms
+(Figure \ref{perf:rt}) in the large parallel machine with 48 CPU cores.
+FlashR running in memory achieves 3 to 10 times performance gain when compared
+with MLlib, and 2.5 to 7 times performance gain when compared with H2O.
+When running on SSDs, FlashR achieves at least half the speed of running in
+memory. Even though logistic regression in FlashR and the ones in H2O and MLlib
+uses different algorithms for numerical optimization, the number of iterations
+required by the optimization algorithms to converge to similar loss is fairly
+close (10 iterations for Newton-CG and 14 iterations for LBFGS), while computation
+complexity of Newton-CG is much higher than LBFGS.
+Even though most of the algorithms, especially correlation and PCA,
+relies on BLAS for matrix multiplication to achieve speed, H2O and MLlib
+implement non-BLAS operations with Java and Scala, respectively. Furthermore,
+MLlib materializes operations such as aggregation separately. In contrast,
+FlashR fuses matrix operations and performs two-level partitioning to
+minimize data movement in the memory hierarchy, and keeps data in the local
+memory to achieve high memory bandwidth.
 
 \begin{figure}[b]
   \vspace{-10pt}
 	\begin{center}
 		\footnotesize
-		\includegraphics{FlashMatrix_figs/FM-vs-R.eps}
-		\caption{In-memory (FM-IM) and out-of-fore (FM-EM) FlashMatrix 
-        in a single thread compared with R's C and FORTRAN implementations on Friendster-32.}
+		\includegraphics{FlashMatrix_figs/FlashR-vs-RRO.eps}
+		\caption{In-memory (FlashR-IM) and out-of-fore (FlashR-EM) FlashR
+		compared with Revolution R Open on a data matrix with one million rows
+		and one thousand columns.}
 		\label{fig:fmR}
 	\end{center}
   \vspace{-15pt}
 \end{figure}
 
-\begin{comment}
+FlashR running both in memory and on SSDs outperforms Revolution R Open by more
+than an order of magnitude even on a small dataset ($n=1,000,000$ and $p=1000$)
+(Figure \ref{fig:fmR}).
+Revolution R Open uses Intel MKL to parallelize matrix multiplication. As such,
+we only compare the two frameworks with computations that use matrix
+multiplication heavily. Both FlashR and Revolution R Open run the mvrnorm
+and LDA implementations from the MASS package. For simple matrix operations such as crossprod,
+FlashR has slightly higher speed than Revolution R Open. For more complex
+computation, the speed gap between FlashR and Revolution R gets larger when
+computation gets more complex. Even though matrix multiplication
+is the most computation-intensive operation in an algorithm, it is insufficient
+to only paralleize matrix multiplication to achieve high efficiency.
+
+\subsubsection{In the cloud}
+
+We further evaluate the speed of FlashR on Amazon EC2 cloud and compare it with
+Spark MLlib on an EC2 cluster. We run FlashR on the largest storage-optimized
+EC2 instance (i2.8xlarge), which has 16 CPU cores, 244GB RAM and 6.4TB SSD storage,
+and run Spark MLlib on the largest compute-optimized EC2 instances (c4.8xlarge),
+each of which has 18 CPU cores, 60GB RAM and is connected with 10Gbps network.
+Spark MLlib needs at least 4 c4.8xlarge instances to process the datasets
+(PageGraph-32ev-sub and Criteo-sub).
+Even though Spark MLlib has 4.5 as much computation power as FlashR, FlashR
+still matches the speed of Spark MLlib and even outperform it.
+
 \begin{figure}
-	\begin{center}
-		\footnotesize
-		\includegraphics{FlashMatrix_figs/speedup.eps}
-		\caption{The speedup of FlashMatrix with multithreading both in memory (IM)
-		and on SSDs (EM).}
-		\label{fig:speedup}
-	\end{center}
+  \vspace{-5pt}
+	\centering
+	\footnotesize
+	\includegraphics{FlashMatrix_figs/FlashR-vs-dist-EC2.eps}
+	\vspace{-8pt}
+	\caption{The normalized runtime of FlashR in memory (FlashR-IM) and
+	on SSDs (FlashR-EM) on one EC2 i2.8xlarge instance (16 CPU cores) compared
+	with Spark MLlib on a cluster of four EC2 c4.8xlarge instances (72 CPU cores).
+	We run k-means on the PageGraph-32ev-sub dataset and all other algorithms
+	on the Criteo-sub dataset.}
+	\label{perf:rt}
+  \vspace{-10pt}
 \end{figure}
 
-In-memory FlashMatrix achieves near linear speedup whereas the out-of-core execution 
-starts to flatten after 32 threads (Figure \ref{fig:speedup}).
-Operation fusion and reducing data movement removes memory bandwidth bottlenecks, allowing 
-scaling with more CPU cores. 
-% . As such, memory bandwidth is no longer the bottleneck
-%for in-memory execution and the algorithms speed up linearly with more CPU cores.
-Out-of-core, I/O becomes the bottleneck for the algorithms with
-lower computation complexity. However,
-GMM still speeds up almost linearly even when running on SSDs, due to its high
-computation complexity. The performance results in Figure \ref{fig:fmR} and Figure
-\ref{fig:speedup} indicate that FlashMatrix can potentially execute R code with
-performance comparable to parallel C or FORTRAN implementations.
-\end{comment}
+\subsection{Scalability}
+
+We show the scalability of FlashR on the billion-scale datasets in Table
+\ref{tbl:data}. In this experiments, we run the iterative algorithms
+(k-means and logistic regression) until they converge on the datasets.
+
+\begin{table}
+\begin{center}
+\footnotesize
+\begin{tabular}{|c|c|c|}
+\hline
+	& Runtime (s) & Memory (GB) \\
+\hline
+Correlation & $91.23$ & $1.5$ \\
+\hline
+PCA & $136.71$ & $1.5$ \\
+\hline
+NaiveBayes & $76.55$ & $3$ \\
+\hline
+Logistic regression & $4154.40$ & $26$ \\
+\hline
+k-means & $1110.82$ & $28$ \\
+\hline
+%PageRank & $xx$ & $xx$ \\
+%\hline
+%Spectral embedding & $xx$ & $xx$ \\
+%\hline
+\end{tabular}
+\normalsize
+\end{center}
+\caption{The runtime and memory consumption of FlashR on the billion-scale
+	datasets on the 48 CPU core machine.
+	The runtime of logistic regression and k-means is measured when the two
+	algorithms converge. Logistic regression takes 11 iterations and k-means
+	takes 14 iterations to converge.}
+\label{tbl:scale}
+\end{table}
+
+Even though we process the datasets with billions of data points in a single
+machine, none of the algorithms are prohibitively expensive. Simple algorithms,
+such as Naive Bayes and PCA, require one or two passes over the datasets and
+take only one or two minutes to complete. Iterative
+algorithms, such as logistic regression and k-means, take about $10-20$
+iterations to converge and the total computation time is about one hour or
+less.
+
+Despite the matrix-oriented functional programming interface of FlashR,
+it scales to datasets with billions of data points easily with negligible
+amounts of memory when running out of core.
+Its scalability is bound by the capacity of SSDs. The functional programming
+interface generates a new matrix in each matrix operation, which potentially
+leads to high memory consumption. Thanks to lazy evaluation and virtual matrices,
+FlashR only needs to materialize the small matrices to effectively reduce
+memory consumption and streams data from SSDs for computation.
+%Owing to lazy evaluation, FlashR does not store majority of matrices in
+% the computation physically. As such, its in-memory 
+%out-of-core execution barely increases memory consumption from
+%the minimum memory requirement of the algorithms. 
+%This indicates that the out-of-core execution consumes small space on SSDs, which leads to
+%very high scalability.
 
 %\vspace{-8pt}
-%\subsection{Out-of-core v. in-memory performance}
+\subsection{Out-of-core versus in-memory performance}
 %\vspace{-4pt}
-\para{Out-of-core versus in-memory performance}
-We further compare the in-memory and external-memory performance of FlashMatrix.
+We further compare the in-memory and external-memory performance of FlashR.
 %thoroughly with different datasets and different parameters. 
 We run the first three algorithms on random-65M matrices
 with the number of columns varying from 8 to 512. We run k-means
@@ -309,7 +304,7 @@ and GMM on the Friendster-32 matrix and vary the number of clusters from 2 to 64
 		\footnotesize
 		\includegraphics{FlashMatrix_figs/IM-vs-EM-stat.eps}
 		\includegraphics{FlashMatrix_figs/IM-vs-EM-clust.eps}
-		\caption{The performance on SSDs of FlashMatrix out-of-core  (FM-EM)
+		\caption{The performance on SSDs of FlashR out-of-core  (FM-EM)
       normalized to in-memory (FM-IM) on random-65M 
       while varying the number of columns (top) and
        varying the number of clusters (bottom).}
@@ -361,17 +356,16 @@ The compute bound can be realized on few features or clusters for an I/O through
 %\end{figure}
 
 %\vspace{-8pt}
-%\subsection{Effectiveness of optimizations}
+\subsection{Effectiveness of optimizations}
 %\vspace{-4pt}
-\para{Effectiveness of optimizations}
-We illustrate the effectiveness of our memory optimizations in FlashMatrix.
+We illustrate the effectiveness of our memory optimizations in FlashR.
 We focus on two main optimizations: matrix operation fusion in main memory
 to reduce data movement between SSDs and main memory (mem-fuse), and matrix
 operation fusion in CPU cache to reduce data movement between main memory and
 CPU cache (cache-fuse).
 
 Both optimizations have significant performance improvement on all
-algorithms when FlashMatrix runs on SSDs (Figure \ref{perf:em_opts}).
+algorithms when FlashR runs on SSDs (Figure \ref{perf:em_opts}).
 Operation fusion in main memory (mem-fuse) achieves
 substantial performance improvement in most algorithms, even in GMM,
 which has the highest asymptotic computation complexity. 
@@ -397,7 +391,7 @@ I/O has been optimized.
 		\includegraphics{FlashMatrix_figs/opts-EM.eps}
 		\vspace{-10pt}
 		\caption{The effectiveness of optimizations on different algorithms
-		running on SSDs. The optimizations are applied to FlashMatrix
+		running on SSDs. The optimizations are applied to FlashR
 		incrementally.}
 		\label{perf:em_opts}
 	\end{center}
