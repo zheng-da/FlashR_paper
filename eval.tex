@@ -132,8 +132,6 @@ parallel machine with 48 CPU cores. In addition, we run FlashR in the Amazon
 cloud and compare its speed in a single EC2 instance with Spark MLlib in
 a cluster.
 
-\subsubsection{A large parallel machine}
-
 In this section, we compare the R code of the machine learning algorithms
 in FlashR with the implementations in H2O and Spark MLlib.
 We give H2O and MLlib a large heap size (500GB) to ensure that all data are
@@ -147,19 +145,31 @@ we use 48 threads for all frameworks.
   \vspace{-5pt}
 	\centering
 	\footnotesize
-	\includegraphics{FlashMatrix_figs/FlashR-vs-dist.eps}
+	\begin{subfigure}{.5\textwidth}
+		\includegraphics{FlashMatrix_figs/FlashR-vs-dist.eps}
+		\label{perf:para}
+		\caption{In a large parallel machine with 48 CPU cores.}
+	\end{subfigure}
+
+	\vspace{3pt}
+	\begin{subfigure}{.5\textwidth}
+		\includegraphics{FlashMatrix_figs/FlashR-vs-dist-EC2.eps}
+		\label{perf:cloud}
+		\caption{In the Amazon cloud. FlashR-IM and FlashR-EM run on one
+			EC2 i2.8xlarge instance (16 CPU cores) and Spark MLlib runs
+		on a cluster of four EC2 c4.8xlarge instances (72 CPU cores).}
+	\end{subfigure}
 	\vspace{-8pt}
 	\caption{The normalized runtime of FlashR in memory (FlashR-IM) and
-	on SSDs (FlashR-EM) compared with H2O and Spark MLlib on a parallel machine
-	with 48 CPU cores. Correlation is not available in H2O. We run k-means on
-	the PageGraph-32ev-sub dataset and all other algorithms on the Criteo-sub
-	dataset.}
+	on SSDs (FlashR-EM) compared with H2O and Spark MLlib. Correlation is not
+	available in H2O. We run k-means on the PageGraph-32ev-sub dataset and
+	all other algorithms on the Criteo-sub dataset.}
 	\label{perf:rt}
   \vspace{-10pt}
 \end{figure}
 
 FlashR outperforms H2O and Spark MLlib significantly on all algorithms
-(Figure \ref{perf:rt}) in the large parallel machine with 48 CPU cores.
+(Figure \ref{perf:para}) in the large parallel machine with 48 CPU cores.
 FlashR running in memory achieves 3 to 10 times performance gain when compared
 with MLlib, and 2.5 to 7 times performance gain when compared with H2O.
 When running on SSDs, FlashR achieves at least half the speed of running in
@@ -175,6 +185,17 @@ MLlib materializes operations such as aggregation separately. In contrast,
 FlashR fuses matrix operations and performs two-level partitioning to
 minimize data movement in the memory hierarchy, and keeps data in the local
 memory to achieve high memory bandwidth.
+
+We further evaluate the speed of FlashR on Amazon EC2 cloud and compare it with
+Spark MLlib on an EC2 cluster (Figure \ref{perf:cloud}). We run FlashR on
+the largest storage-optimized
+EC2 instance (i2.8xlarge), which has 16 CPU cores, 244GB RAM and 6.4TB SSD storage,
+and run Spark MLlib on the largest compute-optimized EC2 instances (c4.8xlarge),
+each of which has 18 CPU cores, 60GB RAM and is connected with 10Gbps network.
+Spark MLlib needs at least 4 c4.8xlarge instances to process the datasets
+(PageGraph-32ev-sub and Criteo-sub).
+Even though Spark MLlib has 4.5 as much computation power as FlashR, FlashR
+still matches the speed of Spark MLlib and even outperform it.
 
 \begin{figure}[b]
   \vspace{-10pt}
@@ -201,33 +222,6 @@ computation, the speed gap between FlashR and Revolution R gets larger when
 computation gets more complex. Even though matrix multiplication
 is the most computation-intensive operation in an algorithm, it is insufficient
 to only paralleize matrix multiplication to achieve high efficiency.
-
-\subsubsection{In the cloud}
-
-We further evaluate the speed of FlashR on Amazon EC2 cloud and compare it with
-Spark MLlib on an EC2 cluster. We run FlashR on the largest storage-optimized
-EC2 instance (i2.8xlarge), which has 16 CPU cores, 244GB RAM and 6.4TB SSD storage,
-and run Spark MLlib on the largest compute-optimized EC2 instances (c4.8xlarge),
-each of which has 18 CPU cores, 60GB RAM and is connected with 10Gbps network.
-Spark MLlib needs at least 4 c4.8xlarge instances to process the datasets
-(PageGraph-32ev-sub and Criteo-sub).
-Even though Spark MLlib has 4.5 as much computation power as FlashR, FlashR
-still matches the speed of Spark MLlib and even outperform it.
-
-\begin{figure}
-  \vspace{-5pt}
-	\centering
-	\footnotesize
-	\includegraphics{FlashMatrix_figs/FlashR-vs-dist-EC2.eps}
-	\vspace{-8pt}
-	\caption{The normalized runtime of FlashR in memory (FlashR-IM) and
-	on SSDs (FlashR-EM) on one EC2 i2.8xlarge instance (16 CPU cores) compared
-	with Spark MLlib on a cluster of four EC2 c4.8xlarge instances (72 CPU cores).
-	We run k-means on the PageGraph-32ev-sub dataset and all other algorithms
-	on the Criteo-sub dataset.}
-	\label{perf:rt}
-  \vspace{-10pt}
-\end{figure}
 
 \subsection{Scalability}
 
@@ -291,40 +285,39 @@ memory consumption and streams data from SSDs for computation.
 %very high scalability.
 
 %\vspace{-8pt}
-\subsection{Out-of-core versus in-memory performance}
+\subsection{Computation complexity versus I/O complexity}
 %\vspace{-4pt}
-We further compare the in-memory and external-memory performance of FlashR.
-%thoroughly with different datasets and different parameters. 
-We run the first three algorithms on random-65M matrices
-with the number of columns varying from 8 to 512. We run k-means
-and GMM on the Friendster-32 matrix and vary the number of clusters from 2 to 64.
+We further compare the speed of FlashR in memory and in external memory
+for algorithms with different computation and I/O complexities.
+We pick three algorithms from Table \ref{tbl:algs}: \textit{(i)} Naive Bayes,
+whose has the same computation complexity as its I/O complexity, \textit{(ii)}
+correlation, whose computation complexity grows quadratically on $p$ while
+its I/O complexity grows linear on $p$, \textit{(iii)} k-means, whose computation
+complexity grows linearly with $k$ while its I/O complexity does not have
+the factor. We run the first two algorithms on datasets with $n=100M$ and $p$
+varying from 8 to 512. We run k-means on a dataset with $p=100M$ and $p=32$
+and vary the number of clusters from 2 to 64.
 
 \begin{figure}[t]
 	\begin{center}
 		\footnotesize
 		\includegraphics{FlashMatrix_figs/IM-vs-EM-stat.eps}
 		\includegraphics{FlashMatrix_figs/IM-vs-EM-clust.eps}
-		\caption{The performance on SSDs of FlashR out-of-core  (FM-EM)
-      normalized to in-memory (FM-IM) on random-65M 
-      while varying the number of columns (top) and
-       varying the number of clusters (bottom).}
-%normalized by its performance
-%			in memory. 
-%      As the number of columns increases, performance out-of-core
-%			approaches in-memory performance.}
+		\caption{The relative runtime of FlashR in memory versus on SSDs
+		on a dataset with $n=100M$ while varying $p$ (the number of features)
+		on the left and varying $k$ (the number of clusters) on the right.
+		\dz{replace PCA with Naive Bayes.}}
 		\label{perf:stat}
 	\end{center}
   \vspace{-15pt}
 \end{figure}
 
-As the number of features or clusters increases,
-the performance gap between in-memory and external-memory execution
-narrows and the external-memory performance approaches 
-in-memory performance for all algorithms but Summary (Figure \ref{perf:stat}).
-% and \ref{perf:clust}).
-This observation conforms with the computation and I/O complexity of
-the algorithms in Table \ref{tbl:algs}.
-For Correlation, SVD, k-means, and GMM, the number of clusters or features causes computation
+As the number of features or clusters increases, the performance gap between
+in-memory and external-memory execution narrows and the external-memory
+performance approaches in-memory performance for correlation and k-means
+but not Naive Bayes (Figure \ref{perf:stat}). This observation conforms with
+the computation and I/O complexity of the algorithms in Table \ref{tbl:algs}.
+For correlation and k-means, the number of clusters or features causes computation
 to grow more quickly than the I/O, driving performance toward a compute bound.
 % When the number of features
 %gets larger, the computation of matrix multiplication in
@@ -355,9 +348,8 @@ The compute bound can be realized on few features or clusters for an I/O through
 %	\end{center}
 %\end{figure}
 
-%\vspace{-8pt}
+\begin{comment}
 \subsection{Effectiveness of optimizations}
-%\vspace{-4pt}
 We illustrate the effectiveness of our memory optimizations in FlashR.
 We focus on two main optimizations: matrix operation fusion in main memory
 to reduce data movement between SSDs and main memory (mem-fuse), and matrix
@@ -397,3 +389,4 @@ I/O has been optimized.
 	\end{center}
   \vspace{-15pt}
 \end{figure}
+\end{comment}

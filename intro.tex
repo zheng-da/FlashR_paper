@@ -6,8 +6,15 @@ learning tools that are simple and efficient.
 Simple tools need to be programmable, interactive, and extensible, 
 allowing scientists to encode and deploy complex algorithms. 
 Successful examples include R, SciPy, and Matlab.  Efficiency dictates that
-tools should leverage modern computer architectures, including scalable parallelism,
-high-speed networking, and fast I/O from memory and solid-state storage.
+tools should leverage modern computer architectures, including scalable
+parallelism, high-speed networking, and fast I/O from memory and solid-state
+storage. Unfortunately, the current approach for taking advantage of the full
+capacity of modern parallel systems often uses a low-level programming
+language such as C or FORTRAN and parallelizes computation with MPI or OpenMP.
+This approach is time-consuming and error-prone, and requires machine learning
+researchers to have expert knowledge in the parallel programming models.
+ 
+% How have others addressed the problem?
 
 While conventional wisdom addresses large-scale data analysis with clusters
 \cite{mapreduce,spark,h2o,systemml,tensorflow,petuum}, recent works
@@ -22,14 +29,13 @@ these findings to matrix operations using SSDs. Matrices are the most prevalent
 and intuitive representation for machine learning and data analysis tasks.
 \dz{we need to say more about the advantage of a single-machine solution
 compare with cluster solutions.}
- 
-% How have others addressed the problem?
 
 % Why is it hard?
 
 % What is the nature of your solution?
-We present FlashR, an interactive R-based programming framework that uses
-the existing R programming interface and executes R code in parallel and
+To provide a simple programming language for efficient and scalable machine
+learning, we present FlashR, an interactive R-based programming framework that
+executes R code in parallel and
 out of core automatically for large-scale data analysis. FlashR stores large
 vectors and matrices on SSDs and overrides many R functions in the R
 \textit{base} package for these external-memory vectors and matrices.
@@ -45,10 +51,6 @@ problems on a single thick node, which can prevent the complexity,
 expense, and power consumption of distributed systems when they are
 not strictly necessary \cite{hotos}.
 
-%This design choice conforms with a current trend of
-%hardware design that scales up a single machine for high performance computing
-%\cite{Ang14}.  It is also supported by 
-
 %These machines typically have multiple processors with many CPU cores and
 %a large amount of memory. They are also equipped with fast flash
 %memory such as solid-state drives (SSDs) to further extend memory capacity.
@@ -56,13 +58,12 @@ not strictly necessary \cite{hotos}.
 
 % Why is it new/different/special?
 
-We overcome many challenges to move data from SSDs to CPU efficiently for
-matrix computations,
+To utilize the full capacity of a large parallel machine, we need to overcome
+many technical challenges to move data from SSDs to CPU efficiently for matrix
+computations,
 notably the large performance disparities between CPU and memory and between
 memory and SSDs. The ``memory gap'' \cite{Wilkes01} continues to grow, with 
 the difference between CPU and DRAM performance increasing exponentially. 
-% speed disparity of CPU and DRAM has increased exponentially
-%over the past decades \cite{Wilkes01}. 
 There are also performance differences between
 local and remote memory in a non-uniform memory architecture (NUMA), which are prevalent
 in modern multiprocessor machines. 
@@ -84,20 +85,16 @@ RAM outperforms SSDs by an order of magnitude for both latency and throughput.
 %the performance of the data analysis tasks is usually limited by memory
 %bandwidth instead of computing power.
 
-To achieve in-memory performance for out-of-core matrix operations,
 FlashR evaluates expressions lazily and fuses operations aggressively
 in a single parallel execution job to minimize data movement. FlashR
 builds a directed acyclic graph (DAG) to represent a sequence of matrix
 operations and grows a DAG as much as possible to increase the ratio of
 computation to I/O. When evaluating the computation in a DAG, FlashR
-performs two levels of matrix partitioning to improve data utilization in
-the memory hierarchy and reduce data movement.
-FlashR by default materializes
+performs two levels of matrix partitioning to reduce data movement in
+the memory hierarchy. FlashR by default materializes
 only the output matrices (leaf nodes) of a DAG and keeps materialized results in
 memory in order to minimize data written to SSDs. FlashR streams
 data from SSDs to maximize I/O throughput for most of computation tasks.
-
-%One of the important questions is how SSDs make the design different.
 
 % What are it's key features?
 
@@ -118,3 +115,4 @@ parallel and scalable implementations of machine learning algorithms; it also
 offers new
 design possibilities for data analysis clusters, replacing memory with larger
 and cheaper SSDs and processing bigger problems on fewer nodes.
+FlashR is released as an open-source project at http://flashx.io/.

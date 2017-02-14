@@ -143,6 +143,8 @@ includes creating vectors and matrices, loading matrices from external source,
 interacting with the R framework, reshape a matrix, access rows and columns of
 a matrix and so on.
 
+\dz{Describe more on data access in matrices.}
+
 \begin{table}
 \begin{center}
 \footnotesize
@@ -193,9 +195,7 @@ or a large number of features with a few samples (wide-and-short).
 We use similar strategies to optimize wide-and-short matrices. FlashR
 supports both row-major and column-major layouts (Figure \ref{fig:den_mat}(a)
 and (b)), which allows FlashR to transpose matrices without a copy.
-\dz{we may need give more explanation on data storage for matrices.}
-When a TAS matrix is stored on SSDs, it is stored as an SAFS file
-\cite{safs}. We store vectors as a one-column TAS matrix.
+We store vectors as a one-column TAS matrix.
 
 \begin{figure}
 	\centering
@@ -213,6 +213,30 @@ I/O-partitions have the same number of rows regardless of
 the number of columns in a TAS matrix. The number of rows in
 an I/O-partition is always $2^i$. This produces column-major TAS
 matrices whose data are well aligned in memory to help CPU vectorization.
+
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.4]{FlashMatrix_figs/matrix_mem.pdf}
+	\caption{The data storage of a matrix in memory.}
+	\label{fig:mem_store}
+  \vspace{-12pt}
+\end{figure}
+
+When a TAS matrix is stored in memory, FlashR stores its I/O partitions in
+fixed-size memory chunks across NUMA nodes (Figure \ref{fig:mem_store}).
+All TAS matrices are distributed across NUMA nodes in the same fashion. 
+As such, FlashR schedules threads to perform computation on I/O partitions in
+the local memory to increase the memory bandwidth. I/O partitions from
+different matrices may have different sizes. By storing I/O partitions in
+fixed-size memory chunks, FlashR can easily recycle memory chunks to reduce
+memory allocation overhead.
+
+When a TAS matrix is stored on SSDs, it is stored as an SAFS file \cite{safs}.
+For such a matrix, an I/O partition is accessed in a single I/O request.
+We rely on SAFS to map the data of a matrix evenly to SSDs. SAFS allows
+applications to specify the data mapping strategies. By default, we use
+a hash function to map data to SSDs to fully utilize the bandwidth of all SSDs
+even if we access only a subset of columns from a TAS matrix.
 
 \subsubsection{Block matrices} \label{sec:block_mat}
 FlashR represents a tall matrix as a \textit{block matrix} 
@@ -432,7 +456,7 @@ Some of the algorithms can be implemented with R \textit{base} functions and
 can run in the existing R framework without any modification.
 
 K-means is a commonly used clustering algorithm and we use this algorithm
-to illustrate programming with GenOps (Figure \ref{fig:kmeans}(a)).
+to illustrate programming with GenOps (Figure \ref{fig:kmeans}).
 It first uses \textit{inner.prod} to
 compute the Euclidean distance between every data point and every cluster center
 and outputs a matrix with each row representing the distances to centers.  
@@ -464,8 +488,8 @@ kmeans.iter <- function(X,C) {
 	list(C=C,I=I)
 }
 	\end{minted}
-	\label{fig:kmeans}
 	\caption{The FlashR implementation for an iteration of k-means.}
+	\label{fig:kmeans}
 \end{figure}
 
 Logistic regression is a commonly used classification algorithm.

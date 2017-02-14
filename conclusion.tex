@@ -1,8 +1,7 @@
-We present FlashR, a matrix-oriented programming framework for general
-machine learning and data analysis. FlashR scales to large datasets by
-utilizing commodity SSDs. It provides a high-level functional programming
-interface for users to write machine learning and data analysis algorithms
-in R and executes the R code in parallel and out of core automatically.
+We present FlashR, a matrix-oriented programming framework that executes
+R-programmed machine learning algorithms in parallel and out of core
+automatically. FlashR scales to large datasets by utilizing commodity SSDs.
+
 %For simplicity and generality, the core of FlashR only implements
 %a small number of generalized matrix operators (GenOps). It reimplements
 %many matrix operations in R \textit{base} package with GenOps to provide
@@ -11,21 +10,13 @@ in R and executes the R code in parallel and out of core automatically.
 %overhead of function calls and fuses matrix operations to reduce data movement
 %between CPU and SSDs.
 
-We demonstrate that the matrix-oriented functional programming interface in
-FlashR achieves high performance and scalability for many machine learning and 
-statistics algorithms.  R implementations executed in FlashR outperforms
-Spark MLlib on all inputs by a factor of 3 to 10, using the same shared memory hardware.
-Furthermore, executing R programs with a single thread in FlashR is more
-efficient than optimized C and Fortran implementations of native R packages.
-
-%We implement multiple statistics and
-%machine learning algorithms in R and compare their performance with Spark
-%MLlib, a highly-optimized parallel machine learning library, on large datasets.
-%The R implementations executed in FlashR significantly outperforms
-%the implementations in Spark MLlib. We further demonstrate that
-%the R implementations running FlashR with a single thread can outperform
-%the C and FORTRAN implementations in the R framework. In addition, FlashR
-%also achieves linear speedup with multithreading in all of these algorithms.
+We demonstrate that with sufficient system-level optimizations in the backend,
+FlashR powers the R programming interface to achieve high performance and scalability
+for many machine learning algorithms. R implementations executed in FlashR
+outperforms H2O and Spark MLlib on all algorithms by a large factor, using
+the same shared memory hardware. FlashR scales to datasets with billions of
+data points easily with negligible amounts of memory and completes all
+algorithms within a reasonable amount of time.
 
 Even though SSDs are still an order of magnitude slower than DRAM, the external-memory
 execution of many machine learning and statistics algorithms in FlashR can achieve performance
@@ -35,9 +26,13 @@ NUMA machine.
 %As such, the external-memory execution also benefits from many in-memory optimizations.
 
 FlashR simplifies the programming effort of writing
-parallel and out-of-core implementations for large-scale data analysis. It
+parallel and out-of-core implementations for large-scale machine learning. It
 provides domain experts a familiar programming environment for implementing
 their algorithms. It also significantly
 increases productivity of writing an efficient implementation with performance
 comparable to low-level programming languages. We believe FlashR opens
 a new opportunity for large-scale data analysis.
+
+%We should explore randomized algorithms to reduce computation complexity
+%and/or I/O complexity to further accelerate machine learning algorithms
+%in a single machine.

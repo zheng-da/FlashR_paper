@@ -1,7 +1,6 @@
 Basic Linear Algebra Subprograms (BLAS) defines a small set of vector and
 matrix operations for shared memory. There exist a few highly-optimized BLAS
 implementations, such as MKL \cite{mkl} and ATLAS \cite{atlas}. 
-
 Distributed-memory libraries \cite{trilinos, petsc, elemental}
 build on BLAS and distribute computation with MPI.
 BLAS provides a limited set of matrix operations, which requires
@@ -10,45 +9,27 @@ users to manually parallelize the remaining matrix operations.
 %represent common data access patterns. 
 %Each GenOp covers a large number of matrix operations.
 
-Most prior work on disk-based matrix computation focus on I/O complexity
-and efficient I/O access~\cite{Toledo99, Quintana-Orti12}.
-Optimizing I/O alone is insufficient.
-To achieve performance comparable to state-of-the-art in-memory implementations,
-it is essential to move data efficiently both from
-SSDs to memory and from memory to CPU caches.
-
 Recent works on out-of-core linear algebra \cite{Toledo99, Quintana-Orti12}
 redesign algorithms to achieve efficient I/O access and reduce I/O
 complexity. These works are orthogonal to our work and can be adopted.
-% to achieve in-memory performance for these linear algebra routines.
+Optimizing I/O
+alone is insufficient. To achieve performance comparable to state-of-the-art
+in-memory implementations, it is essential to move data efficiently both from
+SSDs to memory and from memory to CPU caches.
 
-%There are many distributed data processing frameworks.
-%MapReduce \cite{mapreduce} 
-%provides a single primitive that takes two user-defined functions. 
-% RB not true
-%written in low-level programming languages such as C/C++ and Java. 
-For matrices, MapReduce \cite{mapreduce} algorithms are inefficient because 
+MapReduce \cite{mapreduce} has been used for parallelizing machine learning
+algorithms \cite{Chu06}. Even though MapReduce simplifies parallel programming,
+it still requires low-level programming.
+As such, frameworks are built on top of MapReduce to reduce programming complexity.
+For example, SystemML \cite{systemml} develops an R-like script language for
+machine learning. MapReduce is inefficient for matrix operations because
 its I/O streaming primitives do not match matrix data access patterns.
-Dryad \cite{dryad} and Naiad \cite{naiad} provide more primitives 
-that support various data access patterns more efficiently.
 
-Frameworks built on top of distributed engines reduce programming complexity.
-%Due to complexity of programming in the distributed execution engines, many
-%programming frameworks have been developed on top of the distributed execution
-%engines. 
-Pig Latin \cite{pig} and FlumeJava \cite{flumejava}
-provide high-level operations for MapReduce.
-SystemML \cite{systemml} has a focus on machine learning. 
-DryadLINQ \cite{dryadlinq} expresses data analysis tasks on Dryad. 
-%Performance is determined by the underlying distributed execution engines.
-
-The Spark \cite{spark} distributed, in-memory framework
-provides a highly-optimized machine learning library (MLlib, \cite{mllib}).
+The Spark \cite{spark} distributed, in-memory framework provides more primitives
+for efficient computation and provides a highly-optimized machine learning library
+(MLlib, \cite{mllib}).
 Spark also provides an R programming interface called SparkR.  
 We compare FlashR with MLlib. Spark is the most efficient distributed engine.
-%, which
-%focuses on computation on data frames, a table-like data structure in R.
-% DZTODO  what are data frames?
 
 Efforts to parallelize array programming include
 Revolution R \cite{rro} and Matlab's parallel computing toolbox, which
@@ -58,3 +39,5 @@ Presto \cite{presto} extends R to sparse matrix operations in distributed memory
 analysis. Ching et. al \cite{Ching12} parallelizes APL code by
 compiling it to C. Accelerator \cite{accelerator} compiles
 data-parallel operations on the fly to execute programs on a GPU.
+
+\dz{OptiML \cite{optiml}}
