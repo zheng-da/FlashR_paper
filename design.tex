@@ -300,8 +300,8 @@ The key to achieve efficiency is to reduce data movement in memory hierarchy
 when evaluating matrix operations. FlashR lazily evaluates most matrix
 operations, especially the ones that do not contain heavy computation,
 and constructs one or more directed-acyclic graphs (DAGs) connecting GenOps and
-matrices. Figure \ref{fig:kmeans} (b) shows the DAG for k-means. Then it
-performs all computation in a DAG together, which creates opportunities
+matrices. Figure \ref{fig:dag} (a) shows the DAG for an iteration of k-means.
+Then it performs all computation in a DAG together, which creates opportunities
 of fusing matrix operations to reduce data movement in the memory hierarchy.
 This data-driven, lazy evaluation allows out-of-core problems 
 to approach in-memory efficiency.
@@ -316,7 +316,7 @@ small matrices.
 
 FlashR grows each DAG as large as possible, by allowing virtual matrices
 of different shapes in a DAG, to increase the ratio of computation to I/O
-(Figure \ref{fig:mater}). To simplify evaluation and data flow, 
+(Figure \ref{fig:dag}). To simplify evaluation and data flow, 
 all virtual matrices in internal matrix nodes need to have the same
 \textit{partition dimension} size. \textit{Sink matrices} are edge nodes
 in the DAG because they have different \textit{partition dimension} sizes
@@ -332,8 +332,7 @@ of a sink matrix triggers materialization implicitly. Once
 the materialization on a virtual matrix is triggered, FlashR materializes
 the entire DAG where the virtual matrix connects to.
 
-By default,
-FlashR saves the computation results of all sink matrices of
+By default, FlashR saves the computation results of all sink matrices of
 the DAG in memory and discard the data of non-sink matrices on the fly.
 Because sink matrices tend to be small, this materialization
 rule leads to small memory consumption.
@@ -345,16 +344,22 @@ or on SSDs during computation, similar to caching an RDD in Spark.
 
 \begin{figure}
 	\centering
-	\includegraphics[scale=0.6]{FlashMatrix_figs/materialize.pdf}
+	\includegraphics[scale=0.6]{FlashMatrix_figs/kmeans.pdf}
   \vspace{-4pt}
-	\caption{Materializing matrix partitions in a DAG.}
-	\label{fig:mater}
+	\caption{(a) Matrix operations are lazily evaluated to form
+	a directed-acyclic graph (DAG); (b) a DAG is materialized with
+	two levels of partitioning: matrix X on SSDs is first partitioned
+	and is read to memory in I/O partitions; an I/O partition is further
+	split into processor cache (Pcache) partitions; once a Pcache partition
+	is materialized, it is passed to the next GenOp for further computation
+	to reduce CPU cache misses. }
+	\label{fig:dag}
   \vspace{-8pt}
 \end{figure}
 
 During DAG materialization, FlashR partitions matrices in a DAG and
-materializes partitions separately
-(Figure \ref{fig:mater}). This is possible because all matrices, except
+materializes partitions separately (Figure \ref{fig:dag} (b)).
+This is possible because all matrices, except
 sink matrices, share the same partition dimension. 
 A partition $i$ of a virtual matrix requires data only from partitions
 $i$ of the parent matrices.  All DAG operations in a partition are processed by 
@@ -363,20 +368,13 @@ When materializing a sink matrix, each thread computes partial
 aggregation results on the partitions assigned to the thread. 
 Then, FlashR merges per-thread partial results to construct the output.
 
-FlashR uses two-level partitioning on dense matrices to reduce data
-movement between SSDs and CPU. It assigns I/O-partitions to a thread as
-a parallel task.
-%A small partition size (\rb{How?}) balances the overhead of accessing a partition,
-%computation, skew, and memory consumption. 
+FlashR uses two-level partitioning on dense matrices to reduce data movement
+between SSDs and CPU (Figure \ref{fig:dag} (b)). It reads data on SSDs in
+I/O partitions and assigns these partitions to a thread as a parallel task.
 It further splits I/O-partitions into processor cache (Pcache)
 partitions at run time.  Each thread materializes one Pcache-partition
 at a time. Matrix operations run on TAS matrices or block matrices that are
 divided into TAS matrices so that a Pcache-partition fits in the CPU L1/L2 cache.
-Figure \ref{fig:mater} shows recursive materialization.
-Matrix \textit{CNT} triggers materialization of
-Pcache-partitions of \textit{I} and \textit{one}, which in turn triggers 
-partitions of \textit{D}, and so on. Eventually, the process triggers data access
-to an I/O-partition of input matrix \textit{X} from SSDs. 
 
 FlashR takes efforts to increase hits in the CPU cache, which 
 significantly reduces data movement between CPU and memory.
@@ -446,24 +444,18 @@ the number of data points in each cluster and compute the mean of each cluster.
 \begin{figure}
 \centering
 	\footnotesize
-	\begin{subfigure}{.25\textwidth}
-	\vspace{20pt}
-	\centering
 	\begin{minted}[mathescape,
 	fontsize=\small,
 	frame=single,
 	tabsize=2,
 	]{R}
-# X is the data matrix.
-# C is cluster centers.
+# X is the data matrix. C is cluster centers.
 kmeans.iter <- function(X,C) {
 	# Compute pair-wise distance.
-	D<-inner.prod(X,t(C),
-			"euclidean","+")
+	D<-inner.prod(X,t(C), "euclidean","+")
 	# Find the closest center.
 	I<-agg.row(D,"which.min")
-	# Count the number of data
-	# points in each cluster.
+	# Count the number of data points in each cluster.
 	one<-rep.int(1,nrow(I))
 	CNT<-groupby(one,I,"+")
 	# Compute the new centers.
@@ -472,20 +464,8 @@ kmeans.iter <- function(X,C) {
 	list(C=C,I=I)
 }
 	\end{minted}
-	\label{fig:code}
-	\caption{R code.}
-	\end{subfigure}%
-	\begin{subfigure}{.30\textwidth}
-	\centering
-	\vspace{25pt}
-	\includegraphics[scale=0.6]{FlashMatrix_figs/DAG.pdf}
-	\label{fig:dag}
-	\caption{DAG}
-	\end{subfigure}
-  \vspace{-12pt}
-	\caption{k-means implemented with GenOps.}
 	\label{fig:kmeans}
-  \vspace{-8pt}
+	\caption{The FlashR implementation for an iteration of k-means.}
 \end{figure}
 
 Logistic regression is a commonly used classification algorithm.
@@ -494,7 +474,7 @@ We implement this algorithm solely with R \textit{base} functions. Figure
 labels. It uses steepest gradient descent with line search to minimize
 the \textit{cost} function. This example does not have a regularization term
 in the cost function.
-\begin{figure}[H]
+\begin{figure}
 \begin{minted}[mathescape,
 fontsize=\small,
 frame=single,
@@ -531,7 +511,7 @@ PageRank is a well-known algorithm for graph analysis. The matrix formulation
 shown below operates on the adjacency matrix of a graph. It uses a power
 method and perform a sequence of sparse matrix multiplication until
 the algorithm converges.
-\begin{figure}[H]
+\begin{figure}
 \begin{minted}[mathescape,
 fontsize=\small,
 frame=single,
