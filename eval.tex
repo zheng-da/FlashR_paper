@@ -254,10 +254,8 @@ k-means & $1110.82$ & $28$ \\
 \normalsize
 \end{center}
 \caption{The runtime and memory consumption of FlashR on the billion-scale
-	datasets on the 48 CPU core machine.
-	The runtime of logistic regression and k-means is measured when the two
-	algorithms converge. Logistic regression takes 11 iterations and k-means
-	takes 14 iterations to converge.}
+	datasets on the 48 CPU core machine. The runtime of logistic regression
+	and k-means is measured when the two algorithms converge.}
 \label{tbl:scale}
 \end{table}
 
@@ -305,8 +303,7 @@ and vary the number of clusters from 2 to 64.
 		\includegraphics{FlashMatrix_figs/IM-vs-EM-clust.eps}
 		\caption{The relative runtime of FlashR in memory versus on SSDs
 		on a dataset with $n=100M$ while varying $p$ (the number of features)
-		on the left and varying $k$ (the number of clusters) on the right.
-		\dz{replace PCA with Naive Bayes.}}
+		on the left and varying $k$ (the number of clusters) on the right.}
 		\label{perf:stat}
 	\end{center}
   \vspace{-15pt}
@@ -329,9 +326,9 @@ to grow more quickly than the I/O, driving performance toward a compute bound.
 %these algorithms are dominated by their CPU computation as the number
 %of clusters gets larger. 
 The compute bound can be realized on few features or clusters for an I/O throughput of 10GB/s.
-%Given an I/O throughput of 10 GB/s, the algorithms
-%do not require many features or clusters to have their external-memory
-%performance close to their in-memory performance.
+Because most of the machine learning algorithms in Table \ref{tbl:algs} has
+computation complexity grow quadratically on $p$, we expect FlashR on SSDs to
+achieve the same speed as in memory on datasets with a higher dimension size.
 
 %\begin{figure}
 %	\begin{center}
