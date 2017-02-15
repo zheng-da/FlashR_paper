@@ -26,22 +26,21 @@ rely on FlashR to execute them in parallel and out of core.
 
 \noindent \textbf{Principal Component Analysis (PCA)} computes uncorrelated
 variables from a large dataset. PCA is commonly used for dimension reduction
-in many data analysis. We compute PCA by computing eigenvalues on the Gramian
+in many data analysis tasks. We compute PCA by computing eigenvalues on the Gramian
 matrix $A^T A$ of the input matrix $A$.
 
 \noindent \textbf{Naive Bayes} is a classifier that applies Bayes' theorem
-with the "naive" assumption of independence between every pair of features.
+with the ``naive'' assumption of independence between every pair of features.
 Our implementation assumes data follow the normal distribution.
 
 \noindent \textbf{Logistic regression} is a classifier that applies
 the sigmoid functions on the linear model. We use the Newton-CG algorithm
 to optimize logistic regression.
 
-\noindent \textbf{K-means \cite{kmeans}} is a clustering algorithm that
-partitions data points into $k$ clusters so that each cluster has minimal
-mean of distances between the data points and the cluster center. 
-In the experiments, we run k-means to split a dataset into 10 clusters
-by default.
+\noindent \textbf{K-means} is an iterative clustering algorithm that
+partitions data points to $k$ clusters. Its R implementation is illustrated
+in Figure \ref{fig:kmeans}. In the experiments, we run k-means to split
+a dataset into 10 clusters by default.
 
 \noindent \textbf{Multivariate Normal Distribution (mvrnorm)} generates
 samples from the specified multivariate normal distribution. We use
@@ -127,19 +126,14 @@ on the first two days, which is about one tenth of the whole dataset.
 \subsection{Comparative performance}
 %\vspace{-4pt}
 We evaluate FlashR against H2O \cite{h2o} and Spark MLlib \cite{mllib} as well
-as Revolution R Open \cite{rro}. We compare these frameworks in a large
-parallel machine with 48 CPU cores. In addition, we run FlashR in the Amazon
-cloud and compare its speed in a single EC2 instance with Spark MLlib in
-a cluster.
-
-In this section, we compare the R code of the machine learning algorithms
-in FlashR with the implementations in H2O and Spark MLlib.
-We give H2O and MLlib a large heap size (500GB) to ensure that all data are
-cached in memory. We run logistic regression in H2O and MLlib with Limited-memory
-Broyden-Fletcher-Goldfarb-Shanno algorithm (LBFGS) \cite{lbfgs} to get fast
-convergence. We also use FlashR to parallelize some functions in the R
-MASS package and compare their speed with Revolution R. In all experiments,
-we use 48 threads for all frameworks.
+as Revolution R Open \cite{rro} in a large parallel machine with 48 CPU cores
+and in the Amazon cloud. When running in the 48 CPU core machine, all frameworks
+use 48 threads and H2O and MLlib have a large heap size (500GB) to ensure that
+all data are cached in memory. When running in the cloud, we run FlashR in
+in a single i2.8xlarge instance (16 CPU cores, 244GB RAM and 6.4TB SSD storage)
+and MLlib in a cluster of four EC2 c4.8xlarge instances (72 CPU cores, 240GB RAM
+and 10Gbps network). We also use FlashR to parallelize functions (mvrnorm and LDA)
+in the R MASS package and compare their speed with Revolution R Open.
 
 \begin{figure}
   \vspace{-5pt}
@@ -147,17 +141,17 @@ we use 48 threads for all frameworks.
 	\footnotesize
 	\begin{subfigure}{.5\textwidth}
 		\includegraphics{FlashMatrix_figs/FlashR-vs-dist.eps}
-		\label{perf:para}
 		\caption{In a large parallel machine with 48 CPU cores.}
+		\label{perf:para}
 	\end{subfigure}
 
 	\vspace{3pt}
 	\begin{subfigure}{.5\textwidth}
 		\includegraphics{FlashMatrix_figs/FlashR-vs-dist-EC2.eps}
-		\label{perf:cloud}
 		\caption{In the Amazon cloud. FlashR-IM and FlashR-EM run on one
 			EC2 i2.8xlarge instance (16 CPU cores) and Spark MLlib runs
 		on a cluster of four EC2 c4.8xlarge instances (72 CPU cores).}
+		\label{perf:cloud}
 	\end{subfigure}
 	\vspace{-8pt}
 	\caption{The normalized runtime of FlashR in memory (FlashR-IM) and
@@ -173,29 +167,24 @@ FlashR outperforms H2O and Spark MLlib significantly on all algorithms
 FlashR running in memory achieves 3 to 10 times performance gain when compared
 with MLlib, and 2.5 to 7 times performance gain when compared with H2O.
 When running on SSDs, FlashR achieves at least half the speed of running in
-memory. Even though logistic regression in FlashR and the ones in H2O and MLlib
-uses different algorithms for numerical optimization, the number of iterations
-required by the optimization algorithms to converge to similar loss is fairly
-close (10 iterations for Newton-CG and 14 iterations for LBFGS), while computation
-complexity of Newton-CG is much higher than LBFGS.
-Even though most of the algorithms, especially correlation and PCA,
-relies on BLAS for matrix multiplication to achieve speed, H2O and MLlib
-implement non-BLAS operations with Java and Scala, respectively. Furthermore,
+memory. Even though logistic regression in FlashR uses Newton-CG, a much more
+computation intensive optimization algorithm than LBFGS \cite{lbfgs} used by
+H2O and MLlib (Newton-CG takes 10 iterations and LBFGS takes 14 iterations
+to converge to similar loss on the dataset), FlashR still runs almost $2-3$
+times as fast as H2O and MLlib. All implementations rely on BLAS for
+matrix multiplication. H2O and MLlib have to
+implement non-BLAS operations with Java and Scala, respectively, and
 MLlib materializes operations such as aggregation separately. In contrast,
 FlashR fuses matrix operations and performs two-level partitioning to
-minimize data movement in the memory hierarchy, and keeps data in the local
+minimize data movement in the memory hierarchy and keeps data in local
 memory to achieve high memory bandwidth.
 
 We further evaluate the speed of FlashR on Amazon EC2 cloud and compare it with
-Spark MLlib on an EC2 cluster (Figure \ref{perf:cloud}). We run FlashR on
-the largest storage-optimized
-EC2 instance (i2.8xlarge), which has 16 CPU cores, 244GB RAM and 6.4TB SSD storage,
-and run Spark MLlib on the largest compute-optimized EC2 instances (c4.8xlarge),
-each of which has 18 CPU cores, 60GB RAM and is connected with 10Gbps network.
-Spark MLlib needs at least 4 c4.8xlarge instances to process the datasets
-(PageGraph-32ev-sub and Criteo-sub).
+Spark MLlib on an EC2 cluster (Figure \ref{perf:cloud}). Spark MLlib needs
+at least 4 c4.8xlarge instances to process the datasets (PageGraph-32ev-sub
+and Criteo-sub).
 Even though Spark MLlib has 4.5 as much computation power as FlashR, FlashR
-still matches the speed of Spark MLlib and even outperform it.
+at least matches the speed of Spark MLlib and even outperform it.
 
 \begin{figure}[b]
   \vspace{-10pt}
@@ -217,9 +206,8 @@ Revolution R Open uses Intel MKL to parallelize matrix multiplication. As such,
 we only compare the two frameworks with computations that use matrix
 multiplication heavily. Both FlashR and Revolution R Open run the mvrnorm
 and LDA implementations from the MASS package. For simple matrix operations such as crossprod,
-FlashR has slightly higher speed than Revolution R Open. For more complex
-computation, the speed gap between FlashR and Revolution R gets larger when
-computation gets more complex. Even though matrix multiplication
+FlashR slightly outperforms Revolution R Open. For more complex computations,
+the speed gap between FlashR and Revolution R increases. Even though matrix multiplication
 is the most computation-intensive operation in an algorithm, it is insufficient
 to only paralleize matrix multiplication to achieve high efficiency.
 
@@ -267,8 +255,7 @@ algorithms, such as logistic regression and k-means, take about $10-20$
 iterations to converge and the total computation time is about one hour or
 less.
 
-Despite the matrix-oriented functional programming interface of FlashR,
-it scales to datasets with billions of data points easily with negligible
+FlashR scales to datasets with billions of data points easily with negligible
 amounts of memory when running out of core.
 Its scalability is bound by the capacity of SSDs. The functional programming
 interface generates a new matrix in each matrix operation, which potentially

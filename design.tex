@@ -63,8 +63,9 @@ $C=inner.prod(A, B, f1, f2)$ & $t=f1(A_{i,k}, B_{k,j})$,
 \end{tabular}
 \normalsize
 \end{center}
-\caption{Generalized operations (GenOps) in FlashR.
-$A$, $B$ and $C$ are matrices, and $c$ is a scalar.}
+\caption{Generalized operations (GenOps) in FlashR. $A$, $B$ and $C$ are
+	matrices, and $c$ is a scalar. $f$ is a user-defined function that
+	operates on elements of matrices.}
 \label{tbl:genops}
 \end{table}
 
@@ -93,11 +94,7 @@ output a matrix.
 
 \noindent \textbf{Inner product} is a generalized matrix multiplication.
 It replaces multiplication and addition in matrix multiplication with
-two functions. Because matrix multiplication is a commonly-used and
-computation-intensive operation, FlashR uses highly optimized matrix
-multiplication implementations to achieve efficiency. For example,
-FlashR uses BLAS for dense floating-point matrices and uses a customized
-matrix multiplication for sparse matrices \cite{SEM_SpMM}.
+two functions.
 
 We reimplement a large number of matrix functions in the R \textit{base}
 package with the GenOps to provide users a familar programming interface.
@@ -139,11 +136,11 @@ $C=A \%*\% B$ & $C=inner.prod(A, B, "*", "+")$ for integers; \\
 
 In addition to the computation operations, FlashR provides functions for matrix
 construction and data access in a FlashR matrix (Table \ref{tbl:utility}). This
-includes creating vectors and matrices, loading matrices from external source,
-interacting with the R framework, reshape a matrix, access rows and columns of
+includes creating vectors and matrices, loading matrices from an external source,
+interacting with the R framework, reshaping a matrix, accessing rows and columns of
 a matrix and so on.
 
-\dz{Describe more on data access in matrices.}
+%\dz{Describe more on data access in matrices.}
 
 \begin{table}
 \begin{center}
@@ -305,19 +302,18 @@ the long dimension of these matrices is much larger than the short dimension.
 FlashR supports sparse matrices and optimizes sparse matrices of different
 shapes differently.
 For large sparse matrices that arise from graphs (e.g., social networks
-and Web graphs), which has a large number of rows and columns, FlashR integrates
-with an efficient implementation that stores sparse matrices
+and Web graphs), which have a large number of rows and columns, FlashR integrates
+with our prior work \cite{SEM_SpMM} that stores sparse matrices
 in a compact format on SSDs and performs sparse matrix multiplication
 in semi-external memory, i.e., we keep the sparse matrix on SSDs and
-the dense matrix or part of the dense matrix in memory \cite{SEM_SpMM}.
+the dense matrix or part of the dense matrix in memory.
 Because many graph algorithms can be formulated in sparse matrix multiplication
-\cite{linear_algebra}, we can express these algorithms in FlashR.
-For sparse matrices with many rows and few columns or with many columns
+\cite{linear_algebra}, we can express these algorithms in FlashR. In contrast,
+for sparse matrices with many rows and few columns or with many columns
 and few rows, FlashR stores the sparse matrices with the coordinate format
 (COO). These sparse matrices can be used in sparse random projection
 \cite{sparse_proj} or to store categorial values for computation.
-The current implementation of FlashR keeps these sparse matrices in memory
-because they usually require small memory storage.
+FlashR keeps these sparse matrices in memory.
 
 \subsection{Reducing data movement}\label{sec:datamove}
 The key to achieve efficiency is to reduce data movement in memory hierarchy
@@ -332,7 +328,8 @@ to approach in-memory efficiency.
 
 \subsubsection{Directed-acyclic graphs (DAGs)} \label{dag}
 A DAG comprises a set of matrix nodes (rectangles) and computation nodes
-(ellipses). The majority of matrix nodes are virtual matrices (dashed line rectangles).
+(ellipses) (Figure \ref{fig:dag} (b)). The majority of matrix nodes are
+virtual matrices (dashed line rectangles).
 For k-means, only the input matrix \textit{X} has materialized data.
 A computation node references a GenOp and input matrices and
 may contain some immutable computation state, such as scalar variables and
@@ -352,9 +349,9 @@ FlashR allows both explicit and implicit DAG materialization to simplify
 programming while still providing the opportunities to tune the code for
 better speed. For explicit materialization, a user can invoke
 \textit{fm.materialize} to materialize a virtual matrix. Access to elements
-of a sink matrix triggers materialization implicitly. Once
-the materialization on a virtual matrix is triggered, FlashR materializes
-the entire DAG where the virtual matrix connects to.
+of a sink matrix triggers materialization implicitly. Materialization on
+a virtual matrix triggers materialization on the entire DAG where the virtual
+matrix connects to.
 
 By default, FlashR saves the computation results of all sink matrices of
 the DAG in memory and discard the data of non-sink matrices on the fly.
@@ -382,7 +379,7 @@ or on SSDs during computation, similar to caching an RDD in Spark.
 \end{figure}
 
 During DAG materialization, FlashR partitions matrices in a DAG and
-materializes partitions separately (Figure \ref{fig:dag} (b)).
+materializes partitions separately.
 This is possible because all matrices, except
 sink matrices, share the same partition dimension. 
 A partition $i$ of a virtual matrix requires data only from partitions
@@ -455,7 +452,9 @@ algorithms written in FlashR.
 Some of the algorithms can be implemented with R \textit{base} functions and
 can run in the existing R framework without any modification.
 
-K-means is a commonly used clustering algorithm and we use this algorithm
+K-means is a commonly used clustering algorithm that partitions data points
+into $k$ clusters so that each cluster has minimal mean of distances between
+the data points and the cluster center. We use this algorithm
 to illustrate programming with GenOps (Figure \ref{fig:kmeans}).
 It first uses \textit{inner.prod} to
 compute the Euclidean distance between every data point and every cluster center
@@ -532,8 +531,8 @@ steepest gradient descent in FlashR.}
 \end{figure}
 
 PageRank is a well-known algorithm for graph analysis. The matrix formulation
-shown below operates on the adjacency matrix of a graph. It uses a power
-method and perform a sequence of sparse matrix multiplication until
+(Figure \ref{pagerank}) operates on the adjacency matrix of a graph. It uses
+a power method and perform a sequence of sparse matrix multiplication until
 the algorithm converges.
 \begin{figure}
 \begin{minted}[mathescape,
@@ -560,4 +559,5 @@ pagerank <- function(graph, d=0.15, epsilon=1e-2) {
 }
 \end{minted}
 \caption{A simplified implementation of PageRank in FlashR.}
+\label{pagerank}
 \end{figure}
