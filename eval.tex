@@ -31,7 +31,7 @@ matrix $A^T A$ of the input matrix $A$.
 
 \noindent \textbf{Naive Bayes} is a classifier that applies Bayes' theorem
 with the ``naive'' assumption of independence between every pair of features.
-Our implementation assumes data follow the normal distribution.
+Our implementation assumes data follows the normal distribution.
 
 \noindent \textbf{Logistic regression} is a classifier that applies
 the sigmoid functions on the linear model. We use the Newton-CG algorithm
@@ -82,7 +82,7 @@ is the number of the features in a point, and $k$ is the number of clusters.
 \end{table}
 
 These algorithms have various ratios of computation complexity and I/O complexity
-(Table \ref{tbl:algs}) to thoroughly evaluate perforamnce of FlashR on SSDs.
+(Table \ref{tbl:algs}) to thoroughly evaluate performance of FlashR on SSDs.
 The first five algorithms require a constant number of passes over the input
 matrix. Logistic regression and K-means run iteratively and, thus, we show
 their computation and I/O complexity in a single iteration.
@@ -129,7 +129,7 @@ We evaluate FlashR against H2O \cite{h2o} and Spark MLlib \cite{mllib} as well
 as Revolution R Open \cite{rro} in a large parallel machine with 48 CPU cores
 and in the Amazon cloud. When running in the 48 CPU core machine, all frameworks
 use 48 threads and H2O and MLlib have a large heap size (500GB) to ensure that
-all data are cached in memory. When running in the cloud, we run FlashR in
+all data are cached in memory. When running in the cloud, we run FlashR
 in a single i2.8xlarge instance (16 CPU cores, 244GB RAM and 6.4TB SSD storage)
 and MLlib in a cluster of four EC2 c4.8xlarge instances (72 CPU cores, 240GB RAM
 and 10Gbps network). We also use FlashR to parallelize functions (mvrnorm and LDA)
@@ -184,7 +184,7 @@ Spark MLlib on an EC2 cluster (Figure \ref{perf:cloud}). Spark MLlib needs
 at least 4 c4.8xlarge instances to process the datasets (PageGraph-32ev-sub
 and Criteo-sub).
 Even though Spark MLlib has 4.5 as much computation power as FlashR, FlashR
-at least matches the speed of Spark MLlib and even outperform it.
+at least matches the speed of Spark MLlib and even outperforms it.
 
 \begin{figure}[b]
   \vspace{-10pt}
@@ -209,12 +209,12 @@ and LDA implementations from the MASS package. For simple matrix operations such
 FlashR slightly outperforms Revolution R Open. For more complex computations,
 the speed gap between FlashR and Revolution R increases. Even though matrix multiplication
 is the most computation-intensive operation in an algorithm, it is insufficient
-to only paralleize matrix multiplication to achieve high efficiency.
+to only parallelize matrix multiplication to achieve high efficiency.
 
 \subsection{Scalability}
 
 We show the scalability of FlashR on the billion-scale datasets in Table
-\ref{tbl:data}. In this experiments, we run the iterative algorithms
+\ref{tbl:data}. In these experiments, we run the iterative algorithms
 (k-means and logistic regression) until they converge on the datasets.
 
 \begin{table}
@@ -256,7 +256,7 @@ iterations to converge and the total computation time is about one hour or
 less.
 
 FlashR scales to datasets with billions of data points easily with negligible
-amounts of memory when running out of core.
+amounts of memory when running out-of-core.
 Its scalability is bound by the capacity of SSDs. The functional programming
 interface generates a new matrix in each matrix operation, which potentially
 leads to high memory consumption. Thanks to lazy evaluation and virtual matrices,
@@ -275,9 +275,9 @@ memory consumption and streams data from SSDs for computation.
 We further compare the speed of FlashR in memory and in external memory
 for algorithms with different computation and I/O complexities.
 We pick three algorithms from Table \ref{tbl:algs}: \textit{(i)} Naive Bayes,
-whose has the same computation complexity as its I/O complexity, \textit{(ii)}
-correlation, whose computation complexity grows quadratically on $p$ while
-its I/O complexity grows linear on $p$, \textit{(iii)} k-means, whose computation
+whose computation and I/O complexity are the same, \textit{(ii)}
+correlation, whose computation complexity grows quadratically with $p$ while
+its I/O complexity grows linearly with $p$, \textit{(iii)} k-means, whose computation
 complexity grows linearly with $k$ while its I/O complexity does not have
 the factor. We run the first two algorithms on datasets with $n=100M$ and $p$
 varying from 8 to 512. We run k-means on a dataset with $p=100M$ and $p=32$
@@ -313,8 +313,8 @@ to grow more quickly than the I/O, driving performance toward a compute bound.
 %these algorithms are dominated by their CPU computation as the number
 %of clusters gets larger. 
 The compute bound can be realized on few features or clusters for an I/O throughput of 10GB/s.
-Because most of the machine learning algorithms in Table \ref{tbl:algs} has
-computation complexity grow quadratically on $p$, we expect FlashR on SSDs to
+Because most of the machine learning algorithms in Table \ref{tbl:algs} have
+computation complexities that grow quadratically with $p$, we expect FlashR on SSDs to
 achieve the same speed as in memory on datasets with a higher dimension size.
 
 %\begin{figure}
