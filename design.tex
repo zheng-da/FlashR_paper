@@ -15,7 +15,7 @@ throughput of SSDs.
 \begin{figure}
 \centering
 \includegraphics[scale=0.3]{FlashMatrix_figs/architecture.pdf}
-\caption{The architecture of FlashR}
+\caption{The architecture of FlashR.}
 \label{fig:arch}
 \end{figure}
 
@@ -97,7 +97,7 @@ It replaces multiplication and addition in matrix multiplication with
 two functions.
 
 We reimplement a large number of matrix functions in the R \textit{base}
-package with the GenOps to provide users a familar programming interface.
+package with the GenOps to provide users a familiar programming interface.
 By overriding existing R matrix functions, FlashR scales and parallelizes
 existing R code without much modification. Table \ref{tbl:Rfuns} shows
 a small subset of R matrix operations and their implementations
@@ -187,7 +187,7 @@ computations.
 \subsubsection{Tall-and-skinny (TAS) matrices}
 FlashR optimizes for \textit{tall-and-skinny} (TAS) dense matrices
 due to their frequent occurrence in data analysis. A data matrix may contain
-a large number of samples with a relatively few features (tall-and-skinny),
+a large number of samples with comparatively fewer features (tall-and-skinny),
 or a large number of features with a few samples (wide-and-short).
 We use similar strategies to optimize wide-and-short matrices. FlashR
 supports both row-major and column-major layouts (Figure \ref{fig:den_mat}(a)
@@ -228,7 +228,7 @@ different matrices may have different sizes. By storing I/O partitions in
 fixed-size memory chunks, FlashR can easily recycle memory chunks to reduce
 memory allocation overhead.
 
-When a TAS matrix is stored on SSDs, it is stored as an SAFS file \cite{safs}.
+When a TAS matrix is stored on SSDs, it is stored as a SAFS file \cite{safs}.
 For such a matrix, an I/O partition is accessed in a single I/O request.
 We rely on SAFS to map the data of a matrix evenly to SSDs. SAFS allows
 applications to specify the data mapping strategies. By default, we use
@@ -252,7 +252,7 @@ Coupled with the I/O partitioning on TAS matrices, this strategy enables
 To support lazy evaluation, FlashR uses \textit{virtual matrices} that
 materialize data on the fly during computation and transfer output as input to
 the matrix operation. The data of a matrix are not stored physically.
-All GenOps output virtual matrices. A GenOp on a \textit{block matrix} may outputs
+All GenOps output virtual matrices. A GenOp on a \textit{block matrix} may output
 a block \textit{virtual matrix}. Virtual matrices are assembled to construct
 a directed acyclic graph (DAG) that represents a sequence of matrix computations
 (Section \ref{dag}). Virtual matrices are essential to reduce data
