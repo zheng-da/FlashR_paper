@@ -8,9 +8,9 @@ allowing scientists to encode and deploy complex algorithms.
 Successful examples include R, SciPy, and Matlab.  Efficiency dictates that
 tools should leverage modern computer architectures, including scalable
 parallelism, high-speed networking, and fast I/O from memory and solid-state
-storage. Unfortunately, the current approach for taking advantage of the full
+storage. Unfortunately, the current approach for utilizing the full
 capacity of modern parallel systems often uses a low-level programming
-language such as C or FORTRAN and parallelizes computation with MPI or OpenMP.
+language such as C and parallelizes computation with MPI or OpenMP.
 This approach is time-consuming and error-prone, and requires machine learning
 researchers to have expert knowledge in the parallel programming models.
  
@@ -27,8 +27,8 @@ have demonstrated the comparable efficiency to state-of-the-art in-memory graph
 analysis, while scaling to arbitrarily large datasets. This work extends
 these findings to matrix operations using SSDs. Matrices are the most prevalent
 and intuitive representation for machine learning and data analysis tasks.
-\dz{we need to say more about the advantage of a single-machine solution
-compare with cluster solutions.}
+%\dz{we need to say more about the advantage of a single-machine solution
+%compare with cluster solutions.}
 
 % Why is it hard?
 
@@ -38,8 +38,9 @@ learning, we present FlashR, an interactive R-based programming framework that
 executes R code in parallel and
 out-of-core automatically for large-scale data analysis. FlashR stores large
 vectors and matrices on SSDs and overrides many R functions in the R
-\textit{base} package for these external-memory vectors and matrices.
-As such, FlashR executes existing R code without or with little modification.
+\textit{base} package to perform computation on these external-memory vectors
+and matrices.
+As such, FlashR executes existing R code with little modification.
 FlashR focuses on optimizations in a single machine (with multiple CPUs and
 many cores) and scales matrix operations beyond memory capacity by 
 utilizing solid-state drives (SSDs).  
@@ -58,7 +59,7 @@ not strictly necessary \cite{hotos}.
 
 % Why is it new/different/special?
 
-To utilize the full capacity of a large parallel machine, we need to overcome
+To utilize the full capacity of a large parallel machine, we overcome
 many technical challenges to move data from SSDs to CPU efficiently for matrix
 computations,
 notably the large performance disparities between CPU and memory and between

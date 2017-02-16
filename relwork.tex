@@ -25,10 +25,9 @@ For example, SystemML \cite{systemml} develops an R-like script language for
 machine learning. MapReduce is inefficient for matrix operations because
 its I/O streaming primitives do not match matrix data access patterns.
 
-The Spark \cite{spark} distributed, in-memory framework provides more primitives
-for efficient computation and provides a highly-optimized machine learning library
-(MLlib, \cite{mllib}).
-Spark also provides an R programming interface called SparkR.  
+The Spark \cite{spark} is a distributed, in-memory framework that provides more
+primitives for efficient computation and provides a highly-optimized machine
+learning library (MLlib, \cite{mllib}).
 We compare FlashR with MLlib. Spark is the most efficient distributed engine.
 
 Efforts to parallelize array programming include
@@ -44,3 +43,4 @@ OptiML \cite{optiml} is a domain-specific language for developing machine
 learning in a heterogeneous computation environment such as multi-core
 processors and GPU. It designs a new programming language and relies on
 a compiler to generate code for the heterogenous environment.
+

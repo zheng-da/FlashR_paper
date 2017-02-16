@@ -53,6 +53,11 @@ the one in the R MASS package only with some trivial modifications.
 
 \begin{table}
 \begin{center}
+\caption{Computation and I/O complexity. $n$ is the number of data points, $p$
+is the number of the features in a point, and $k$ is the number of clusters.
+%	\dz{I need to analyze the computation complexity more carefully.}
+}
+\vspace{-10pt}
 \footnotesize
 \begin{tabular}{|c|c|c|c|c|}
 \hline
@@ -74,11 +79,8 @@ K-means (1 iteration) & $O(n \times p \times k)$ & $O(n \times p)$ \\
 \hline
 \end{tabular}
 \normalsize
-\end{center}
-\caption{Computation and I/O complexity. $n$ is the number of data points, $p$
-is the number of the features in a point, and $k$ is the number of clusters.
-	\dz{I need to analyze the computation complexity more carefully.}}
 \label{tbl:algs}
+\end{center}
 \end{table}
 
 These algorithms have various ratios of computation complexity and I/O complexity
@@ -87,8 +89,22 @@ The first five algorithms require a constant number of passes over the input
 matrix. Logistic regression and K-means run iteratively and, thus, we show
 their computation and I/O complexity in a single iteration.
 
+We benchmark FlashR with two real-world datasets with billions of data points
+(Table \ref{tbl:data}). The Criteo dataset has over four billion data points
+with binary labels (click vs. no-click), used for advertisement click
+prediction \cite{criteo}. PageGraph-32ev are 32 singular vectors that we
+computed on the largest connected component of the Page graph \cite{webgraph}.
+To compare FlashR with other frameworks, we take part of the datasets to
+create smaller datasets. PageGraph-32ev-sub is the first 336 million data points
+of the PageGraph-32ev dataset. Criteo-sub contains the data points collected
+on the first two days, which is about one tenth of the whole dataset.
+
 \begin{table}
 \begin{center}
+\caption{Datasets ($n \times p$ matrices). PageGraph-32ev-sub and
+	Criteo-sub are the subsets of PageGraph-32ev and Criteo. They
+	have about one tenth of the whole datasets.}
+\vspace{-10pt}
 \footnotesize
 \begin{tabular}{|c|c|c|c|c|}
 \hline
@@ -104,23 +120,9 @@ Criteo-sub \cite{criteo} & 325M & 40 & 48GB \\
 \hline
 \end{tabular}
 \normalsize
-\end{center}
-\caption{Datasets ($n \times p$ matrices). PageGraph-32ev-sub and
-	Criteo-sub are the subsets of PageGraph-32ev and Criteo. They
-	have about one tenth of the whole datasets.}
 \label{tbl:data}
-\vspace{-5pt}
+\end{center}
 \end{table}
-
-We benchmark FlashR with two real-world datasets with billions of data points
-(Table \ref{tbl:data}). The Criteo dataset has over four billion data points
-with binary labels (click vs. no-click), used for advertisement click
-prediction \cite{criteo}. PageGraph-32ev are 32 singular vectors that we
-computed on the largest connected component of the Page graph \cite{webgraph}.
-To compare FlashR with other frameworks, we take part of the datasets to
-create smaller datasets. PageGraph-32ev-sub is the first 336 million data points
-of the PageGraph-32ev dataset. Criteo-sub contains the data points collected
-on the first two days, which is about one tenth of the whole dataset.
 
 %\vspace{-8pt}
 \subsection{Comparative performance}
@@ -193,7 +195,8 @@ at least matches the speed of Spark MLlib and even outperforms it.
 		\includegraphics{FlashMatrix_figs/FlashR-vs-RRO.eps}
 		\caption{In-memory (FlashR-IM) and out-of-fore (FlashR-EM) FlashR
 		compared with Revolution R Open on a data matrix with one million rows
-		and one thousand columns.}
+		and one thousand columns when running on the parallel machine with
+		48 CPU cores.}
 		\label{fig:fmR}
 	\end{center}
   \vspace{-15pt}
@@ -219,6 +222,10 @@ We show the scalability of FlashR on the billion-scale datasets in Table
 
 \begin{table}
 \begin{center}
+\caption{The runtime and memory consumption of FlashR on the billion-scale
+	datasets on the 48 CPU core machine. The runtime of logistic regression
+	and k-means is measured when the two algorithms converge.}
+\vspace{-10pt}
 \footnotesize
 \begin{tabular}{|c|c|c|}
 \hline
@@ -240,11 +247,8 @@ k-means & $1110.82$ & $28$ \\
 %\hline
 \end{tabular}
 \normalsize
-\end{center}
-\caption{The runtime and memory consumption of FlashR on the billion-scale
-	datasets on the 48 CPU core machine. The runtime of logistic regression
-	and k-means is measured when the two algorithms converge.}
 \label{tbl:scale}
+\end{center}
 \end{table}
 
 Even though we process the datasets with billions of data points in a single
@@ -261,7 +265,7 @@ Its scalability is bound by the capacity of SSDs. The functional programming
 interface generates a new matrix in each matrix operation, which potentially
 leads to high memory consumption. Thanks to lazy evaluation and virtual matrices,
 FlashR only needs to materialize the small matrices to effectively reduce
-memory consumption and streams data from SSDs for computation.
+memory consumption.
 %Owing to lazy evaluation, FlashR does not store majority of matrices in
 % the computation physically. As such, its in-memory 
 %out-of-core execution barely increases memory consumption from
@@ -278,8 +282,8 @@ We pick three algorithms from Table \ref{tbl:algs}: \textit{(i)} Naive Bayes,
 whose computation and I/O complexity are the same, \textit{(ii)}
 correlation, whose computation complexity grows quadratically with $p$ while
 its I/O complexity grows linearly with $p$, \textit{(iii)} k-means, whose computation
-complexity grows linearly with $k$ while its I/O complexity does not have
-the factor. We run the first two algorithms on datasets with $n=100M$ and $p$
+complexity grows linearly with $k$ while its I/O complexity is independent
+to $k$. We run the first two algorithms on datasets with $n=100M$ and $p$
 varying from 8 to 512. We run k-means on a dataset with $p=100M$ and $p=32$
 and vary the number of clusters from 2 to 64.
 
@@ -302,7 +306,7 @@ performance approaches in-memory performance for correlation and k-means
 but not Naive Bayes (Figure \ref{perf:stat}). This observation conforms with
 the computation and I/O complexity of the algorithms in Table \ref{tbl:algs}.
 For correlation and k-means, the number of clusters or features causes computation
-to grow more quickly than the I/O, driving performance toward a compute bound.
+to grow more quickly than the I/O, driving performance toward a computation bound.
 % When the number of features
 %gets larger, the computation of matrix multiplication in
 %correlation and SVD grows more rapidly than I/O and eventually CPU becomes
@@ -312,7 +316,7 @@ to grow more quickly than the I/O, driving performance toward a compute bound.
 %increases, the computation of k-means and GMM increases rapidly and
 %these algorithms are dominated by their CPU computation as the number
 %of clusters gets larger. 
-The compute bound can be realized on few features or clusters for an I/O throughput of 10GB/s.
+The computation bound can be realized on few features or clusters for an I/O throughput of 10GB/s.
 Because most of the machine learning algorithms in Table \ref{tbl:algs} have
 computation complexities that grow quadratically with $p$, we expect FlashR on SSDs to
 achieve the same speed as in memory on datasets with a higher dimension size.

@@ -10,9 +10,10 @@ automatically. FlashR scales to large datasets by utilizing commodity SSDs.
 %overhead of function calls and fuses matrix operations to reduce data movement
 %between CPU and SSDs.
 
-We demonstrate that with sufficient system-level optimizations in the backend,
-FlashR powers the R programming interface to achieve high performance and scalability
-for many machine learning algorithms. R implementations executed in FlashR
+Although R is considered to be slow and unable to scale to large datasets,
+we demonstrate that with sufficient system-level optimizations, FlashR powers
+the R programming interface to achieve high performance and scalability
+for developing many machine learning algorithms. R implementations executed in FlashR
 outperform H2O and Spark MLlib on all algorithms by a large factor, using
 the same shared memory hardware. FlashR scales to datasets with billions of
 data points easily with negligible amounts of memory and completes all
@@ -28,10 +29,10 @@ NUMA machine.
 FlashR simplifies the programming effort of writing
 parallel and out-of-core implementations for large-scale machine learning. It
 provides domain experts a familiar programming environment for implementing
-their algorithms. It also significantly
-increases productivity of writing an efficient implementation with performance
+their algorithms. It significantly
+increases productivity of writing efficient implementations with performance
 comparable to low-level programming languages. We believe FlashR provides
-new opportunities for large-scale data analysis.
+new opportunities for large-scale machine learning.
 
 %We should explore randomized algorithms to reduce computation complexity
 %and/or I/O complexity to further accelerate machine learning algorithms
