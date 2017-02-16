@@ -1,5 +1,5 @@
 We present FlashR, a matrix-oriented programming framework that executes
-R-programmed machine learning algorithms in parallel and out of core
+R-programmed machine learning algorithms in parallel and out-of-core
 automatically. FlashR scales to large datasets by utilizing commodity SSDs.
 
 %For simplicity and generality, the core of FlashR only implements
@@ -13,14 +13,14 @@ automatically. FlashR scales to large datasets by utilizing commodity SSDs.
 We demonstrate that with sufficient system-level optimizations in the backend,
 FlashR powers the R programming interface to achieve high performance and scalability
 for many machine learning algorithms. R implementations executed in FlashR
-outperforms H2O and Spark MLlib on all algorithms by a large factor, using
+outperform H2O and Spark MLlib on all algorithms by a large factor, using
 the same shared memory hardware. FlashR scales to datasets with billions of
 data points easily with negligible amounts of memory and completes all
 algorithms within a reasonable amount of time.
 
 Even though SSDs are still an order of magnitude slower than DRAM, the external-memory
 execution of many machine learning and statistics algorithms in FlashR can achieve performance
-that approaches to their in-memory execution. We demonstrate that an I/O throughput
+that approaches their in-memory execution. We demonstrate that an I/O throughput
 of 10 GB/s saturates the CPU for many algorithms, even in a large parallel
 NUMA machine. 
 %As such, the external-memory execution also benefits from many in-memory optimizations.
@@ -30,8 +30,8 @@ parallel and out-of-core implementations for large-scale machine learning. It
 provides domain experts a familiar programming environment for implementing
 their algorithms. It also significantly
 increases productivity of writing an efficient implementation with performance
-comparable to low-level programming languages. We believe FlashR opens
-a new opportunity for large-scale data analysis.
+comparable to low-level programming languages. We believe FlashR provides
+new opportunities for large-scale data analysis.
 
 %We should explore randomized algorithms to reduce computation complexity
 %and/or I/O complexity to further accelerate machine learning algorithms
