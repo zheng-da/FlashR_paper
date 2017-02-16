@@ -453,7 +453,7 @@ Some of the algorithms can be implemented with R \textit{base} functions and
 can run in the existing R framework without any modification.
 
 K-means is a commonly used clustering algorithm that partitions data points
-into $k$ clusters so that each cluster has minimal mean of distances between
+into $k$ clusters so that each cluster has the minimal mean distance between
 the data points and the cluster center. We use this algorithm
 to illustrate programming with GenOps (Figure \ref{fig:kmeans}).
 It first uses \textit{inner.prod} to
@@ -503,10 +503,10 @@ fontsize=\small,
 frame=single,
 tabsize=2,
 ]{R}
-logistic.regression <- function(X,y) {
 # `X' is the data matrix, whose rows represent data points
 # and columns represent features. `y' stores the labels of
 # data points. `w' is the weight vector.
+logistic.regression <- function(X,y) {
 	grad <- function(X,y,w)
 		(t(X)%*%(1/(1+exp(-X%*%t(w)))-y))/length(y)
 	cost <- function(X,y,w)
@@ -532,7 +532,7 @@ steepest gradient descent in FlashR.}
 
 PageRank is a well-known algorithm for graph analysis. The matrix formulation
 (Figure \ref{pagerank}) operates on the adjacency matrix of a graph. It uses
-a power method and perform a sequence of sparse matrix multiplication until
+a power method and performs a sequence of sparse matrix multiplications until
 the algorithm converges.
 \begin{figure}
 \begin{minted}[mathescape,
