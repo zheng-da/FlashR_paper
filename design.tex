@@ -316,13 +316,13 @@ and few rows, FlashR stores the sparse matrices with the coordinate format
 FlashR keeps these sparse matrices in memory.
 
 \subsection{Reducing data movement}\label{sec:datamove}
-The key to achieve efficiency is to reduce data movement in memory hierarchy
+The key to achieve efficiency is to reduce data movement within the memory hierarchy
 when evaluating matrix operations. FlashR lazily evaluates most matrix
 operations, especially the ones that do not contain heavy computation,
 and constructs one or more directed-acyclic graphs (DAGs) connecting GenOps and
 matrices. Figure \ref{fig:dag} (a) shows the DAG for an iteration of k-means.
-Then it performs all computation in a DAG together, which creates opportunities
-of fusing matrix operations to reduce data movement in the memory hierarchy.
+Then it performs all the computation in a DAG together, which creates opportunities
+for fusing matrix operations to reduce data movement in the memory hierarchy.
 This data-driven, lazy evaluation allows out-of-core problems 
 to approach in-memory efficiency.
 
@@ -350,8 +350,8 @@ programming while still providing the opportunities to tune the code for
 better speed. For explicit materialization, a user can invoke
 \textit{fm.materialize} to materialize a virtual matrix. Access to elements
 of a sink matrix triggers materialization implicitly. Materialization on
-a virtual matrix triggers materialization on the entire DAG where the virtual
-matrix connects to.
+a virtual matrix triggers materialization on the entire DAG to which the virtual
+matrix connects.
 
 By default, FlashR saves the computation results of all sink matrices of
 the DAG in memory and discard the data of non-sink matrices on the fly.
@@ -394,10 +394,10 @@ between SSDs and CPU (Figure \ref{fig:dag} (b)). It reads data on SSDs in
 I/O partitions and assigns these partitions to a thread as a parallel task.
 It further splits I/O-partitions into processor cache (Pcache)
 partitions at run time.  Each thread materializes one Pcache-partition
-at a time. Matrix operations run on TAS matrices or block matrices that are
+at a time. Matrix operations run on TAS matrices or block matrices are
 divided into TAS matrices so that a Pcache-partition fits in the CPU L1/L2 cache.
 
-FlashR takes efforts to increase hits in the CPU cache, which 
+FlashR makes an effort to increase hits in the CPU cache, which
 significantly reduces data movement between CPU and memory.
 When materializing output to a virtual matrix, the thread passes
 the output as input to the subsequent
