@@ -1,25 +1,21 @@
 \section{Experimental evaluation}
 We evaluate the efficiency of FlashR on statistics and machine learning
 algorithms both in memory and on SSDs. We compare the R implementations of
-these algorithms with the ones in two highly-optimized parallel machine learning
+these algorithms with the ones in two optimized parallel machine learning
 libraries H2O \cite{h2o} and Spark MLlib \cite{mllib}. We further use FlashR
 to accelerate existing R functions in the MASS package and compare with
 Revolution R Open \cite{rro}.
 
-We conduct experiments on a NUMA machine with
-four Intel Xeon E7-4860 2.6 GHz processors and 1TB of 
-DDR3-1600 memory. Each processor has 12 cores. The machine has three LSI SAS 9300-8e
-host bus adapters connected to
-24 OCZ Intrepid 3000 SSDs. The SSDs are capable of
-12 GB/s for read and 10 GB/s for write. The machine runs
-Linux kernel v3.13.0. By default, we use 48 threads. 
-We use Spark v2.0.1 and R v3.3.2. We use ATLAS 3.10.1 as the default BLAS library.
+We conduct experiments on a NUMA machine with four Intel Xeon E7-4860 2.6 GHz
+processors and 1TB of DDR3-1600 memory. Each processor has 12 cores. The machine
+is equipped with 24 OCZ Intrepid 3000 SSDs, which together are capable of
+12 GB/s for read and 10 GB/s for write. The machine runs Ubuntu 14.04 and
+uses ATLAS 3.10.1 as the default BLAS library.
 
-\subsection{Benchmark algorithms}
-We benchmark FlashR with some commonly used algorithms in Table
-\ref{tbl:algs}. Like the algorithms shown in Section \ref{sec:apps},
-we implement these algorithms completely with the R code and
-rely on FlashR to execute them in parallel and out of core.
+\subsection{Benchmark algorithms}\label{benchalg}
+We benchmark FlashR with some commonly used algorithms. Like the algorithms
+shown in Section \ref{sec:apps}, we implement these algorithms completely with
+the R code and rely on FlashR to execute them in parallel and out of core.
 
 \noindent \textbf{Correlation} computes pair-wise Pearson's correlation
 \cite{cor} and is commonly used in statistics.
@@ -33,14 +29,17 @@ matrix $A^T A$ of the input matrix $A$.
 with the ``naive'' assumption of independence between every pair of features.
 Our implementation assumes data follows the normal distribution.
 
-\noindent \textbf{Logistic regression} is a classifier that applies
-the sigmoid functions on the linear model. We use the Newton-CG algorithm
-to optimize logistic regression.
+\noindent \textbf{Logistic regression} is a linear regression model with
+categorical dependent variables. We use the Newton-CG algorithm
+to optimize logistic regression. It converges when
+$logloss(i-1)-logloss(i) < 1e-6$, where $logloss(i)$ is the logarithmic loss
+at iteration $i$.
 
 \noindent \textbf{K-means} is an iterative clustering algorithm that
 partitions data points to $k$ clusters. Its R implementation is illustrated
 in Figure \ref{fig:kmeans}. In the experiments, we run k-means to split
-a dataset into 10 clusters by default.
+a dataset into 10 clusters by default. It converges when no data points
+move.
 
 \noindent \textbf{Multivariate Normal Distribution (mvrnorm)} generates
 samples from the specified multivariate normal distribution. We use
@@ -51,11 +50,21 @@ that assumes the normal distribution with a different mean for each class
 but sharing the same covariance matrix among classes. Our LDA is adapted from
 the one in the R MASS package only with some trivial modifications.
 
+\noindent \textbf{PageRank} is a well-known algorithm for graph analysis.
+We run the R implementation in Figure \ref{pagerank} in the experiment.
+PageRank converges when $\forall j, abs(PR^i(v_j) - PR(v_{j})) < 0.01$,
+where $PR^i(v_j)$ is the PageRank value of vertex $j$ at iteration $i$.
+
 \begin{table}
 \begin{center}
-\caption{Computation and I/O complexity. $n$ is the number of data points, $p$
-is the number of the features in a point, and $k$ is the number of clusters.
-%	\dz{I need to analyze the computation complexity more carefully.}
+\caption{Computation and I/O complexity of the benchmark algorithms. $n$ is
+	the number
+	of data points, $p$ is the number of the features in a point, and $k$ is
+	the number of clusters, $nnz$ is the number of non-zero entries in
+	a sparse matrix. We assume $n > p$. We show the computation and I/O
+	complexity of an iteration in iterative algorithms. PageRank typically
+	runs on a $n \times n$ sparse matrix. Logistic regression is optimized
+	with Newton-CG.
 }
 \vspace{-10pt}
 \footnotesize
@@ -69,13 +78,15 @@ PCA & $O(n \times p^2)$ & $O(n \times p)$ \\
 \hline
 Naive Bayes & $O(n \times p)$ & $O(n \times p)$ \\
 \hline
+Logistic regression & $O(n \times p^2)$ & $O(n \times p)$ \\
+\hline
+K-means & $O(n \times p \times k)$ & $O(n \times p)$ \\
+\hline
 mvrnorm & $O(n \times p^2)$ & $O(n \times p)$ \\
 \hline
 LDA & $O(n \times p^2)$ & $O(n \times p)$ \\
 \hline
-Logistic regression  (1 iteration) & $O(n \times p^2)$ & $O(n \times p)$ \\
-\hline
-K-means (1 iteration) & $O(n \times p \times k)$ & $O(n \times p)$ \\
+PageRank & $O(nnz + n)$ & $O(nnz)$ \\
 \hline
 \end{tabular}
 \normalsize
@@ -85,38 +96,41 @@ K-means (1 iteration) & $O(n \times p \times k)$ & $O(n \times p)$ \\
 
 These algorithms have various ratios of computation complexity and I/O complexity
 (Table \ref{tbl:algs}) to thoroughly evaluate performance of FlashR on SSDs.
-The first five algorithms require a constant number of passes over the input
-matrix. Logistic regression and K-means run iteratively and, thus, we show
+Logistic regression, K-means and PageRank run iteratively and, thus, we show
 their computation and I/O complexity in a single iteration.
 
 We benchmark FlashR with two real-world datasets with billions of data points
 (Table \ref{tbl:data}). The Criteo dataset has over four billion data points
 with binary labels (click vs. no-click), used for advertisement click
-prediction \cite{criteo}. PageGraph-32ev are 32 singular vectors that we
-computed on the largest connected component of the Page graph \cite{webgraph}.
-To compare FlashR with other frameworks, we take part of the datasets to
+prediction \cite{criteo}. PageGraph is a graph whose vertices represent Web pages
+and edges represents hyperlinks between Web pages \cite{webgraph}. PageGraph-32ev
+are 32 singular vectors that we computed on the largest connected component of
+Pagegraph with the tools we built previously \cite{flashgraph, SEM_SpMM}.
+To compare FlashR with other frameworks, we take part of the Criteo and
+PageGraph-32ev datasets to
 create smaller datasets. PageGraph-32ev-sub is the first 336 million data points
 of the PageGraph-32ev dataset. Criteo-sub contains the data points collected
 on the first two days, which is about one tenth of the whole dataset.
 
 \begin{table}
 \begin{center}
-\caption{Datasets ($n \times p$ matrices). PageGraph-32ev-sub and
-	Criteo-sub are the subsets of PageGraph-32ev and Criteo. They
-	have about one tenth of the whole datasets.}
+\caption{Datasets. PageGraph-32ev-sub and Criteo-sub are the subsets of
+PageGraph-32ev and Criteo.}
 \vspace{-10pt}
 \footnotesize
 \begin{tabular}{|c|c|c|c|c|}
 \hline
-Data Matrix & n & p & size \\
+Data Matrix & \#rows & \#cols & \#nnz \\
 \hline
-PageGraph-32ev \cite{webgraph} & 3.5B & 32 & 800GB \\
+PageGraph \cite{webgraph} & 3.5B & 3.5B & 128B \\
 \hline
-Criteo \cite{criteo} & 4.3B & 40 & 637GB \\
+PageGraph-32ev \cite{webgraph} & 3.5B & 32 & 107B \\
 \hline
-PageGraph-32ev-sub \cite{webgraph} & 336M & 32 & 80GB \\
+Criteo \cite{criteo} & 4.3B & 40 & 172B \\
 \hline
-Criteo-sub \cite{criteo} & 325M & 40 & 48GB \\
+PageGraph-32ev-sub \cite{webgraph} & 336M & 32 & 11B \\
+\hline
+Criteo-sub \cite{criteo} & 325M & 40 & 13B \\
 \hline
 \end{tabular}
 \normalsize
@@ -135,7 +149,8 @@ all data are cached in memory. When running in the cloud, we run FlashR
 in a single i2.8xlarge instance (16 CPU cores, 244GB RAM and 6.4TB SSD storage)
 and MLlib in a cluster of four EC2 c4.8xlarge instances (72 CPU cores, 240GB RAM
 and 10Gbps network). We also use FlashR to parallelize functions (mvrnorm and LDA)
-in the R MASS package and compare their speed with Revolution R Open.
+in the R MASS package and compare their speed with Revolution R Open. We use
+Spark v2.0.1, H2O v3.10.2 and Revolution R Open v3.3.2.
 
 \begin{figure}
   \vspace{-5pt}
@@ -217,14 +232,15 @@ to only parallelize matrix multiplication to achieve high efficiency.
 \subsection{Scalability}
 
 We show the scalability of FlashR on the billion-scale datasets in Table
-\ref{tbl:data}. In these experiments, we run the iterative algorithms
-(k-means and logistic regression) until they converge on the datasets.
+\ref{tbl:data}. In these experiments, we run the iterative algorithms on
+the datasets until they converge (see their convergence condition in Section
+\ref{benchalg}).
 
 \begin{table}
 \begin{center}
-\caption{The runtime and memory consumption of FlashR on the billion-scale
-	datasets on the 48 CPU core machine. The runtime of logistic regression
-	and k-means is measured when the two algorithms converge.}
+	\caption{The runtime and memory consumption of FlashR on the billion-scale
+		datasets on the 48 CPU core machine. The runtime of iterative
+		algorithms is measured when the algorithms converge.}
 \vspace{-10pt}
 \footnotesize
 \begin{tabular}{|c|c|c|}
@@ -241,8 +257,8 @@ Logistic regression & $4154.40$ & $26$ \\
 \hline
 k-means & $1110.82$ & $28$ \\
 \hline
-%PageRank & $xx$ & $xx$ \\
-%\hline
+PageRank & $3900$ & $135$ \\
+\hline
 %Spectral embedding & $xx$ & $xx$ \\
 %\hline
 \end{tabular}
@@ -251,17 +267,20 @@ k-means & $1110.82$ & $28$ \\
 \end{center}
 \end{table}
 
-Even though we process the datasets with billions of data points in a single
-machine, none of the algorithms are prohibitively expensive. Simple algorithms,
-such as Naive Bayes and PCA, require one or two passes over the datasets and
-take only one or two minutes to complete. Iterative
-algorithms, such as logistic regression and k-means, take about $10-20$
-iterations to converge and the total computation time is about one hour or
-less.
+Even though we process the billion-scale datasets in a single machine, none of
+the algorithms are prohibitively expensive. Simple algorithms, such as
+Naive Bayes and PCA, require one or two passes over the datasets and take
+only one or two minutes to complete. Logistic regression and k-means take
+about $10-20$ iterations to converge. Because the PageRank implementation
+uses the power method, it takes $100$ iterations to converge.
+Nevertheless, all of the iterative algorithms take about one hour or less.
 
-FlashR scales to datasets with billions of data points easily with negligible
-amounts of memory when running out-of-core.
-Its scalability is bound by the capacity of SSDs. The functional programming
+FlashR scales to datasets with billions of data points easily when running
+out of core. Most of the algorithms have negligible memory consumption.
+PageRank consumes more memory because the sparse matrix multiplication in
+PageRank keeps vectors in memory for semi-external memory computation.
+The scalability of FlashR is mainly bound by the capacity of SSDs.
+The functional programming
 interface generates a new matrix in each matrix operation, which potentially
 leads to high memory consumption. Thanks to lazy evaluation and virtual matrices,
 FlashR only needs to materialize the small matrices to effectively reduce

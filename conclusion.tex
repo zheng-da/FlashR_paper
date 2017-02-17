@@ -19,20 +19,18 @@ the same shared memory hardware. FlashR scales to datasets with billions of
 data points easily with negligible amounts of memory and completes all
 algorithms within a reasonable amount of time.
 
-Even though SSDs are still an order of magnitude slower than DRAM, the external-memory
-execution of many machine learning and statistics algorithms in FlashR can achieve performance
-that approaches their in-memory execution. We demonstrate that an I/O throughput
-of 10 GB/s saturates the CPU for many algorithms, even in a large parallel
-NUMA machine. 
+Even though SSDs are an order of magnitude slower than DRAM, the external-memory
+execution of many algorithms in FlashR achieve performance approaching their in-memory
+execution. We demonstrate that an I/O throughput of 10 GB/s saturates the CPU for many
+algorithms, even in a large parallel NUMA machine. 
 %As such, the external-memory execution also benefits from many in-memory optimizations.
 
-FlashR simplifies the programming effort of writing
-parallel and out-of-core implementations for large-scale machine learning. It
-provides domain experts a familiar programming environment for implementing
-their algorithms. It significantly
-increases productivity of writing efficient implementations with performance
-comparable to low-level programming languages. We believe FlashR provides
-new opportunities for large-scale machine learning.
+FlashR simplifies the programming effort of writing parallel and out-of-core
+implementations for large-scale machine learning. With FlashR, machine learning
+researchers can prototype algorithms in a familiar programming environment,
+while still getting efficient and scalable implementations.
+We believe FlashR provides new opportunities for developing large-scale
+machine learning algorithms.
 
 %We should explore randomized algorithms to reduce computation complexity
 %and/or I/O complexity to further accelerate machine learning algorithms

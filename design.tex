@@ -7,7 +7,7 @@ architecture (NUMA) machine. Figure \ref{fig:arch} shows the architecture of
 FlashR. FlashR has only a few classes of generalized operations (GenOps) to
 simplify the implementation and the GenOps improve expressiveness of the framework. 
 The optimizer aggressively merges operations to
-reduce data movement in the memory hierarchy and achieve better parallelization.
+reduce data movement in the memory hierarchy.
 It stores matrices on SSDs through SAFS \cite{safs},
 a user-space filesystem for SSD arrays, to fully utilize high I/O
 throughput of SSDs.
@@ -15,8 +15,10 @@ throughput of SSDs.
 \begin{figure}
 \centering
 \includegraphics[scale=0.3]{FlashMatrix_figs/architecture.pdf}
+\vspace{-5pt}
 \caption{The architecture of FlashR.}
 \label{fig:arch}
+\vspace{-10pt}
 \end{figure}
 
 \subsection{Programming interface}
@@ -67,6 +69,7 @@ $C=inner.prod(A, B, f1, f2)$ & $t=f1(A_{i,k}, B_{k,j})$,
 \end{tabular}
 \normalsize
 \label{tbl:genops}
+\vspace{-10pt}
 \end{center}
 \end{table}
 
@@ -93,14 +96,13 @@ to each group; \textit{groupby.col} splits columns into groups and applies
 \textit{agg.row} to each group. Both \textit{agg.row} and \textit{agg.col}
 output a matrix.
 
-\noindent \textbf{Inner product} is a generalized matrix multiplication.
-It replaces multiplication and addition in matrix multiplication with
-two functions.
+\noindent \textbf{Inner product} is a generalized matrix multiplication
+that replaces multiplication and addition with two functions.
 
 We reimplement a large number of matrix functions in the R \textit{base}
 package with the GenOps to provide users a familiar programming interface.
 By overriding existing R matrix functions, FlashR scales and parallelizes
-existing R code without much modification. Table \ref{tbl:Rfuns} shows
+existing R code with little/no modification. Table \ref{tbl:Rfuns} shows
 a small subset of R matrix operations and their implementations
 with GenOps.
 
@@ -140,9 +142,10 @@ In addition to computation operations, FlashR provides functions for matrix
 construction and data access in a FlashR matrix (Table \ref{tbl:utility}). This
 includes creating vectors and matrices, loading matrices from an external source,
 interacting with the R framework, reshaping a matrix, accessing rows and columns of
-a matrix and so on.
-
-%\dz{Describe more on data access in matrices.}
+a matrix and so on. FlashR avoids unnecessary data movement in these functions.
+For example, transpose of a matrix does not physically move elements in the matrix
+and instead, it causes FlashR to access data in the matrix differently in
+the subsequent matrix operations.
 
 \begin{table}
 \begin{center}
@@ -199,6 +202,7 @@ We store vectors as a one-column TAS matrix.
 \begin{figure}
 	\centering
 	\includegraphics[scale=0.4]{FlashMatrix_figs/dense_matrix2.pdf}
+	\vspace{-5pt}
 	\caption{The format of a tall dense matrix.}
 	\label{fig:den_mat}
   \vspace{-12pt}
@@ -216,33 +220,32 @@ matrices whose data are well aligned in memory to help CPU vectorization.
 \begin{figure}
 	\centering
 	\includegraphics[scale=0.4]{FlashMatrix_figs/matrix_mem.pdf}
+	\vspace{-5pt}
 	\caption{The data storage of a matrix in memory.}
 	\label{fig:mem_store}
   \vspace{-12pt}
 \end{figure}
 
 When a TAS matrix is stored in memory, FlashR stores its I/O partitions in
-fixed-size memory chunks across NUMA nodes (Figure \ref{fig:mem_store}).
+fixed-size memory chunks (e.g., 64MB) across NUMA nodes (Figure \ref{fig:mem_store}).
 All TAS matrices are distributed across NUMA nodes in the same fashion. 
 As such, FlashR schedules threads to perform computation on I/O partitions
-in memory close to the processors to increase the memory bandwidth.
-I/O partitions from
-different matrices may have different sizes. By storing I/O partitions in
-fixed-size memory chunks, FlashR can easily recycle memory chunks to reduce
-memory allocation overhead.
+in the memory close to the processors to increase the memory bandwidth.
+I/O partitions from different matrices may have different sizes. By storing
+I/O partitions in fixed-size memory chunks shared among all in-memory matrices,
+FlashR can easily recycle memory chunks to reduce memory allocation overhead.
 
 When a TAS matrix is stored on SSDs, it is stored as a SAFS file \cite{safs}.
 For such a matrix, an I/O partition is accessed in a single I/O request.
-We rely on SAFS to map the data of a matrix evenly to SSDs. SAFS allows
-applications to specify the data mapping strategies. By default, we use
+We rely on SAFS to map the data of a matrix evenly across SSDs. SAFS allows
+applications to specify the data mapping strategies. By default, FlashR uses
 a hash function to map data to SSDs to fully utilize the bandwidth of all SSDs
 even if we access only a subset of columns from a TAS matrix.
 
 \subsubsection{Block matrices} \label{sec:block_mat}
 FlashR stores a tall matrix as a \textit{block matrix} 
 (Figure \ref{fig:den_mat}(c)) comprised of TAS blocks with $32$ columns each,
-except the last block. 
-Each of the TAS matrices is stored as a separate file on SAFS. 
+except the last block. Each block is stored as a separate TAS matrix. 
 We decompose a matrix operation
 on a block matrix into operations on individual TAS matrices to take advantage
 of the optimizations on TAS matrices and reduce data movement.
@@ -319,12 +322,13 @@ and few rows, FlashR stores the sparse matrices with the coordinate format
 FlashR keeps these sparse matrices in memory.
 
 \subsection{Reducing data movement}\label{sec:datamove}
-The key to achieve efficiency is to reduce data movement within the memory hierarchy
-when evaluating matrix operations. FlashR lazily evaluates most matrix
+It is essential to reduce data movement within the memory hierarchy to achieve
+efficiency when evaluating a sequence of matrix operations. FlashR lazily
+evaluates most matrix
 operations, especially the ones that do not contain heavy computation,
 and constructs one or more directed-acyclic graphs (DAGs) connecting GenOps and
-matrices. Figure \ref{fig:dag} (a) shows the DAG for an iteration of k-means.
-Then it performs all the computation in a DAG together, which creates opportunities
+matrices. Figure \ref{fig:dag} (a) shows a DAG for an iteration of k-means.
+It performs all computation in a DAG together, which creates opportunities
 for fusing matrix operations to reduce data movement in the memory hierarchy.
 This data-driven, lazy evaluation allows out-of-core problems 
 to approach in-memory speed.
@@ -349,11 +353,11 @@ sink matrices cannot be connected to the same DAG.
 
 \subsubsection{DAG materialization}
 FlashR allows both explicit and implicit DAG materialization to simplify
-programming while still providing the opportunities to tune the code for
+programming while providing the opportunities to tune the code for
 better speed. For explicit materialization, a user can invoke
 \textit{fm.materialize} to materialize a virtual matrix. Access to elements
 of a sink matrix triggers materialization implicitly. Materialization on
-a virtual matrix triggers materialization on the entire DAG to which the virtual
+a virtual matrix triggers materialization on the DAG where the virtual
 matrix connects.
 
 By default, FlashR saves the computation results of all sink matrices of
@@ -372,8 +376,8 @@ a \textit{resilient distributed dataset} (RDD) in Spark \cite{spark}.
 	\includegraphics[scale=0.6]{FlashMatrix_figs/kmeans.pdf}
   \vspace{-4pt}
 	\caption{(a) Matrix operations are lazily evaluated to form
-	a directed-acyclic graph (DAG); (b) a DAG is materialized with
-	two levels of partitioning: matrix X on SSDs is first partitioned
+	a directed-acyclic graph (DAG); (b) The data flow in DAG materialization
+	with two levels of partitioning: matrix X on SSDs is first partitioned
 	and is read to memory in I/O partitions; an I/O partition is further
 	split into processor cache (Pcache) partitions; once a Pcache partition
 	is materialized, it is passed to the next GenOp to reduce CPU cache misses. }
@@ -381,8 +385,7 @@ a \textit{resilient distributed dataset} (RDD) in Spark \cite{spark}.
   \vspace{-8pt}
 \end{figure}
 
-During DAG materialization, FlashR partitions matrices in a DAG and
-materializes partitions separately.
+FlashR partitions matrices in a DAG and materializes partitions separately.
 This is possible because all matrices, except
 sink matrices, share the same partition dimension. 
 A partition $i$ of a virtual matrix requires data only from partitions
@@ -457,6 +460,33 @@ algorithms written in FlashR.
 Some of the algorithms can be implemented with R \textit{base} functions and
 can run in the existing R framework without any modification.
 
+\begin{figure}
+\centering
+	\footnotesize
+	\begin{minted}[mathescape,
+	fontsize=\footnotesize,
+	frame=single,
+	tabsize=2,
+	]{R}
+# X is the data matrix. C is cluster centers.
+kmeans.iter <- function(X,C) {
+	# Compute pair-wise distance.
+	D<-inner.prod(X,t(C), "euclidean","+")
+	# Find the closest center.
+	I<-agg.row(D,"which.min")
+	# Count the number of data points in each cluster.
+	CNT<-groupby(rep.int(1,nrow(I)),I,"+")
+	# Compute the new centers.
+	C<-mapply.row(groupby.row(X,I,"+"),CNT,"/")
+	list(C=C,I=I)
+}
+	\end{minted}
+\vspace{-10pt}
+	\caption{The FlashR implementation for an iteration of k-means.}
+	\label{fig:kmeans}
+\vspace{-10pt}
+\end{figure}
+
 K-means is a commonly used clustering algorithm that partitions data points
 into $k$ clusters so that each cluster has the minimal mean distance between
 the data points and the cluster center. We use this algorithm
@@ -469,34 +499,6 @@ cluster for each data point.  The output matrix
 assigns data points to clusters. It then uses \textit{groupby.row} to count
 the number of data points in each cluster and compute the mean of each cluster.
 
-\begin{figure}
-\centering
-	\footnotesize
-	\begin{minted}[mathescape,
-	fontsize=\small,
-	frame=single,
-	tabsize=2,
-	]{R}
-# X is the data matrix. C is cluster centers.
-kmeans.iter <- function(X,C) {
-	# Compute pair-wise distance.
-	D<-inner.prod(X,t(C), "euclidean","+")
-	# Find the closest center.
-	I<-agg.row(D,"which.min")
-	# Count the number of data points in each cluster.
-	one<-rep.int(1,nrow(I))
-	CNT<-groupby(one,I,"+")
-	# Compute the new centers.
-	C<-groupby.row(X,I,"+")
-	C<-mapply.row(C,CNT,"/")
-	list(C=C,I=I)
-}
-	\end{minted}
-	\caption{The FlashR implementation for an iteration of k-means.}
-	\label{fig:kmeans}
-\vspace{-10pt}
-\end{figure}
-
 Logistic regression is a commonly used classification algorithm.
 We implement this algorithm solely with the R \textit{base} functions
 overriden by FlashR. Figure
@@ -506,7 +508,7 @@ the \textit{cost} function. This example does not have a regularization term
 in the cost function.
 \begin{figure}
 \begin{minted}[mathescape,
-fontsize=\small,
+fontsize=\footnotesize,
 frame=single,
 tabsize=2,
 ]{R}
@@ -532,10 +534,11 @@ logistic.regression <- function(X,y) {
 	theta
 }
 \end{minted}
+\vspace{-10pt}
 \caption{A simplified implementation of logistic regression using
 steepest gradient descent in FlashR.}
 \label{logistic}
-\vspace{-10pt}
+\vspace{-5pt}
 \end{figure}
 
 PageRank is a well-known algorithm for graph analysis. The matrix formulation
@@ -544,7 +547,7 @@ a power method and performs a sequence of sparse matrix multiplications until
 the algorithm converges.
 \begin{figure}
 \begin{minted}[mathescape,
-fontsize=\small,
+fontsize=\footnotesize,
 frame=single,
 tabsize=2,
 ]{R}
@@ -566,6 +569,7 @@ pagerank <- function(graph, d=0.15, epsilon=1e-2) {
 	pr1
 }
 \end{minted}
+\vspace{-10pt}
 \caption{A simplified implementation of PageRank in FlashR.}
 \label{pagerank}
 \vspace{-10pt}

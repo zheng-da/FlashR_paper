@@ -1,9 +1,9 @@
 Basic Linear Algebra Subprograms (BLAS) defines a small set of vector and
-matrix operations for shared memory. There exist a few highly-optimized BLAS
-implementations, such as MKL \cite{mkl} and ATLAS \cite{atlas}. 
-Distributed-memory libraries \cite{trilinos, petsc, elemental}
+matrix operations. There exist a few highly-optimized BLAS implementations,
+such as MKL \cite{mkl} and ATLAS \cite{atlas}. 
+Distributed libraries \cite{trilinos, petsc, elemental}
 build on BLAS and distribute computation with MPI.
-BLAS provides a limited set of matrix operations, which requires
+BLAS provides a limited set of matrix operations and requires
 users to manually parallelize the remaining matrix operations.
 %In contrast, FlashR provides a few parallelized GenOps that 
 %represent common data access patterns. 
@@ -26,15 +26,26 @@ machine learning. MapReduce is inefficient for matrix operations because
 its I/O streaming primitives do not match matrix data access patterns.
 
 The Spark \cite{spark} is a distributed, in-memory framework that provides more
-primitives for efficient computation and provides a highly-optimized machine
+primitives for efficient computation and provides a distributed machine
 learning library (MLlib, \cite{mllib}).
-We compare FlashR with MLlib. Spark is the most efficient distributed engine.
+Spark is the most efficient distributed engine.
 
-Efforts to parallelize array programming include
-Revolution R \cite{rro} and Matlab's parallel computing toolbox, which
-offer multicore parallelism and explicit distributed parallelism using MPI and MapReduce. 
-Other works focus on implicit parallelization.
-Presto \cite{presto} extends R to sparse matrix operations in distributed memory for graph
+Distributed machine learning frameworks have been developed to train machine
+learning models on large datasets. For example, GraphLab \cite{graphlab}
+formulates machine learning algorithms as graph computation; Petuum \cite{petuum}
+is designed for machine learning algorithms with certain properties such as
+error tolerance; TensorFlow \cite{tensorflow} trains machine learning models,
+especially deep neural networks, with optimization algorithms such as
+stochastic gradient descent.
+%In contrast,
+%FlashR aims at providing a simple programming interface for a wide variety
+%of machine learning algorithms.
+
+Efforts to parallelize array programming include Revolution R \cite{rro} and
+Matlab's parallel computing toolbox, which offer multicore parallelism and
+explicit distributed parallelism using MPI and MapReduce. Other works focus
+on implicit parallelization. Presto \cite{presto} extends R to sparse matrix
+operations in distributed memory for graph
 analysis. Ching et. al \cite{Ching12} parallelize APL code by
 compiling it to C. Accelerator \cite{accelerator} compiles
 data-parallel operations on the fly to execute programs on a GPU.
@@ -43,4 +54,3 @@ OptiML \cite{optiml} is a domain-specific language for developing machine
 learning in a heterogeneous computation environment such as multi-core
 processors and GPU. It designs a new programming language and relies on
 a compiler to generate code for the heterogenous environment.
-

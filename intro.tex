@@ -8,7 +8,7 @@ allowing scientists to encode and deploy complex algorithms.
 Successful examples include R, SciPy, and Matlab.  Efficiency dictates that
 tools should leverage modern computer architectures, including scalable
 parallelism, high-speed networking, and fast I/O from memory and solid-state
-storage. Unfortunately, the current approach for utilizing the full
+storage. The current approach for utilizing the full
 capacity of modern parallel systems often uses a low-level programming
 language such as C and parallelizes computation with MPI or OpenMP.
 This approach is time-consuming and error-prone, and requires machine learning
@@ -17,7 +17,7 @@ researchers to have expert knowledge in the parallel programming models.
 % How have others addressed the problem?
 
 While conventional wisdom addresses large-scale data analysis with clusters
-\cite{mapreduce,spark,h2o,systemml,tensorflow,petuum}, recent works
+\cite{mapreduce,spark,systemml,tensorflow,petuum,graphlab}, recent works
 \cite{flashgraph,gridgraph,Matveev17,hotos} demonstrate a single-machine solution
 can deal with large-scale data analysis problems efficiently in a multicore
 machine. The advance of solid-state drives (SSDs) creates new opportunities
@@ -33,14 +33,14 @@ and intuitive representation for machine learning and data analysis tasks.
 % Why is it hard?
 
 % What is the nature of your solution?
-To provide a simple programming language for efficient and scalable machine
+To provide a simple programming environment for efficient and scalable machine
 learning, we present FlashR, an interactive R-based programming framework that
 executes R code in parallel and
 out-of-core automatically for large-scale data analysis. FlashR stores large
 vectors and matrices on SSDs and overrides many R functions in the R
 \textit{base} package to perform computation on these external-memory vectors
 and matrices.
-As such, FlashR executes existing R code with little modification.
+As such, FlashR executes existing R code with little/no modification.
 FlashR focuses on optimizations in a single machine (with multiple CPUs and
 many cores) and scales matrix operations beyond memory capacity by 
 utilizing solid-state drives (SSDs).  
