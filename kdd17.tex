@@ -83,10 +83,13 @@ Canada}
 \email{randal@cs.jhu.edu}
 
 \begin{abstract}
-FlashR executes R code for machine learning
-in parallel and out-of-core automatically. It scales matrix operations
-beyond memory capacity by utilizing solid-state drives (SSDs) in a non-uniform
-memory architecture (NUMA). It provides a small number of generalized 
+R is one of the most popular programming languages for statistics and machine
+learning, but the R framework is relatively slow and unable to scale to large
+datasets. The general approach for speeding up an implementation in R is to
+implement the algorithms in C or FORTRAN and provide an R wrapper. FlashR takes
+a different approach: it executes R code in parallel and scales the code beyond
+memory capacity by utilizing solid-state drives (SSDs) automatically. It
+provides a small number of generalized 
 operations (GenOps) upon which we reimplement a large number of
 matrix functions in the R \textit{base} package. As such, FlashR parallelizes
 and scales existing R code with little/no modification. To reduce data movement
@@ -96,7 +99,8 @@ We evaluate FlashR on a variety of machine learning and statistics algorithms
 on inputs of up to four billion data points.
 FlashR out-of-core tracks closely the performance of FlashR in-memory.
 The R code for machine learning algorithms executed in FlashR
-outperforms the in-memory execution of H2O and Spark MLlib by a factor of $2-10$.
+outperforms the in-memory execution of H2O and Spark MLlib by a factor of
+$2-10$ and outperforms Revolution R Open by more than an order of magnitude.
 \end{abstract}
 
 %

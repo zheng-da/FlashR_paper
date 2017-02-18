@@ -32,7 +32,7 @@ Our implementation assumes data follows the normal distribution.
 \noindent \textbf{Logistic regression} is a linear regression model with
 categorical dependent variables. We use the Newton-CG algorithm
 to optimize logistic regression. It converges when
-$logloss(i-1)-logloss(i) < 1e-6$, where $logloss(i)$ is the logarithmic loss
+$logloss_{i-1}-logloss_i < 1e-6$, where $logloss_i$ is the logarithmic loss
 at iteration $i$.
 
 \noindent \textbf{K-means} is an iterative clustering algorithm that
@@ -52,8 +52,10 @@ the one in the R MASS package only with some trivial modifications.
 
 \noindent \textbf{PageRank} is a well-known algorithm for graph analysis.
 We run the R implementation in Figure \ref{pagerank} in the experiment.
-PageRank converges when $\forall j, abs(PR^i(v_j) - PR(v_{j})) < 0.01$,
-where $PR^i(v_j)$ is the PageRank value of vertex $j$ at iteration $i$.
+PageRank converges when
+$\forall j, abs(PR^i(v_j) - PR^{i-1}(v_{j})) < \dfrac{0.01}{n}$,
+where $PR^i(v_j)$ is the PageRank value of vertex $v_j$ at iteration $i$ and
+$n$ is the number of vertices in the graph.
 
 \begin{table}
 \begin{center}
@@ -92,6 +94,7 @@ PageRank & $O(nnz + n)$ & $O(nnz)$ \\
 \normalsize
 \label{tbl:algs}
 \end{center}
+\vspace{-10pt}
 \end{table}
 
 These algorithms have various ratios of computation complexity and I/O complexity
@@ -114,8 +117,8 @@ on the first two days, which is about one tenth of the whole dataset.
 
 \begin{table}
 \begin{center}
-\caption{Datasets. PageGraph-32ev-sub and Criteo-sub are the subsets of
-PageGraph-32ev and Criteo.}
+\caption{Datasets. PageGraph is a sparse matrix and the other datasets are
+	dense matrices.}
 \vspace{-10pt}
 \footnotesize
 \begin{tabular}{|c|c|c|c|c|}
@@ -136,6 +139,7 @@ Criteo-sub \cite{criteo} & 325M & 40 & 13B \\
 \normalsize
 \label{tbl:data}
 \end{center}
+\vspace{-10pt}
 \end{table}
 
 %\vspace{-8pt}
@@ -208,6 +212,7 @@ at least matches the speed of Spark MLlib and even outperforms it.
 	\begin{center}
 		\footnotesize
 		\includegraphics{FlashMatrix_figs/FlashR-vs-RRO.eps}
+		\vspace{-10pt}
 		\caption{In-memory (FlashR-IM) and out-of-fore (FlashR-EM) FlashR
 		compared with Revolution R Open on a data matrix with one million rows
 		and one thousand columns when running on the parallel machine with
@@ -240,7 +245,9 @@ the datasets until they converge (see their convergence condition in Section
 \begin{center}
 	\caption{The runtime and memory consumption of FlashR on the billion-scale
 		datasets on the 48 CPU core machine. The runtime of iterative
-		algorithms is measured when the algorithms converge.}
+		algorithms is measured when the algorithms converge. We run PageRank
+		on the PageGraph dataset, run k-means on PageGraph-32ev and the remaining
+		algorithms on Criteo.}
 \vspace{-10pt}
 \footnotesize
 \begin{tabular}{|c|c|c|}
@@ -252,6 +259,8 @@ Correlation & $91.23$ & $1.5$ \\
 PCA & $136.71$ & $1.5$ \\
 \hline
 NaiveBayes & $76.55$ & $3$ \\
+\hline
+LDA & $2280$ & $8$ \\
 \hline
 Logistic regression & $4154.40$ & $26$ \\
 \hline
@@ -265,6 +274,7 @@ PageRank & $3900$ & $135$ \\
 \normalsize
 \label{tbl:scale}
 \end{center}
+\vspace{-10pt}
 \end{table}
 
 Even though we process the billion-scale datasets in a single machine, none of
@@ -311,6 +321,7 @@ and vary the number of clusters from 2 to 64.
 		\footnotesize
 		\includegraphics{FlashMatrix_figs/IM-vs-EM-stat.eps}
 		\includegraphics{FlashMatrix_figs/IM-vs-EM-clust.eps}
+		\vspace{-10pt}
 		\caption{The relative runtime of FlashR in memory versus on SSDs
 		on a dataset with $n=100M$ while varying $p$ (the number of features)
 		on the left and varying $k$ (the number of clusters) on the right.}

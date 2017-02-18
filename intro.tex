@@ -20,13 +20,13 @@ While conventional wisdom addresses large-scale data analysis with clusters
 \cite{mapreduce,spark,systemml,tensorflow,petuum,graphlab}, recent works
 \cite{flashgraph,gridgraph,Matveev17,hotos} demonstrate a single-machine solution
 can deal with large-scale data analysis problems efficiently in a multicore
-machine. The advance of solid-state drives (SSDs) creates new opportunities
-for a single-machine solution to tackle data analysis efficiently at a larger scale
-with a cheaper price. SSD-based graph analysis frameworks \cite{flashgraph, gridgraph}
+machine. The advance of solid-state drives (SSDs) allows us to tackle data
+analysis in a single machine efficiently at a larger scale with a cheaper price.
+Previous SSD-based graph analysis frameworks \cite{flashgraph, gridgraph}
 have demonstrated the comparable efficiency to state-of-the-art in-memory graph
 analysis, while scaling to arbitrarily large datasets. This work extends
-these findings to matrix operations using SSDs. Matrices are the most prevalent
-and intuitive representation for machine learning and data analysis tasks.
+these findings to matrix operations using SSDs for machine learning and
+data analysis.
 %\dz{we need to say more about the advantage of a single-machine solution
 %compare with cluster solutions.}
 
@@ -102,7 +102,7 @@ data from SSDs to maximize I/O throughput for most computation tasks.
 We implement multiple machine learning algorithms, including principal component
 analysis, logistic regression and k-means, in FlashR. On a large parallel machine
 with 48 CPU cores and fast SSDs, the out-of-core execution of these R implementations
-achieves performance comparable to in-memory execution, while significantly
+achieves performance comparable to their in-memory execution, while significantly
 outperforming the same algorithms in H2O \cite{h2o} and Spark MLlib
 \cite{spark}. FlashR effortlessly scales to datasets with billions
 of data points and its out-of-core execution uses a negligible amount of memory
