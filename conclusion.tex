@@ -14,15 +14,16 @@ Although R is considered to be slow and unable to scale to large datasets,
 we demonstrate that with sufficient system-level optimizations, FlashR powers
 the R programming interface to achieve high performance and scalability
 for developing many machine learning algorithms. R implementations executed in FlashR
-outperform H2O and Spark MLlib on all algorithms by a large factor, using
+outperform H2O and Spark MLlib on all algorithms by a factor of $3-20$, using
 the same shared memory hardware. FlashR scales to datasets with billions of
 data points easily with negligible amounts of memory and completes all
 algorithms within a reasonable amount of time.
 
-Even though SSDs are an order of magnitude slower than DRAM, the external-memory
-execution of many algorithms in FlashR achieve performance approaching their in-memory
-execution. We demonstrate that an I/O throughput of 10 GB/s saturates the CPU for many
-algorithms, even in a large parallel NUMA machine. 
+Even though the current I/O technologies, such as solid-state drives (SSDs),
+are an order of magnitude slower than DRAM, the external-memory execution
+of many algorithms in FlashR achieves performance approaching their in-memory
+execution. We demonstrate that an I/O throughput of 10 GB/s saturates the CPU
+for many algorithms, even in a large parallel NUMA machine. 
 %As such, the external-memory execution also benefits from many in-memory optimizations.
 
 FlashR simplifies the programming effort of writing parallel and out-of-core

@@ -1,11 +1,13 @@
 \section{Design}
 
-FlashR is a matrix-oriented programming framework for machine learning and
+FlashR provides parallelized matrix operations in R for machine learning and
 statistics. It scales matrix operations beyond memory capacity by utilizing
 fast I/O devices, such as solid-state drives (SSDs), in a non-uniform memory
 architecture (NUMA) machine. Figure \ref{fig:arch} shows the architecture of
-FlashR. FlashR has only a few classes of generalized operations (GenOps) to
-simplify the implementation and the GenOps improve expressiveness of the framework. 
+FlashR. FlashR supports a small number of classes of generalized operations (GenOps)
+and use GenOps to implement many matrix operations in the R base package
+to provide users a familiar programming interface. The GenOps simplify
+the implementation and improve expressiveness of the framework. 
 The optimizer aggressively merges operations to
 reduce data movement in the memory hierarchy.
 It stores matrices on SSDs through SAFS \cite{safs},
@@ -20,168 +22,6 @@ throughput of SSDs.
 \label{fig:arch}
 \vspace{-10pt}
 \end{figure}
-
-\subsection{Programming interface}
-
-FlashR provides a matrix-oriented functional programming interface built
-on Generalized Operations (GenOps).  GenOps (Table \ref{tbl:genops}) take matrices and
-some functions as input and output new matrices that represent computation results.
-The input function defines computation on individual elements in input matrices.
-GenOps provide a flexible and concise programming interface and, thus,
-we focus on optimizing the small set of matrix operations. All of
-the GenOps are lazily evaluated to gain efficiency (Section
-\ref{sec:datamove}).
-
-\begin{table}
-\begin{center}
-\caption{Generalized operations (GenOps) in FlashR. $A$, $B$ and $C$ are
-	matrices, and $c$ is a scalar. $f$ is a user-defined function that
-	operates on elements of matrices.}
-\vspace{-10pt}
-\footnotesize
-\begin{tabular}{|l|l|l|}
-\hline
-GenOp & Description \\
-\hline
-$C=sapply(A, f)$ & $C_{i,j}=f(A_{i,j})$ \\
-\hline
-$C=mapply(A, B, f)$ & $C_{i,j}=f(A_{i,j}, B_{i,j})$ \\
-\hline
-$C=mapply.row(A, B, f)$ & $C_{i,j}=f(A_{i,j}, B_j)$ \\
-\hline
-$C=mapply.col(A, B, f)$ & $C_{i,j}=f(A_{i,j}, B_i)$ \\
-\hline
-$c=agg(A, f)$ & $c=f(A_{i,j}, c)$, over all $i$, $j$ \\
-\hline
-$C=agg.row(A, f)$ & $C_i=f(A_{i,j}, C_i)$, over all $j$ \\
-\hline
-$C=agg.col(A, f)$ & $C_j=f(A_{i,j}, C_j)$, over all $i$ \\
-\hline
-$C=groupby(A, B, f)$ & $C_{k}=f(A_{i,j}, C_{k})$,\\ & where $B_{i, j}=k$, over all $i,j$ \\
-\hline
-$C=groupby.row(A, B, f)$ & $C_{k,j}=f(A_{i,j}, C_{k,j})$,\\ & where $B_i=k$, over all $i$ \\
-\hline
-$C=groupby.col(A, B, f)$ & $C_{i,k}=f(A_{i,j}, C_{i,k})$,\\ & where $B_j=k$, over all $j$ \\
-\hline
-$C=inner.prod(A, B, f1, f2)$ & $t=f1(A_{i,k}, B_{k,j})$,
-\\ & $C_{i,j}=f2(t, C_{i,j})$, over all $k$ \\
-\hline
-\end{tabular}
-\normalsize
-\label{tbl:genops}
-\vspace{-10pt}
-\end{center}
-\end{table}
-
-GenOps are classified into four categories that describe different data access
-patterns.
-
-\noindent \textbf{Element-wise operations}:
-\textit{sapply} is an element-wise unary operation; \textit{mapply}
-is an element-wise binary operation; \textit{mapply.row} and
-\textit{mapply.col} perform element-wise binary operations on
-the input vector with every row or column of the input matrix
-and output a matrix of the same shape as the input matrix.
-
-\noindent \textbf{Aggregation}: \textit{agg} computes aggregation over
-all elements in a matrix and outputs a scalar value; \textit{agg.row}
-computes over all elements in every row and outputs a vector;
-\textit{agg.col} computes over all elements in every column and
-outputs a vector.
-
-\noindent \textbf{Groupby}: \textit{groupby} splits the elements of a matrix
-into groups, applies \textit{agg} to each group and outputs a vector;
-\textit{groupby.row} splits rows into groups and applies \textit{agg.col}
-to each group; \textit{groupby.col} splits columns into groups and applies
-\textit{agg.row} to each group. Both \textit{agg.row} and \textit{agg.col}
-output a matrix.
-
-\noindent \textbf{Inner product} is a generalized matrix multiplication
-that replaces multiplication and addition with two functions.
-
-We reimplement a large number of matrix functions in the R \textit{base}
-package with the GenOps to provide users a familiar programming interface.
-By overriding existing R matrix functions, FlashR scales and parallelizes
-existing R code with little/no modification. Table \ref{tbl:Rfuns} shows
-a small subset of R matrix operations and their implementations
-with GenOps.
-
-\begin{table}
-\begin{center}
-\caption{Some of the R matrix functions implemented with GenOps.}
-\vspace{-10pt}
-\footnotesize
-\begin{tabular}{|l|l|l|}
-\hline
-Function & Implementation with GenOps \\
-\hline
-$C=A+B$ & $C=mapply(A, B, "+")$ \\
-$C=A-B$ & $C=mapply(A, B, "-")$ \\
-$C=pmin(A,B)$ & $C=mapply(A, B, "pmin")$ \\
-$C=pmax(A,B)$ & $C=mapply(A, B, "pmax")$ \\
-$C=sqrt(A)$ & $C=sapply(A, "sqrt")$ \\
-$C=abs(A)$ & $C=sapply(A, "abs")$ \\
-\hline
-$c=sum(A)$ & $c=agg(A, "+")$ \\
-$C=rowSums(A)$ & $C=agg.row(A, "+")$ \\
-$C=colSums(A)$ & $C=agg.col(A, "+")$ \\
-$c=any(A)$ & $c=agg(A, "|")$ \\
-$c=all(A)$ & $c=agg(A, "\&")$ \\
-\hline
-$C=A \%*\% B$ & $C=inner.prod(A, B, "*", "+")$ for integers; \\
- & use BLAS for floating-point values; \\
- & use SpMM \cite{SEM_SpMM} for sparse matrices. \\
-\hline
-\end{tabular}
-\normalsize
-\label{tbl:Rfuns}
-\end{center}
-\end{table}
-
-In addition to computation operations, FlashR provides functions for matrix
-construction and data access in a FlashR matrix (Table \ref{tbl:utility}). This
-includes creating vectors and matrices, loading matrices from an external source,
-interacting with the R framework, reshaping a matrix, accessing rows and columns of
-a matrix and so on. FlashR avoids unnecessary data movement in these functions.
-For example, transpose of a matrix does not physically move elements in the matrix
-and instead, it causes FlashR to access data in the matrix differently in
-the subsequent matrix operations.
-
-\begin{table}
-\begin{center}
-\caption{Some of the matrix creation and matrix access functions in FlashR.}
-\vspace{-10pt}
-\footnotesize
-\begin{tabular}{|l|l|l|}
-\hline
-Function & Description \\
-\hline
-$rep.int$ & Create a vector of a repeated value \\
-$seq.int$ & Create a vector of sequence numbers \\
-$runif.matrix$ & Create a uniformly random matrix  \\
-$rnorm.matrix$ & Create a random matrix under a normal distribution \\
-\hline
-$load.dense.matrix$ & Load a dense matrix to FlashR \\
-$load.sparse.matrix$ & Load a sparse matrix to FlashR \\
-\hline
-$as.matrix$ & Convert a FlashR matrix to an R matrix \\
-$fm.as.matrix$ & Convert an R matrix to a FlashR matrix \\
-\hline
-$t$ & Matrix transpose \\
-$rbind$ & Concatenate matrices by rows \\
-$cbind$ & Concatenate matrices by columns \\
-$[]$ & Get rows or columns from a matrix \\
-%\hline
-%$fm.conv.layout$ & Convert the data layout of a matrix \\
-%$fm.set.mate.level$ & Set the materialization level of a \textit{virtual matrix} \\
-%$fm.materialize$ & Materialize a \textit{virtual matrix} \\
-%$fm.conv.store$ & Move a matrix to a specified storage \\
-\hline
-\end{tabular}
-\normalsize
-\label{tbl:utility}
-\end{center}
-\end{table}
 
 \subsection{Dense matrices}
 FlashR optimizes for dense matrices that are rectangular---with
@@ -201,7 +41,7 @@ We store vectors as a one-column TAS matrix.
 
 \begin{figure}
 	\centering
-	\includegraphics[scale=0.4]{FlashMatrix_figs/dense_matrix2.pdf}
+	\includegraphics[scale=0.5]{FlashMatrix_figs/dense_matrix2.pdf}
 	\vspace{-5pt}
 	\caption{The format of a tall dense matrix.}
 	\label{fig:den_mat}
@@ -211,29 +51,21 @@ We store vectors as a one-column TAS matrix.
 A TAS matrix is partitioned physically into I/O-partitions (Figure
 \ref{fig:den_mat}). We refer to the dimension that is partitioned as
 \textit{partition dimension}. All elements in an I/O-partition are stored
-contiguously regardless of the data layout in the matrix. All 
+contiguously regardless of the data layout in the matrix. All
 I/O-partitions have the same number of rows regardless of
 the number of columns in a TAS matrix. The number of rows in
 an I/O-partition is always $2^i$. This produces column-major TAS
 matrices whose data are well aligned in memory to help CPU vectorization.
 
-\begin{figure}
-	\centering
-	\includegraphics[scale=0.4]{FlashMatrix_figs/matrix_mem.pdf}
-	\vspace{-5pt}
-	\caption{The data storage of a matrix in memory.}
-	\label{fig:mem_store}
-  \vspace{-12pt}
-\end{figure}
-
 When a TAS matrix is stored in memory, FlashR stores its I/O partitions in
-fixed-size memory chunks (e.g., 64MB) across NUMA nodes (Figure \ref{fig:mem_store}).
-All TAS matrices are distributed across NUMA nodes in the same fashion. 
-As such, FlashR schedules threads to perform computation on I/O partitions
-in the memory close to the processors to increase the memory bandwidth.
+fixed-size memory chunks (e.g., 64MB) across NUMA nodes.
 I/O partitions from different matrices may have different sizes. By storing
 I/O partitions in fixed-size memory chunks shared among all in-memory matrices,
 FlashR can easily recycle memory chunks to reduce memory allocation overhead.
+%Because all in-memory
+%matrices are distributed across NUMA nodes in the same fashion,
+%FlashR schedules threads to perform computation on I/O partitions
+%in the memory close to the processors to increase the memory bandwidth.
 
 When a TAS matrix is stored on SSDs, it is stored as a SAFS file \cite{safs}.
 For such a matrix, an I/O partition is accessed in a single I/O request.
@@ -243,9 +75,9 @@ a hash function to map data to SSDs to fully utilize the bandwidth of all SSDs
 even if we access only a subset of columns from a TAS matrix.
 
 \subsubsection{Block matrices} \label{sec:block_mat}
-FlashR stores a tall matrix as a \textit{block matrix} 
+FlashR stores a tall matrix as a \textit{block matrix}
 (Figure \ref{fig:den_mat}(c)) comprised of TAS blocks with $32$ columns each,
-except the last block. Each block is stored as a separate TAS matrix. 
+except the last block. Each block is stored as a separate TAS matrix.
 We decompose a matrix operation
 on a block matrix into operations on individual TAS matrices to take advantage
 of the optimizations on TAS matrices and reduce data movement.
@@ -253,56 +85,6 @@ Coupled with the I/O partitioning on TAS matrices, this strategy enables
 2D-partitioning on a dense matrix and each partition fits in main memory.
 
 %\dz{Should we explain GenOps on block matrices in more details?}
-
-\subsubsection{Virtual matrices} \label{virt_mat}
-To support lazy evaluation, FlashR uses \textit{virtual matrices} that
-materialize data on the fly during computation and transfer output as input to
-the matrix operation. The data of a matrix are not stored physically.
-All GenOps output virtual matrices. A GenOp on a \textit{block matrix} may output
-a block \textit{virtual matrix}. Virtual matrices are assembled to construct
-a directed acyclic graph (DAG) that represents a sequence of matrix computations
-(Section \ref{dag}). Virtual matrices are essential to reduce data
-movement in the memory hierarchy and memory allocation overhead to accelerate
-computation.
-
-\subsubsection{Sink matrices}
-The leaf nodes in a DAG are \textit{sink matrices}.
-These are produced by aggregation, groupby, and inner product GenOps for which 
-the output matrices have a different \textit{partition dimension} size than
-the input matrices. \textit{Sink matrices} tend to be small and we store their
-results in memory. The maximum size of a sink matrix from an aggregation
-is $\sqrt{N}$ for $N$ elements in the input matrix and for groupby
-$k \times \sqrt{N}$ for $k$ groups, where $k$ is usually a small number.
-For most of machine learning and data analysis tasks, the output of inner product
-of a wide matrix with a tall matrix is small because
-the long dimension of these matrices is much larger than the short dimension.
-
-%\begin{table}
-%\begin{center}
-%\footnotesize
-%\begin{tabular}{|l|l|l|}
-%\hline
-%GenOp & Matrix dim & Output size \\
-%\hline
-%fm.agg & ($n \times p$) & $1$ \\
-%\hline
-%fm.agg.row & ($n \times p$), $n < p$ & $n$ \\
-%\hline
-%fm.agg.col & ($n \times p$), $n > p$ & $p$ \\
-%\hline
-%fm.groupby.row & ($n \times p$), $n > p$ & $p \times k$ \\
-%\hline
-%fm.groupby.col & ($n \times p$), $n < p$ & $n \times k$ \\
-%\hline
-%fm.inner.prod & ($p1 \times n$) $\times$ ($n \times p2$), & $p1 \times p2$ \\
-%			  & $n \gg p1, n \gg p2$ &  \\
-%\hline
-%\end{tabular}
-%\normalsize
-%\end{center}
-%\caption{GenOps that output \textit{sink matrices}.}
-%\label{tbl:sink}
-%\end{table}
 
 \subsection{Sparse matrices}
 FlashR supports sparse matrices and optimizes sparse matrices of different
@@ -321,55 +103,348 @@ and few rows, FlashR stores the sparse matrices with the coordinate format
 \cite{sparse_proj} or to store categorial values for computation.
 FlashR keeps these sparse matrices in memory.
 
-\subsection{Reducing data movement}\label{sec:datamove}
-It is essential to reduce data movement within the memory hierarchy to achieve
-efficiency when evaluating a sequence of matrix operations. FlashR lazily
-evaluates most matrix
-operations, especially the ones that do not contain heavy computation,
-and constructs one or more directed-acyclic graphs (DAGs) connecting GenOps and
-matrices. Figure \ref{fig:dag} (a) shows a DAG for an iteration of k-means.
-It performs all computation in a DAG together, which creates opportunities
-for fusing matrix operations to reduce data movement in the memory hierarchy.
-This data-driven, lazy evaluation allows out-of-core problems 
-to approach in-memory speed.
+\subsection{Programming interface} \label{sec:api}
 
-\subsubsection{Directed-acyclic graphs (DAGs)} \label{dag}
-A DAG comprises a set of matrix nodes (rectangles) and computation nodes
-(ellipses) (Figure \ref{fig:dag} (b)). The majority of matrix nodes are
-virtual matrices (dashed line rectangles).
-For k-means, only the input matrix \textit{X} has materialized data.
+FlashR provides a matrix-oriented functional programming interface built
+on Generalized Operations (GenOps). Instead of parallelizing each R matrix 
+function individually, FlashR simplifies the implementation by providing
+a small set of GenOps and using the GenOps to parallelize R matrix functions.
+GenOps (Table \ref{tbl:genops}) take matrices and
+some functions as input and output new matrices that represent computation results.
+The input function defines computation on individual elements in input matrices,
+and, in the current implementation, all of these functions for GenOps are predefined.
+GenOps provide a flexible and concise programming interface and, thus,
+we focus on optimizing the small set of matrix operations. All of
+the GenOps are lazily evaluated to gain efficiency (Section
+\ref{sec:lazyeval}).
+
+\begin{table}
+\begin{center}
+\caption{Generalized operations (GenOps) in FlashR. $A$, $B$ and $C$ are
+	matrices, and $c$ is a scalar. $f$ is a user-defined function that
+	operates on elements of matrices.}
+\vspace{-10pt}
+\footnotesize
+\begin{tabular}{|l|l|l|}
+\hline
+GenOp & Description \\
+\hline
+$C=sapply(A, f)$ & $C_{i,j}=f(A_{i,j})$ \\
+$C=mapply(A, B, f)$ & $C_{i,j}=f(A_{i,j}, B_{i,j})$ \\
+\hline
+$c=agg(A, f)$ & $c=f(A_{i,j}, c)$, over all $i$, $j$ \\
+$C=agg.row(A, f)$ & $C_i=f(A_{i,j}, C_i)$, over all $j$ \\
+$C=agg.col(A, f)$ & $C_j=f(A_{i,j}, C_j)$, over all $i$ \\
+\hline
+$C=groupby(A, f)$ & $C_{k}=f(A_{i,j}, C_{k})$,\\ & where $A_{i, j}=k$, over all $i,j$ \\
+$C=groupby.row(A, B, f)$ & $C_{k,j}=f(A_{i,j}, C_{k,j})$,\\ & where $B_i=k$, over all $i$ \\
+$C=groupby.col(A, B, f)$ & $C_{i,k}=f(A_{i,j}, C_{i,k})$,\\ & where $B_j=k$, over all $j$ \\
+\hline
+$C=inner.prod(A, B, f1, f2)$ & $t=f1(A_{i,k}, B_{k,j})$,
+\\ & $C_{i,j}=f2(t, C_{i,j})$, over all $k$ \\
+\hline
+$C=cum.row(A, f)$ & $C_{i,j}=f(A_{i,j}, C_{i-1,j})$ \\
+$C=cum.col(A, f)$ & $C_{i,j}=f(A_{i,j}, C_{i,j-1})$ \\
+\hline
+\end{tabular}
+\normalsize
+\label{tbl:genops}
+\vspace{-10pt}
+\end{center}
+\end{table}
+
+GenOps are classified into four categories that describe different data access
+patterns.
+
+\noindent \textbf{Element-wise operations}:
+\textit{sapply} is an element-wise unary operation; \textit{mapply}
+is an element-wise binary operation.
+
+\noindent \textbf{Aggregation}: \textit{agg} computes aggregation over
+all elements in a matrix and outputs a scalar value; \textit{agg.row}
+computes over all elements in every row and outputs a vector;
+\textit{agg.col} computes over all elements in every column and
+outputs a vector.
+
+\noindent \textbf{Groupby}: \textit{groupby} splits the elements of a matrix
+into groups, applies \textit{agg} to each group and outputs a vector;
+\textit{groupby.row} splits rows into groups and applies \textit{agg.col}
+to each group; \textit{groupby.col} splits columns into groups and applies
+\textit{agg.row} to each group. Both \textit{agg.row} and \textit{agg.col}
+output a matrix.
+
+\noindent \textbf{Inner product} is a generalized matrix multiplication
+that replaces multiplication and addition with two functions.
+
+\noindent \textbf{Cumulative operation} performs computation cumulatively
+on the elements in rows or columns and outputs matrices with the same
+shape as the input matrices. Special cases in R are \textit{cumsum} and
+\textit{cumprod}.
+
+With the GenOps, we reimplement a large number of matrix functions in
+the R \textit{base} package.
+By overriding existing R matrix functions, FlashR scales and parallelizes
+existing R code with little/no modification. Table \ref{tbl:Rfuns} shows
+a small subset of R matrix operations and their implementations
+with GenOps.
+
+\begin{table}
+\begin{center}
+\caption{Some of the R matrix functions implemented with GenOps.}
+\vspace{-10pt}
+\footnotesize
+\begin{tabular}{|l|l|l|}
+\hline
+Function & Implementation with GenOps \\
+\hline
+$C=A+B$ & $C=mapply(A, B, ``+")$ \\
+$C=A-B$ & $C=mapply(A, B, ``-")$ \\
+$C=pmin(A,B)$ & $C=mapply(A, B, ``pmin")$ \\
+$C=pmax(A,B)$ & $C=mapply(A, B, ``pmax")$ \\
+$C=sqrt(A)$ & $C=sapply(A, ``sqrt")$ \\
+$C=abs(A)$ & $C=sapply(A, ``abs")$ \\
+\hline
+$c=sum(A)$ & $c=agg(A, ``+")$ \\
+$C=rowSums(A)$ & $C=agg.row(A, ``+")$ \\
+$C=colSums(A)$ & $C=agg.col(A, ``+")$ \\
+$c=any(A)$ & $c=agg(A, ``|")$ \\
+$c=all(A)$ & $c=agg(A, ``\&")$ \\
+\hline
+$C=unique(A)$ & $C=groupby(A, ``uniq")$ \\
+$C=table(A)$ & $C=groupby(A, ``count")$ \\
+\hline
+$C=A \%*\% B$ & integers: $C=inner.prod(A, B, ``*", ``+")$ \\
+ & floating-points: BLAS \\
+ & sparse matrices: SpMM \cite{SEM_SpMM} \\
+\hline
+\end{tabular}
+\normalsize
+\label{tbl:Rfuns}
+\end{center}
+\end{table}
+
+In addition to computation operations, FlashR provides other matrix functions,
+such as matrix reshaping and element access (Table \ref{tbl:utility}). Like
+GenOps, FlashR tries to avoid data movement in most of these matrix operations.
+For example, transpose of a matrix in
+FlashR does not physically move elements in the matrix and, instead, FlashR
+just accesses data in the transposed matrix differently in the subsequent
+matrix operations. Reading columns from a tall matrix outputs a new matrix
+that indicates the columns to be accessed from the original matrix, instead
+of creating a new matrix that contains the specified columns. Writing data to
+a matrix is lazily evaluated and outputs a \textit{virtual matrix} (see Section
+\ref{sec:lazyeval}) that outputs the modified matrix on the fly.
+
+\begin{table}
+\begin{center}
+\caption{Some of the matrix creation and matrix access functions in FlashR.}
+\vspace{-10pt}
+\footnotesize
+\begin{tabular}{|l|l|l|}
+\hline
+Function & Description \\
+\hline
+$rep.int$ & Create a vector of a repeated value \\
+$seq.int$ & Create a vector of sequence numbers \\
+$runif.matrix$ & Create a uniformly random matrix  \\
+$rnorm.matrix$ & Create a matrix under a normal distribution \\
+\hline
+$load.dense$ & Read a dense matrix from text files. \\
+$load.sparse$ & Read a sparse matrix from text file. \\
+\hline
+$dim$ & Get the dimension information of a matrix\\
+$length$ & Get the number of elements in a matrix\\
+\hline
+$t$ & Matrix transpose \\
+$rbind$ & Concatenate matrices by rows \\
+$cbind$ & Concatenate matrices by columns \\
+$[]$ & Get rows/columns/elements from a matrix \\
+$[]\gets$ & Set rows/columns/elements from a matrix \\
+\hline
+%$fm.conv.layout$ & Convert the data layout of a matrix \\
+$set.cache$ & Set to cache materialized data \\
+$materialize$ & Materialize a \textit{virtual matrix} \\
+%$fm.conv.store$ & Move a matrix to a specified storage \\
+\hline
+\end{tabular}
+\normalsize
+\label{tbl:utility}
+\end{center}
+\end{table}
+
+\subsection{Parallelize matrix operations}
+
+When parallelizing matrix operations, FlashR aims at achieving good I/O
+performance and load balancing as well as reducing remote memory access
+in the NUMA architecture. As such, FlashR deploys a scheduler that dispatches
+tasks to threads sequentially to maximize I/O contiguity and accesses
+partitions of a matrix asynchronously.
+
+\begin{figure*}
+	\centering
+	\includegraphics[scale=0.5]{FlashMatrix_figs/Parallelize.pdf}
+	\vspace{-4pt}
+	\caption{Data flow for the GenOps in Table \ref{tbl:genops} on tall matrices
+	 with 1D partitioning.}
+	\label{fig:parallel}
+  \vspace{-8pt}
+\end{figure*}
+
+Parallelization strategies in FlashR vary based on the matrix operations
+and matrix shape because matrix operations have various data dependencies
+(Figure \ref{fig:parallel}). Currently, FlashR parallelizes matrix operations
+with 1D partitioning, because most of machine learning datasets have many more
+samples than features.
+
+\begin{itemize}
+	\item For operations illustrated in Figure \ref{fig:parallel}
+		(a, b, c, d), a partition $i$ of the output matrix
+		solely depends on partitions $i$ of the input matrices. This
+		significantly simplifies parallelization on a set of matrix operations
+		(Section \ref{sec:materialize}). Partitions $i$ of all matrices
+		are assigned to the same thread and there is no data sharing among
+		threads.
+	\item For operations in Figure \ref{fig:parallel} (e, f), a partition
+		$i$ of the output matrix still solely depends on a partition
+		$i$ of the input matrix $A$, but the input matrix
+		$B$ is shared by all threads. Because matrix $B$ is
+		read-only, threads do not need synchronization to perform computation.
+		Matrix $B$ is generally small, so FlashR always keeps it in memory.
+	\item For operations in Figure
+		\ref{fig:parallel} (g, h, i), the output matrix contains the aggregation
+		over all partitions of the input matrices. To parallelize these operations,
+		FlashR maintains a local buffer for the partial aggregation result in each
+		thread and combine all partial results at the end of
+		the computation. The local buffers may grow large in
+		\textit{groupby.row} because the size of partial aggregation
+		results in each thread is determined by the number of different keys in
+		the input data. As such, during computation, \textit{groupby.row} merges
+		partial aggregation in a local buffer to a global buffer when the size of
+		a local buffer reaches a threshold. 
+	\item For cumulative operations on a tall matrix in Figure \ref{fig:parallel}
+		(j), a partition $i$ of the output matrix depends on
+		a partition $i$ of the input matrix as well as a partition $i-1$
+		of the output matrix. To reduce I/O and evaluate this operation with
+		other operations together (Section \ref{sec:materialize}), FlashR performs
+		computation in a cumulative operation with a single scan over input
+		data. To perform cumulative operations efficiently in parallel, FlashR
+		takes advantage of sequential task dispatching and asynchronous data access.
+		FlashR maintains
+		a current global accumulated result and a small set of local accumulated
+		results from some partitions, and shares them among all threads. If the data
+		that a partition $i$ depends on is ready, a thread generates the partition
+		and moves it to the subsequent matrix operations. Otherwise, a thread moves
+		to the next partition $i+1$ and gets its dependancy data ready. If the number
+		of pending partitions reaches a threshold, a thread puts itself into sleep
+		and waits for all dependancy data ready.
+\end{itemize}
+
+For good load balancing and I/O performance, FlashR uses a global task scheduler
+to assign I/O-partitions to threads dynamically. Initially, the scheduler assigns
+multiple contiguous I/O-partitions to a thread. The thread reads these in
+a single large I/O asynchronously. The number of contiguous I/O-partitions
+assigned to a thread is determined by the block size of SAFS.
+As the computation nears an end, the scheduler dispatches single I/O-partitions. 
+The scheduler dispatches I/O-partitions sequentially to maximize contiguity
+on SSD. When FlashR writes an output matrix to SSDs,
+contiguity makes it easier for the file system to merge
+writes from multiple threads, which helps to sustain write throughput and reduces
+write amplification \cite{ripq}.
+
+%\dz{NUMA optimizations.}
+%dispatch computation tasks in a NUMA-aware fashion.
+
+%\dz{Most of computation requires to access partitions of a matrix sequentially.
+%This allows us to virtualize some operations that we don't know the size of
+%output in advance. e.g., read text input and filter operation.}
+
+%For a block matrix with many TAS matrices, we parallelize the computation and
+%I/O access differently. One of the goals is to reduce memory consumption.
+%Instead of getting the row/column range from all TAS matrices before performing
+%computation, we read the row/column range from some TAS matrices first, perform
+%computation and move on to the next TAS matrices in the same range. This is
+%very helpful if the computation is aggregation.
+
+\subsection{Lazy evaluation}\label{sec:lazyeval}
+
+In practice, FlashR almost never evaluates a single matrix operation alone.
+Instead, it always evaluates matrix operations in Section \ref{sec:api}
+lazily and constructs directed acyclic graphs (DAG) to represent computation.
+Lazy evaluation is essential to achieve substantial performance for a sequence
+of matrix operations in a deep memory hierarchy. FlashR grows each DAG as large
+as possible so that later on it evaluates all matrix operations inside a DAG
+in a single parallel execution to increase the ratio of computation to I/O.
+
+With lazily evaluation, matrix operations
+output \textit{virtual matrices} that represent the computation result,
+instead of storing data physically. In the current implementation,
+the only operations that are not lazily evaluated are operations that
+load data from external source, such as \textit{load.dense} and
+\textit{load.sparse}, and the operations that output matrices
+with the size depending on data of the input matrices, such as \textit{unique}
+and \textit{table}.
+\textit{Virtual matrices} materialize data on the fly during computation
+and transfer output as input to the subsequent matrix operation.
+A matrix operation on a \textit{block matrix} may output
+a block \textit{virtual matrix}.
+
+%\dz{There are two types of virtual matrices. Most of the virtual matrices
+%are reporducible (each access returns the same value). The computation in
+%the other type of virtual matrices may not be reproduciable and thus, we
+%store the computation result once data is generated (e.g., random matrix).}
+
+Some of the matrix operations output matrices with
+a different \textit{partition dimension} size than the input matrices and,
+in general, forms the edge nodes of a DAG. We denote these matrices as
+\textit{sink matrices}. Operations, such as aggregation and groupby,
+output \textit{sink matrices}.
+\textit{Sink matrices} tend to be small and once being
+materialized, their materialized results are stored in memory.
+%The maximum size of a sink matrix from an aggregation
+%is $\sqrt{N}$ for $N$ elements in the input matrix and for groupby
+%$k \times \sqrt{N}$ for $k$ groups, where $k$ is usually a small number.
+%For most of machine learning and data analysis tasks, the output of inner product
+%of a wide matrix with a tall matrix is small because
+%the long dimension of these matrices is much larger than the short dimension.
+
+Figure \ref{fig:dag} (a) shows an example of DAG that represents the computation
+of the k-means algorithm. A DAG comprises a set of
+matrix nodes (rectangles) and computation nodes (ellipses). The majority of
+matrix nodes are virtual matrices (dashed line rectangles).
+In this example, only the input matrix \textit{X} has materialized data.
 A computation node references a GenOp and input matrices and
 may contain some immutable computation state, such as scalar variables and
 small matrices. 
 
-FlashR grows each DAG as large as possible, by allowing virtual matrices
-of different shapes in a DAG, to increase the ratio of computation to I/O
-(Figure \ref{fig:dag}). All virtual matrices in internal matrix nodes have
-the same \textit{partition dimension} size to simplify evaluation and data
-flow. \textit{Sink matrices} are edge nodes
-in the DAG because they have different \textit{partition dimension} sizes
-from the internal matrices. Any computation that uses these
-sink matrices cannot be connected to the same DAG.  
+\subsection{DAG materialization}\label{sec:materialize}
+FlashR evaluates all computation in a DAG in a single parallel execution
+and fuses matrix operations to reduce data
+movement in the memory hierarchy to achieve efficiency. This data-driven,
+operation fusion allows out-of-core problems to approach in-memory speed.
 
-\subsubsection{DAG materialization}
 FlashR allows both explicit and implicit DAG materialization to simplify
 programming while providing the opportunities to tune the code for
-better speed. For explicit materialization, a user can invoke
-\textit{fm.materialize} to materialize a virtual matrix. Access to elements
-of a sink matrix triggers materialization implicitly. Materialization on
-a virtual matrix triggers materialization on the DAG where the virtual
+better speed. For explicit materialization, a user can invoke the
+\textit{materialize} function in Table \ref{tbl:utility} to materialize
+a virtual matrix. Implicit materialization includes access to individual
+elements of a sink matrix and invoking matrix operations whose output size
+depends on input data, such as \textit{unique} and \textit{table}. Materialization
+on a virtual matrix triggers materialization on the DAG where the virtual
 matrix connects.
 
 By default, FlashR saves the computation results of all sink matrices of
 the DAG in memory and discard the data of non-sink matrices on the fly.
-Because sink matrices tend to be small, this materialization
-rule leads to small memory consumption.
-In exceptional cases, especially for iterative algorithms,
+Because sink matrices tend to be small, this rule leads to small memory
+consumption. In exceptional cases, especially for iterative algorithms,
 it is helpful to save some non-sink matrices to avoid
 redundant computation and I/O across iterations.  We allow users to
-set a flag on any virtual matrix to materialize and cache data in memory
-or on SSDs during computation, similar to caching
+set a flag on any virtual matrix with \textit{set.cache} to materialize and
+cache data in memory or on SSDs during computation, similar to caching
 a \textit{resilient distributed dataset} (RDD) in Spark \cite{spark}.
+Internally, FlashR uses this mechanisum to lazily evaluate \textit{runif.matrix}:
+FlashR generates random numbers when the matrix is used for the first time and
+generated random numbers is cached so that the matrix returns the same
+data when the matrix is accessed again.
 
 \begin{figure}
 	\centering
@@ -385,74 +460,46 @@ a \textit{resilient distributed dataset} (RDD) in Spark \cite{spark}.
   \vspace{-8pt}
 \end{figure}
 
-FlashR partitions matrices in a DAG and materializes partitions separately.
-This is possible because all matrices, except
-sink matrices, share the same partition dimension. 
-A partition $i$ of a virtual matrix requires data only from partitions
+FlashR partitions matrices in a DAG and materializes partitions relatively
+separately. This is possible because all matrices in a DAG except sink matrices
+share the same \textit{partition dimension} and the same I/O partition size.
+As illustrated in Figure \ref{fig:dag} (b), a partition $i$ of a virtual
+matrix requires data only from partitions
 $i$ of the parent matrices.  All DAG operations in a partition are processed by 
 the same thread so that all data required by the computations are stored and
 accessed in the memory close to the processor to increase the memory bandwidth
 in a NUMA machine.
-When materializing a sink matrix, each thread computes partial
-aggregation results on the partitions assigned to the thread. 
-Then, FlashR merges per-thread partial results to construct the output.
 
 FlashR uses two-level partitioning on dense matrices to reduce data movement
 between SSDs and CPU (Figure \ref{fig:dag} (b)). It reads data on SSDs in
 I/O partitions and assigns these partitions to a thread as a parallel task.
-It further splits I/O-partitions into processor cache (Pcache)
-partitions at run time.  Each thread materializes one Pcache-partition
-at a time. Matrix operations run on TAS matrices or block matrices are
-divided into TAS matrices so that a Pcache-partition fits in the CPU L1/L2 cache.
+It further splits I/O-partitions into processor cache (Pcache) partitions
+at run time.  Each thread materializes one Pcache-partition at a time from
+a matrix. Regular tall matrices are divided into TAS matrices and matrix
+operations are converted to running on these TAS matrices instead. As such,
+a Pcache-partition is sufficiently small to fit in the CPU L1/L2 cache.
 
-FlashR makes an effort to increase hits in the CPU cache, which
-significantly reduces data movement between CPU and memory.
-When materializing output to a virtual matrix, the thread passes
-the output as input to the subsequent
-GenOp, instead of materializing the next Pcache-partition.
-This ensures that a Pcache-partition resides in the CPU cache
-when the next GenOp consumes it. 
-In each thread, all intermediate matrices have only one 
-Pcache-partition materialized
-at any time to reduce CPU cache pollution.
-%To reduce CPU cache polution, a CPU-level partition is discarded once it is
-%used by all children matrices.
+FlashR further deploys multiple techniques to reduce CPU cache polution to
+reduce data movement between CPU and memory. When evaluating the computations
+in a DAG, a thread performs depth-first traversal and performs matrix operations
+in the order that they are traversed. Each time, a thread performs a matrix
+operation on a Pcache partition of a matrix and passes the Pcache partition to
+the subsequent matrix operation, instead of materializing the next Pcache-partition.
+This ensures that a Pcache-partition resides in the CPU cache when the next
+matrix operation consumes it. In each thread, all intermediate matrices have
+only one Pcache-partition materialized at any time.
+To further reduce CPU cache polution, FlashR discards a Pcache partition
+once it is used by all subsequent matrix operations, and the memory buffer
+of the Pcache partition are reused by the next matrix operation. As such,
+the next matrix operation writes its output data in the memory that is
+already in CPU cache. A Pcache partition can be read by multiple matrix
+operations. As such, FlashR maintains a counter on each Pcache partition.
+When the counter indicates the partition has been used by all subsequent
+matrix operations, the Pcache partition is discarded.
 
-%materialization on block matrices.
+%\subsection{Memory management}
 
-%In a DAG, a matrix may be
-%required by multiple GenOps. As such, each matrix always buffers one materialized
-%CPU-level partition in each thread to avoid redundant computation.
-
-% TODO
-%To keep data in CPU cache as long as possible, we reuse the memory buffers
-%to reduce the number of memory buffers used in the computation and avoid CPU
-%cache polution.
-
-\subsection{Parallel execution and I/O access}
-FlashR dispatches computation to threads so that they
-issue large reads and writes to SSDs, while still achieving good load balancing.
-FlashR uses a global task scheduler to assign I/O-partitions to threads
-dynamically. Initially, the scheduler assigns multiple contiguous I/O-partitions
-to a thread. The thread reads these in a single large I/O.
-The number of contiguous I/O-partitions assigned to a thread is determined by
-the block size of SAFS.
-As the computation nears an end, the scheduler dispatches single I/O-partitions. 
-% DZTODO -- "always is wrong"  -- consider out of order execution
-%The scheduler always ensures that all threads are working on I/O-partitions that are adjacent to
-%each other on storage.
-The scheduler dispatches I/O-partitions sequentially to maximize contiguity in memory
-and on SSD. When the DAG stores the materialized result of a non-sink matrix,
-contiguity makes it easier for the file system to merge
-writes from multiple threads, which helps to sustain write throughput and reduces
-write amplification \cite{ripq}.
-
-%For a block matrix with many TAS matrices, we parallelize the computation and
-%I/O access differently. One of the goals is to reduce memory consumption.
-%Instead of getting the row/column range from all TAS matrices before performing
-%computation, we read the row/column range from some TAS matrices first, perform
-%computation and move on to the next TAS matrices in the same range. This is
-%very helpful if the computation is aggregation.
+%How to handle garbage collection?
 
 \section{Machine learning algorithms} \label{sec:apps}
 To illustrate the programming interface of FlashR, we showcase some classic
@@ -462,8 +509,7 @@ can run in the existing R framework without any modification.
 
 \begin{figure}
 \centering
-	\footnotesize
-	\begin{minted}[mathescape,
+\begin{minted}[mathescape,
 	fontsize=\footnotesize,
 	frame=single,
 	tabsize=2,
@@ -475,12 +521,12 @@ kmeans.iter <- function(X,C) {
 	# Find the closest center.
 	I<-agg.row(D,"which.min")
 	# Count the number of data points in each cluster.
-	CNT<-groupby(rep.int(1,nrow(I)),I,"+")
+	CNT<-groupby.row(rep.int(1,nrow(I)),I,"+")
 	# Compute the new centers.
-	C<-mapply.row(groupby.row(X,I,"+"),CNT,"/")
+	C<-sweep(groupby.row(X,I,"+"),2,CNT,"/")
 	list(C=C,I=I)
 }
-	\end{minted}
+\end{minted}
 \vspace{-10pt}
 	\caption{The FlashR implementation for an iteration of k-means.}
 	\label{fig:kmeans}
@@ -499,27 +545,22 @@ cluster for each data point.  The output matrix
 assigns data points to clusters. It then uses \textit{groupby.row} to count
 the number of data points in each cluster and compute the mean of each cluster.
 
-Logistic regression is a commonly used classification algorithm.
-We implement this algorithm solely with the R \textit{base} functions
-overriden by FlashR. Figure
-\ref{logistic} implements logistic regression for problems with binary-class
-labels. It uses steepest gradient descent with line search to minimize
-the \textit{cost} function. This example does not have a regularization term
-in the cost function.
 \begin{figure}
 \begin{minted}[mathescape,
 fontsize=\footnotesize,
 frame=single,
 tabsize=2,
 ]{R}
-# `X' is the data matrix, whose rows represent data points
-# and columns represent features. `y' stores the labels of
-# data points. `w' is the weight vector.
+# `X' is the data matrix, whose rows represent
+# data points and columns represent features.
+# `y' stores the labels of data points. `w' is
+# the weight vector.
 logistic.regression <- function(X,y) {
+	Xtw <- X%*%t(w)
 	grad <- function(X,y,w)
-		(t(X)%*%(1/(1+exp(-X%*%t(w)))-y))/length(y)
+		(t(X)%*%(1/(1+exp(-Xtw))-y))/length(y)
 	cost <- function(X,y,w)
-		sum(y*(-X%*%t(w))+log(1+exp(X%*%t(w))))/length(y)
+		sum(y*(-Xtw)+log(1+exp(Xtw)))/length(y)
 	# Gradient descent with line search.
 	theta <- matrix(rep(0, num.features), nrow=1)
 	for (i in 1:max.iters) {
@@ -541,36 +582,44 @@ steepest gradient descent in FlashR.}
 \vspace{-5pt}
 \end{figure}
 
-PageRank is a well-known algorithm for graph analysis. The matrix formulation
-(Figure \ref{pagerank}) operates on the adjacency matrix of a graph. It uses
-a power method and performs a sequence of sparse matrix multiplications until
-the algorithm converges.
-\begin{figure}
-\begin{minted}[mathescape,
-fontsize=\footnotesize,
-frame=single,
-tabsize=2,
-]{R}
-# `graph' is a sparse matrix that represents the input
-# graph. `d' is a damping factor, `epsilon' is
-# the convergence accuracy.
-pagerank <- function(graph, d=0.15, epsilon=1e-2) {
-	N <- nrow(graph)
-	pr1 <- fm.rep.int(1/N, N)
-	out.deg <- graph %*% fm.rep.int(1, N)
-	converge <- 0
-	graph <- t(graph)
-	while (converge < N) {
-		pr2 <- (1-d)/N+d*(graph %*% (pr1/out.deg))
-		diff <- abs(pr1-pr2)
-		converge <- sum(diff < epsilon)
-		pr1 <- pr2
-	}
-	pr1
-}
-\end{minted}
-\vspace{-10pt}
-\caption{A simplified implementation of PageRank in FlashR.}
-\label{pagerank}
-\vspace{-10pt}
-\end{figure}
+Logistic regression is a commonly used classification algorithm.
+We implement this algorithm solely with the R \textit{base} functions
+overriden by FlashR. Figure
+\ref{logistic} implements logistic regression for problems with binary-class
+labels. It uses steepest gradient descent with line search to minimize
+the \textit{cost} function. This example does not have a regularization term
+in the cost function.
+
+%PageRank is a well-known algorithm for graph analysis. The matrix formulation
+%(Figure \ref{pagerank}) operates on the adjacency matrix of a graph. It uses
+%a power method and performs a sequence of sparse matrix multiplications until
+%the algorithm converges.
+%\begin{figure}
+%\begin{minted}[mathescape,
+%fontsize=\footnotesize,
+%frame=single,
+%tabsize=2,
+%]{R}
+%# `graph' is a sparse matrix that represents
+%# the input graph. `d' is a damping factor,
+%# `epsilon' is the convergence accuracy.
+%pagerank<-function(graph,d=0.15,epsilon=1e-2){
+%	N <- nrow(graph)
+%	pr1 <- fm.rep.int(1/N, N)
+%	out.deg <- graph %*% fm.rep.int(1, N)
+%	converge <- 0
+%	graph <- t(graph)
+%	while (converge < N) {
+%		pr2 <- (1-d)/N+d*(graph %*% (pr1/out.deg))
+%		diff <- abs(pr1-pr2)
+%		converge <- sum(diff < epsilon)
+%		pr1 <- pr2
+%	}
+%	pr1
+%}
+%\end{minted}
+%\vspace{-10pt}
+%\caption{A simplified implementation of PageRank in FlashR.}
+%\label{pagerank}
+%\vspace{-10pt}
+%\end{figure}

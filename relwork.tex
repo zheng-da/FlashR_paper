@@ -19,16 +19,21 @@ SSDs to memory and from memory to CPU caches.
 
 MapReduce \cite{mapreduce} has been used for parallelizing machine learning
 algorithms \cite{Chu06}. Even though MapReduce simplifies parallel programming,
-it still requires low-level programming.
-As such, frameworks are built on top of MapReduce to reduce programming complexity.
-For example, SystemML \cite{systemml} develops an R-like script language for
-machine learning. MapReduce is inefficient for matrix operations because
+it still requires low-level programming. As such, frameworks are built on top
+of MapReduce to reduce programming complexity. MapReduce is inefficient for
+matrix operations because
 its I/O streaming primitives do not match matrix data access patterns.
 
 The Spark \cite{spark} is a distributed, in-memory framework that provides more
 primitives for efficient computation and provides a distributed machine
 learning library (MLlib, \cite{mllib}).
 Spark is the most efficient distributed engine.
+
+SystemML \cite{systemml, systemml2} develops an R-like script language for
+machine learning on top of MapReduce and Spark. It deploys many optimizations,
+such as data compression \cite{Elgohary16} and hybrid parallelization
+\cite{Boehm14}. These optimizations are orthogonal with the ones in FlashR
+and can be adopted.
 
 Distributed machine learning frameworks have been developed to train machine
 learning models on large datasets. For example, GraphLab \cite{graphlab}

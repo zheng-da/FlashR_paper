@@ -6,11 +6,14 @@ libraries H2O \cite{h2o} and Spark MLlib \cite{mllib}. We further use FlashR
 to accelerate existing R functions in the MASS package and compare with
 Revolution R Open \cite{rro}.
 
-We conduct experiments on a NUMA machine with four Intel Xeon E7-4860 2.6 GHz
-processors and 1TB of DDR3-1600 memory. Each processor has 12 cores. The machine
-is equipped with 24 OCZ Intrepid 3000 SSDs, which together are capable of
-12 GB/s for read and 10 GB/s for write. The machine runs Ubuntu 14.04 and
-uses ATLAS 3.10.1 as the default BLAS library.
+We conduct experiments on our local server and Amazon cloud. The local server
+is a large NUMA machine with four Intel Xeon E7-4860 2.6 GHz processors,
+each of which has 12 cores, 1TB of DDR3-1600 memory. The machine is equipped
+with 24 OCZ Intrepid 3000 SSDs, which together are capable of 12 GB/s for read
+and 10 GB/s for write. The machine runs Ubuntu 16.04 and uses ATLAS 3.10.2 as
+the default BLAS library. We also run FlashR on an EC2 i3.16xlarge instance,
+which has 64 virtual CPUs, 488GB of RAM and 8 NVMe SSDs. The NVMe SSDs together
+provide 15.2TB of space and up to 16GB/s of sequential I/O throughput.
 
 \subsection{Benchmark algorithms}\label{benchalg}
 We benchmark FlashR with some commonly used algorithms. Like the algorithms
@@ -30,10 +33,10 @@ with the ``naive'' assumption of independence between every pair of features.
 Our implementation assumes data follows the normal distribution.
 
 \noindent \textbf{Logistic regression} is a linear regression model with
-categorical dependent variables. We use the Newton-CG algorithm
-to optimize logistic regression. It converges when
-$logloss_{i-1}-logloss_i < 1e-6$, where $logloss_i$ is the logarithmic loss
-at iteration $i$.
+categorical dependent variables. We use the LBFGS algorithm \cite{lbfgs}
+to optimize logistic regression.
+% It converges when $logloss_{i-1}-logloss_i < 1e-6$, where $logloss_i$
+% is the logarithmic loss at iteration $i$.
 
 \noindent \textbf{K-means} is an iterative clustering algorithm that
 partitions data points to $k$ clusters. Its R implementation is illustrated
@@ -41,32 +44,33 @@ in Figure \ref{fig:kmeans}. In the experiments, we run k-means to split
 a dataset into 10 clusters by default. It converges when no data points
 move.
 
+\noindent \textbf{Gaussian mixture models (GMM)} assumes data follows
+a mixture of Gaussian distribution and learns parameters of Gaussian mixture
+models from data. It typically uses the expectation-maximization (EM)
+algorithm \cite{em} to fit the models, similar to k-means.
+
 \noindent \textbf{Multivariate Normal Distribution (mvrnorm)} generates
 samples from the specified multivariate normal distribution. We use
 the implementation in the MASS package.
 
 \noindent \textbf{Linear discriminant analysis (LDA)} is a linear classifier
 that assumes the normal distribution with a different mean for each class
-but sharing the same covariance matrix among classes. Our LDA is adapted from
-the one in the R MASS package only with some trivial modifications.
+but sharing the same covariance matrix among classes. We use the implementation
+in the MASS package with some trivial modifications.
 
-\noindent \textbf{PageRank} is a well-known algorithm for graph analysis.
-We run the R implementation in Figure \ref{pagerank} in the experiment.
-PageRank converges when
-$\forall j, abs(PR^i(v_j) - PR^{i-1}(v_{j})) < \dfrac{0.01}{n}$,
-where $PR^i(v_j)$ is the PageRank value of vertex $v_j$ at iteration $i$ and
-$n$ is the number of vertices in the graph.
+%\noindent \textbf{PageRank} is a well-known algorithm for graph analysis.
+%We run the R implementation in Figure \ref{pagerank} in the experiment.
+%PageRank converges when
+%$\forall j, abs(PR^i(v_j) - PR^{i-1}(v_{j})) < \dfrac{0.01}{n}$,
+%where $PR^i(v_j)$ is the PageRank value of vertex $v_j$ at iteration $i$ and
+%$n$ is the number of vertices in the graph.
 
 \begin{table}
 \begin{center}
-\caption{Computation and I/O complexity of the benchmark algorithms. $n$ is
-	the number
+\caption{Computation and I/O complexity of the benchmark algorithms. For
+	iterative algorithms, the complexity is per iteration. $n$ is the number
 	of data points, $p$ is the number of the features in a point, and $k$ is
-	the number of clusters, $nnz$ is the number of non-zero entries in
-	a sparse matrix. We assume $n > p$. We show the computation and I/O
-	complexity of an iteration in iterative algorithms. PageRank typically
-	runs on a $n \times n$ sparse matrix. Logistic regression is optimized
-	with Newton-CG.
+	the number of clusters. We assume $n > p$.
 }
 \vspace{-10pt}
 \footnotesize
@@ -80,16 +84,18 @@ PCA & $O(n \times p^2)$ & $O(n \times p)$ \\
 \hline
 Naive Bayes & $O(n \times p)$ & $O(n \times p)$ \\
 \hline
-Logistic regression & $O(n \times p^2)$ & $O(n \times p)$ \\
+Logistic regression & $O(n \times p)$ & $O(n \times p)$ \\
 \hline
 K-means & $O(n \times p \times k)$ & $O(n \times p)$ \\
+\hline
+GMM & $O(n \times p^2 \times k)$ & $O(n \times p + n \times k)$ \\
 \hline
 mvrnorm & $O(n \times p^2)$ & $O(n \times p)$ \\
 \hline
 LDA & $O(n \times p^2)$ & $O(n \times p)$ \\
 \hline
-PageRank & $O(nnz + n)$ & $O(nnz)$ \\
-\hline
+%PageRank & $O(nnz + n)$ & $O(nnz)$ \\
+%\hline
 \end{tabular}
 \normalsize
 \label{tbl:algs}
@@ -99,16 +105,15 @@ PageRank & $O(nnz + n)$ & $O(nnz)$ \\
 
 These algorithms have various ratios of computation complexity and I/O complexity
 (Table \ref{tbl:algs}) to thoroughly evaluate performance of FlashR on SSDs.
-Logistic regression, K-means and PageRank run iteratively and, thus, we show
+Logistic regression, K-means and GMM run iteratively and, thus, we show
 their computation and I/O complexity in a single iteration.
 
-We benchmark FlashR with two real-world datasets with billions of data points
-(Table \ref{tbl:data}). The Criteo dataset has over four billion data points
-with binary labels (click vs. no-click), used for advertisement click
-prediction \cite{criteo}. PageGraph is a graph whose vertices represent Web pages
-and edges represents hyperlinks between Web pages \cite{webgraph}. PageGraph-32ev
-are 32 singular vectors that we computed on the largest connected component of
-Pagegraph with the tools we built previously \cite{flashgraph, SEM_SpMM}.
+We use two real-world datasets with billions of data points (Table \ref{tbl:data})
+to benchmark the algorithms above. The Criteo dataset has over four billion data
+points with binary labels (click vs. no-click), used for advertisement click
+prediction \cite{criteo}. PageGraph-32ev are 32 singular vectors that we computed
+on the largest connected component of a Page graph whose vertices represent Web
+pages and edges represents hyperlinks between Web pages \cite{webgraph}.
 To compare FlashR with other frameworks, we take part of the Criteo and
 PageGraph-32ev datasets to
 create smaller datasets. PageGraph-32ev-sub is the first 336 million data points
@@ -117,23 +122,20 @@ on the first two days, which is about one tenth of the whole dataset.
 
 \begin{table}
 \begin{center}
-\caption{Datasets. PageGraph is a sparse matrix and the other datasets are
-	dense matrices.}
+\caption{Datasets. All datasets are stored as dense matrices.}
 \vspace{-10pt}
 \footnotesize
 \begin{tabular}{|c|c|c|c|c|}
 \hline
-Data Matrix & \#rows & \#cols & \#nnz \\
+Data Matrix & \#rows & \#cols \\
 \hline
-PageGraph \cite{webgraph} & 3.5B & 3.5B & 128B \\
+PageGraph-32ev \cite{webgraph} & 3.5B & 32 \\
 \hline
-PageGraph-32ev \cite{webgraph} & 3.5B & 32 & 107B \\
+Criteo \cite{criteo} & 4.3B & 40 \\
 \hline
-Criteo \cite{criteo} & 4.3B & 40 & 172B \\
+PageGraph-32ev-sub \cite{webgraph} & 336M & 32 \\
 \hline
-PageGraph-32ev-sub \cite{webgraph} & 336M & 32 & 11B \\
-\hline
-Criteo-sub \cite{criteo} & 325M & 40 & 13B \\
+Criteo-sub \cite{criteo} & 325M & 40 \\
 \hline
 \end{tabular}
 \normalsize
@@ -146,15 +148,15 @@ Criteo-sub \cite{criteo} & 325M & 40 & 13B \\
 \subsection{Comparative performance}
 %\vspace{-4pt}
 We evaluate FlashR against H2O \cite{h2o} and Spark MLlib \cite{mllib} as well
-as Revolution R Open \cite{rro} in a large parallel machine with 48 CPU cores
-and in the Amazon cloud. When running in the 48 CPU core machine, all frameworks
+as Revolution R Open \cite{rro} in our local server and in the Amazon
+cloud. When running in the 48 CPU core local server, all frameworks
 use 48 threads and H2O and MLlib have a large heap size (500GB) to ensure that
 all data are cached in memory. When running in the cloud, we run FlashR
-in a single i2.8xlarge instance (16 CPU cores, 244GB RAM and 6.4TB SSD storage)
-and MLlib in a cluster of four EC2 c4.8xlarge instances (72 CPU cores, 240GB RAM
-and 10Gbps network). We also use FlashR to parallelize functions (mvrnorm and LDA)
+in an i3.16xlarge instance
+and MLlib in a cluster of four EC2 m4.16xlarge instances (256 CPU cores, 1TB RAM
+and 20Gbps network). We also use FlashR to parallelize functions (mvrnorm and LDA)
 in the R MASS package and compare their speed with Revolution R Open. We use
-Spark v2.0.1, H2O v3.10.2 and Revolution R Open v3.3.2.
+Spark v2.0.1, H2O v3.14.2 and Revolution R Open v3.3.2.
 
 \begin{figure}
   \vspace{-5pt}
@@ -170,42 +172,43 @@ Spark v2.0.1, H2O v3.10.2 and Revolution R Open v3.3.2.
 	\begin{subfigure}{.5\textwidth}
 		\includegraphics{FlashMatrix_figs/FlashR-vs-dist-EC2.eps}
 		\caption{In the Amazon cloud. FlashR-IM and FlashR-EM run on one
-			EC2 i2.8xlarge instance (16 CPU cores) and Spark MLlib runs
-		on a cluster of four EC2 c4.8xlarge instances (72 CPU cores).}
+			EC2 i3.16xlarge instance (64 CPU cores) and Spark MLlib runs
+		on a cluster of four EC2 m4.16xlarge instances (256 CPU cores).}
 		\label{perf:cloud}
 	\end{subfigure}
 	\vspace{-8pt}
 	\caption{The normalized runtime of FlashR in memory (FlashR-IM) and
-	on SSDs (FlashR-EM) compared with H2O and Spark MLlib. Correlation is not
-	available in H2O. We run k-means on the PageGraph-32ev-sub dataset and
-	all other algorithms on the Criteo-sub dataset.}
+	on SSDs (FlashR-EM) compared with H2O and Spark MLlib. Correlation and GMM
+	are not available in H2O. We run k-means and GMM on the PageGraph-32ev-sub
+	dataset and all other algorithms on the Criteo-sub dataset.}
 	\label{perf:rt}
   \vspace{-10pt}
 \end{figure}
 
 FlashR outperforms H2O and Spark MLlib significantly on all algorithms
 (Figure \ref{perf:para}) in the large parallel machine with 48 CPU cores.
-FlashR running in memory achieves 3 to 10 times performance gain when compared
-with MLlib, and 2.5 to 7 times performance gain when compared with H2O.
+When all frameworks run on the same hardware, FlashR in memory (FlashR-IM)
+achieves 4 to 10 times performance gain when compared
+with MLlib, and 3 to 20 times performance gain when compared with H2O.
 When running on SSDs, FlashR achieves at least half the speed of running in
-memory. Even though logistic regression in FlashR uses Newton-CG, a much more
-computation intensive optimization algorithm than LBFGS \cite{lbfgs} used by
-H2O and MLlib (Newton-CG takes 10 iterations and LBFGS takes 14 iterations
-to converge to similar loss on the dataset), FlashR still runs almost $2-3$
-times as fast as H2O and MLlib. All implementations rely on BLAS for
-matrix multiplication. H2O and MLlib have to
-implement non-BLAS operations with Java and Scala, respectively, and
-MLlib materializes operations such as aggregation separately. In contrast,
+memory. All implementations rely on BLAS for matrix multiplication. H2O
+and MLlib have to implement non-BLAS operations with Java and Scala,
+respectively. Spark also materializes operations such as aggregation
+separately. In contrast,
 FlashR fuses matrix operations and performs two-level partitioning to
 minimize data movement in the memory hierarchy and keeps data in local
 memory to achieve high memory bandwidth.
 
 We further evaluate the speed of FlashR on Amazon EC2 cloud and compare it with
-Spark MLlib on an EC2 cluster (Figure \ref{perf:cloud}). Spark MLlib needs
-at least 4 c4.8xlarge instances to process the datasets (PageGraph-32ev-sub
-and Criteo-sub).
-Even though Spark MLlib has 4.5 as much computation power as FlashR, FlashR
-at least matches the speed of Spark MLlib and even outperforms it.
+Spark MLlib on an EC2 cluster (Figure \ref{perf:cloud}). H2O recommends
+allocating a total of four times the memory of the input data. As such,
+4 m4.16xlarge instances provide sufficient memory and computation power to
+Spark MLlib and H2O to process the datasets (PageGraph-32ev-sub and Criteo-sub).
+Even though Spark MLlib and H2O has four times as much computation power as FlashR, FlashR
+still outperforms both distributed machine learning libraries in most algorithms.
+Because the NVMes in i3.16xlarge provide higher I/O throughput than the SSDs
+in our local server, the performance gap between FlashR-IM and FlashR-EM is
+smaller.
 
 \begin{figure}[b]
   \vspace{-10pt}
@@ -245,9 +248,8 @@ the datasets until they converge (see their convergence condition in Section
 \begin{center}
 	\caption{The runtime and memory consumption of FlashR on the billion-scale
 		datasets on the 48 CPU core machine. The runtime of iterative
-		algorithms is measured when the algorithms converge. We run PageRank
-		on the PageGraph dataset, run k-means on PageGraph-32ev and the remaining
-		algorithms on Criteo.}
+		algorithms is measured when the algorithms converge. We run k-means
+		on PageGraph-32ev and the remaining algorithms on Criteo.}
 \vspace{-10pt}
 \footnotesize
 \begin{tabular}{|c|c|c|}
@@ -266,10 +268,8 @@ Logistic regression & $4154.40$ & $26$ \\
 \hline
 k-means & $1110.82$ & $28$ \\
 \hline
-PageRank & $3900$ & $135$ \\
+GMM & & \\
 \hline
-%Spectral embedding & $xx$ & $xx$ \\
-%\hline
 \end{tabular}
 \normalsize
 \label{tbl:scale}
@@ -281,14 +281,11 @@ Even though we process the billion-scale datasets in a single machine, none of
 the algorithms are prohibitively expensive. Simple algorithms, such as
 Naive Bayes and PCA, require one or two passes over the datasets and take
 only one or two minutes to complete. Logistic regression and k-means take
-about $10-20$ iterations to converge. Because the PageRank implementation
-uses the power method, it takes $100$ iterations to converge.
+about $10-20$ iterations to converge.
 Nevertheless, all of the iterative algorithms take about one hour or less.
 
 FlashR scales to datasets with billions of data points easily when running
-out of core. Most of the algorithms have negligible memory consumption.
-PageRank consumes more memory because the sparse matrix multiplication in
-PageRank keeps vectors in memory for semi-external memory computation.
+out of core. All of the algorithms have negligible memory consumption.
 The scalability of FlashR is mainly bound by the capacity of SSDs.
 The functional programming
 interface generates a new matrix in each matrix operation, which potentially

@@ -1,0 +1,188 @@
+%% For double-blind review submission
+\documentclass[sigplan,10pt,review,anonymous]{acmart}\settopmatter{printfolios=true}
+%% For single-blind review submission
+%\documentclass[sigplan,10pt,review]{acmart}\settopmatter{printfolios=true}
+%% For final camera-ready submission
+%\documentclass[sigplan,10pt]{acmart}\settopmatter{}
+
+%% Note: Authors migrating a paper from traditional SIGPLAN
+%% proceedings format to PACMPL format should change 'sigplan' to
+%% 'acmsmall'.
+
+
+%% Some recommended packages.
+\usepackage{booktabs}   %% For formal tables:
+                        %% http://ctan.org/pkg/booktabs
+\usepackage{subcaption} %% For complex figures with subfigures/subcaptions
+                        %% http://ctan.org/pkg/subcaption
+\usepackage{minted}
+
+\newcommand{\dz}[1]{{\color{blue}{\it DZ: #1}}}
+
+\makeatletter\if@ACM@journal\makeatother
+%% Journal information (used by PACMPL format)
+%% Supplied to authors by publisher for camera-ready submission
+\acmJournal{PACMPL}
+\acmVolume{1}
+\acmNumber{1}
+\acmArticle{1}
+\acmYear{2017}
+\acmMonth{1}
+\acmDOI{10.1145/nnnnnnn.nnnnnnn}
+\startPage{1}
+\else\makeatother
+%% Conference information (used by SIGPLAN proceedings format)
+%% Supplied to authors by publisher for camera-ready submission
+\acmConference[PPoPP'18]{ACM SIGPLAN Symposium on Principles \& Practice of Parallel Programming}{Feb 24--28, 2018}{Vienna, Austria}
+\acmYear{2018}
+%\acmISBN{978-x-xxxx-xxxx-x/YY/MM}
+%\acmDOI{10.1145/nnnnnnn.nnnnnnn}
+\startPage{1}
+\fi
+
+
+%% Copyright information
+%% Supplied to authors (based on authors' rights management selection;
+%% see authors.acm.org) by publisher for camera-ready submission
+\setcopyright{none}             %% For review submission
+%\setcopyright{acmcopyright}
+%\setcopyright{acmlicensed}
+%\setcopyright{rightsretained}
+%\copyrightyear{2017}           %% If different from \acmYear
+
+
+%% Bibliography style
+\bibliographystyle{ACM-Reference-Format}
+%% Citation style
+%% Note: author/year citations are required for papers published as an
+%% issue of PACMPL.
+%\citestyle{acmauthoryear}  %% For author/year citations
+%\citestyle{acmnumeric}     %% For numeric citations
+%\setcitestyle{nosort}      %% With 'acmnumeric', to disable automatic
+                            %% sorting of references within a single citation;
+                            %% e.g., \cite{Smith99,Carpenter05,Baker12}
+                            %% rendered as [14,5,2] rather than [2,5,14].
+%\setcitesyle{nocompress}   %% With 'acmnumeric', to disable automatic
+                            %% compression of sequential references within a
+                            %% single citation;
+                            %% e.g., \cite{Baker12,Baker14,Baker16}
+                            %% rendered as [2,3,4] rather than [2-4].
+
+
+
+\begin{document}
+
+\title{FlashR: Parallelize and Scale R for Machine Learning}
+
+%% Author information
+%% Contents and number of authors suppressed with 'anonymous'.
+%% Each author should be introduced by \author, followed by
+%% \authornote (optional), \orcid (optional), \affiliation, and
+%% \email.
+%% An author may have multiple affiliations and/or emails; repeat the
+%% appropriate command.
+%% Many elements are not rendered, but should be provided for metadata
+%% extraction tools.
+
+%% Author with single affiliation.
+%\author[1]{\rm Da Zheng}
+%\author[1]{\rm Disa Mhembere}
+%\author[3]{\rm Joshua T. Vogelstein}
+%\author[2]{\rm Carey E. Priebe}
+%\author[1]{\rm Randal Burns}
+%\affil[1]{Department of Computer Science, Johns Hopkins University}
+%\affil[2]{Department of Applied Mathematics and Statistics, Johns Hopkins University}
+%\affil[3]{Department of Biomedical Engineering, Johns Hopkins University}
+
+
+%% Paper note
+%% The \thanks command may be used to create a "paper note" ---
+%% similar to a title note or an author note, but not explicitly
+%% associated with a particular element.  It will appear immediately
+%% above the permission/copyright statement.
+%\thanks{with paper note}                %% \thanks is optional
+                                        %% can be repeated if necesary
+                                        %% contents suppressed with 'anonymous'
+
+
+%% Abstract
+%% Note: \begin{abstract}...\end{abstract} environment must come
+%% before \maketitle command
+\begin{abstract}
+R is one of the most popular programming languages for statistics and machine
+learning, but the R framework is relatively slow and unable to scale to large
+datasets. The general approach for speeding up an implementation in R is to
+implement the algorithms in C or FORTRAN and provide an R wrapper. FlashR takes
+a different approach: it executes R code in parallel and scales the code beyond
+memory capacity by utilizing solid-state drives (SSDs) automatically. It
+provides a small number of generalized 
+operations (GenOps) upon which we reimplement a large number of
+matrix functions in the R \textit{base} package. As such, FlashR parallelizes
+and scales existing R code with little/no modification. To reduce data movement
+between CPU and SSDs, FlashR evaluates matrix operations lazily, fuses
+as many matrix operations as possible in a single execution, and uses cache-aware,
+two-level matrix partitioning.
+We evaluate FlashR on a variety of machine learning and statistics algorithms 
+on inputs of up to four billion data points.
+FlashR out-of-core tracks closely the performance of FlashR in-memory.
+The R code for machine learning algorithms executed in FlashR
+outperforms the in-memory execution of H2O and Spark MLlib by a factor of
+$3-20$ and outperforms Revolution R Open by more than an order of magnitude.
+\end{abstract}
+
+
+%% 2012 ACM Computing Classification System (CSS) concepts
+%% Generate at 'http://dl.acm.org/ccs/ccs.cfm'.
+\begin{CCSXML}
+<ccs2012>
+<concept>
+<concept_id>10011007.10011006.10011008</concept_id>
+<concept_desc>Software and its engineering~General programming languages</concept_desc>
+<concept_significance>500</concept_significance>
+</concept>
+<concept>
+<concept_id>10003456.10003457.10003521.10003525</concept_id>
+<concept_desc>Social and professional topics~History of programming languages</concept_desc>
+<concept_significance>300</concept_significance>
+</concept>
+</ccs2012>
+\end{CCSXML}
+
+%\ccsdesc[500]{Software and its engineering~General programming languages}
+%\ccsdesc[300]{Social and professional topics~History of programming languages}
+%% End of generated code
+
+
+%% Keywords
+%% comma separated list
+\keywords{R, parallel, machine learning, solid-state drives}  %% \keywords is optional
+
+
+%% \maketitle
+%% Note: \maketitle command must come after title commands, author
+%% commands, abstract environment, Computing Classification System
+%% environment and commands, and keywords command.
+\maketitle
+
+\section{Introduction}
+\input{intro}
+
+\vspace{-10pt}
+\section{Related Work}
+\input{relwork}
+
+\input{design}
+
+\input{eval}
+
+\section{Conclusions}
+\input{conclusion}
+
+%% Bibliography
+{\footnotesize \bibliographystyle{acm}
+\bibliography{kdd17}}
+
+
+%\bibliography{bibfile}
+
+\end{document}

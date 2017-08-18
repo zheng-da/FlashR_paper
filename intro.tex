@@ -16,13 +16,14 @@ researchers to have expert knowledge in the parallel programming models.
  
 % How have others addressed the problem?
 
-While conventional wisdom addresses large-scale data analysis with clusters
+While conventional wisdom addresses large-scale data analysis and machine
+learning with clusters
 \cite{mapreduce,spark,systemml,tensorflow,petuum,graphlab}, recent works
 \cite{flashgraph,gridgraph,Matveev17,hotos} demonstrate a single-machine solution
-can deal with large-scale data analysis problems efficiently in a multicore
+can deal with large-scale data analysis efficiently in a multicore
 machine. The advance of solid-state drives (SSDs) allows us to tackle data
 analysis in a single machine efficiently at a larger scale with a cheaper price.
-Previous SSD-based graph analysis frameworks \cite{flashgraph, gridgraph}
+Previous SSD-based graph analysis frameworks \cite{flashgraph, gridgraph, graphene}
 have demonstrated the comparable efficiency to state-of-the-art in-memory graph
 analysis, while scaling to arbitrarily large datasets. This work extends
 these findings to matrix operations using SSDs for machine learning and
@@ -35,8 +36,7 @@ data analysis.
 % What is the nature of your solution?
 To provide a simple programming environment for efficient and scalable machine
 learning, we present FlashR, an interactive R-based programming framework that
-executes R code in parallel and
-out-of-core automatically for large-scale data analysis. FlashR stores large
+executes R code in parallel and out-of-core automatically. FlashR stores large
 vectors and matrices on SSDs and overrides many R functions in the R
 \textit{base} package to perform computation on these external-memory vectors
 and matrices.
@@ -90,30 +90,45 @@ FlashR evaluates expressions lazily and fuses operations aggressively
 in a single parallel execution job to minimize data movement. FlashR
 builds a directed acyclic graph (DAG) to represent a sequence of matrix
 operations and grows a DAG as much as possible to increase the ratio of
-computation to I/O. When evaluating the computation in a DAG, FlashR
-performs two levels of matrix partitioning to reduce data movement in
-the memory hierarchy. FlashR by default materializes
-only the output matrices (leaf nodes) of a DAG and keeps materialized results in
-memory in order to minimize data written to SSDs. FlashR streams
+computation to I/O. FlashR evaluates all matrix operations in a DAG
+in a single execution and performs two levels of matrix partitioning to
+reduce data movement in the memory hierarchy. FlashR by default avoids
+physically generating new large matrices and materializes only the output
+matrices (leaf nodes) of a DAG, which are in generally small. FlashR streams
 data from SSDs to maximize I/O throughput for most computation tasks.
 
 % What are it's key features?
 
 We implement multiple machine learning algorithms, including principal component
-analysis, logistic regression and k-means, in FlashR. On a large parallel machine
-with 48 CPU cores and fast SSDs, the out-of-core execution of these R implementations
-achieves performance comparable to their in-memory execution, while significantly
-outperforming the same algorithms in H2O \cite{h2o} and Spark MLlib
-\cite{spark}. FlashR effortlessly scales to datasets with billions
+analysis, logistic regression and k-means, in FlashR. We demonstrate that
+with today's fast commodity storage technology, the out-of-core execution of
+FlashR achieves performance comparable to their in-memory execution, even
+on a large parallel machine and Amazon cloud. Furthermore, FlashR outperforms
+the same algorithms in H2O \cite{h2o} and Spark MLlib \cite{spark} by a factor
+of $3-20$ in a large parallel machine with 48 CPU cores. In the Amazon cloud,
+FlashR uses only one fourth of resources still matches or even outperforms H2O
+and Spark MLlib, which suggests that FlashR is a much
+more cost-effective solution for large-scale data analysis in the cloud.
+FlashR effortlessly scales to datasets with billions
 of data points and its out-of-core execution uses a negligible amount of memory
 compared with the dataset size. In addition, FlashR executes the R functions
 in the R MASS \cite{mass} package with little modification and outperforms
 the execution of the same functions in Revolution R Open \cite{rro} by more
 than an order of magnitude.
 
-We believe that FlashR significantly lowers the requirements for writing
-parallel and scalable implementations of machine learning algorithms; it also
-offers new
-design possibilities for data analysis clusters, replacing memory with larger
-and cheaper SSDs and processing bigger problems on fewer nodes.
+Given its high-level array-oriented programming interface and superior performance,
+we believe that FlashR significantly lowers the requirements for writing
+parallel and scalable implementations of machine learning algorithms. It also
+offers new design possibilities for data analysis clusters, replacing memory
+with larger and cheaper SSDs and processing bigger problems on fewer nodes.
 FlashR is released as an open-source project at http://flashx.io/.
+
+%\begin{itemize}
+%\item identify a set of generalized matrix operations that cover all matrix
+%operations in NumPy.
+%\item design a set of optimizations for these generalized matrix operations
+%to maximize CPU cache hits and reduce I/O access. The optimizations are tailored
+%specifically for machine learning.
+%\item using SSDs, EM performance matches IM performance and scale to
+%Internet-scale datasets.
+%\end{itemize}

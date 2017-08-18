@@ -1,7 +1,7 @@
 #LATEX = pdflatex
 LATEX = pdflatex -shell-escape
 SPELL = aspell
-TEX = kdd17
+TEX = FlashR
 BIBTEX = bibtex
 
 default: $(TEX).tex 
