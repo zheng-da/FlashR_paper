@@ -2,7 +2,7 @@
 We evaluate the efficiency of FlashR on statistics and machine learning
 algorithms both in memory and on SSDs. We compare the R implementations of
 these algorithms with the ones in two optimized parallel machine learning
-libraries H2O \cite{h2o} and Spark MLlib \cite{mllib}. We further use FlashR
+libraries H$_2$O \cite{h2o} and Spark MLlib \cite{mllib}. We further use FlashR
 to accelerate existing R functions in the MASS package and compare with
 Revolution R Open \cite{rro}.
 
@@ -147,16 +147,16 @@ Criteo-sub \cite{criteo} & 325M & 40 \\
 %\vspace{-8pt}
 \subsection{Comparative performance}
 %\vspace{-4pt}
-We evaluate FlashR against H2O \cite{h2o} and Spark MLlib \cite{mllib} as well
+We evaluate FlashR against H$_2$O \cite{h2o} and Spark MLlib \cite{mllib} as well
 as Revolution R Open \cite{rro} in our local server and in the Amazon
 cloud. When running in the 48 CPU core local server, all frameworks
-use 48 threads and H2O and MLlib have a large heap size (500GB) to ensure that
+use 48 threads and H$_2$O and MLlib have a large heap size (500GB) to ensure that
 all data are cached in memory. When running in the cloud, we run FlashR
 in an i3.16xlarge instance
 and MLlib in a cluster of four EC2 m4.16xlarge instances (256 CPU cores, 1TB RAM
 and 20Gbps network). We also use FlashR to parallelize functions (mvrnorm and LDA)
 in the R MASS package and compare their speed with Revolution R Open. We use
-Spark v2.0.1, H2O v3.14.2 and Revolution R Open v3.3.2.
+Spark v2.0.1, H$_2$O v3.14.2 and Revolution R Open v3.3.2.
 
 \begin{figure}
   \vspace{-5pt}
@@ -178,20 +178,20 @@ Spark v2.0.1, H2O v3.14.2 and Revolution R Open v3.3.2.
 	\end{subfigure}
 	\vspace{-8pt}
 	\caption{The normalized runtime of FlashR in memory (FlashR-IM) and
-	on SSDs (FlashR-EM) compared with H2O and Spark MLlib. Correlation and GMM
-	are not available in H2O. We run k-means and GMM on the PageGraph-32ev-sub
+	on SSDs (FlashR-EM) compared with H$_2$O and Spark MLlib. Correlation and GMM
+	are not available in H$_2$O. We run k-means and GMM on the PageGraph-32ev-sub
 	dataset and all other algorithms on the Criteo-sub dataset.}
 	\label{perf:rt}
   \vspace{-10pt}
 \end{figure}
 
-FlashR outperforms H2O and Spark MLlib significantly on all algorithms
+FlashR outperforms H$_2$O and Spark MLlib significantly on all algorithms
 (Figure \ref{perf:para}) in the large parallel machine with 48 CPU cores.
 When all frameworks run on the same hardware, FlashR in memory (FlashR-IM)
 achieves 4 to 10 times performance gain when compared
-with MLlib, and 3 to 20 times performance gain when compared with H2O.
+with MLlib, and 3 to 20 times performance gain when compared with H$_2$O.
 When running on SSDs, FlashR achieves at least half the speed of running in
-memory. All implementations rely on BLAS for matrix multiplication. H2O
+memory. All implementations rely on BLAS for matrix multiplication. H$_2$O
 and MLlib have to implement non-BLAS operations with Java and Scala,
 respectively. Spark also materializes operations such as aggregation
 separately. In contrast,
@@ -200,11 +200,11 @@ minimize data movement in the memory hierarchy and keeps data in local
 memory to achieve high memory bandwidth.
 
 We further evaluate the speed of FlashR on Amazon EC2 cloud and compare it with
-Spark MLlib on an EC2 cluster (Figure \ref{perf:cloud}). H2O recommends
+Spark MLlib on an EC2 cluster (Figure \ref{perf:cloud}). H$_2$O recommends
 allocating a total of four times the memory of the input data. As such,
 4 m4.16xlarge instances provide sufficient memory and computation power to
-Spark MLlib and H2O to process the datasets (PageGraph-32ev-sub and Criteo-sub).
-Even though Spark MLlib and H2O has four times as much computation power as FlashR, FlashR
+Spark MLlib and H$_2$O to process the datasets (PageGraph-32ev-sub and Criteo-sub).
+Even though Spark MLlib and H$_2$O has four times as much computation power as FlashR, FlashR
 still outperforms both distributed machine learning libraries in most algorithms.
 Because the NVMes in i3.16xlarge provide higher I/O throughput than the SSDs
 in our local server, the performance gap between FlashR-IM and FlashR-EM is
