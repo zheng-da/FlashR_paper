@@ -16,6 +16,7 @@
 \usepackage{subcaption} %% For complex figures with subfigures/subcaptions
                         %% http://ctan.org/pkg/subcaption
 \usepackage{minted}
+\usepackage{color,soul}
 
 \newcommand{\dz}[1]{{\color{blue}{\it DZ: #1}}}
 
@@ -120,11 +121,12 @@ operations (GenOps) upon which we reimplement a large number of
 matrix functions in the R \textit{base} package. As such, FlashR parallelizes
 and scales existing R code with little/no modification. To reduce data movement
 between CPU and SSDs, FlashR evaluates matrix operations lazily, fuses
-as many matrix operations as possible in a single execution, and uses cache-aware,
-two-level matrix partitioning.
+as many matrix operations as possible in a single execution, and uses
+cache-aware, two-level matrix partitioning.
 We evaluate FlashR on a variety of machine learning and statistics algorithms 
-on inputs of up to four billion data points.
-FlashR out-of-core closely tracks the performance of FlashR in-memory.
+on inputs of up to four billion data points. \hl{Despite the huge performance
+gap between SSDs and RAM, FlashR running on SSDs closely tracks the performance
+of FlashR in memory for many machine learning algorithms}.
 The R code for machine learning algorithms executed in FlashR
 outperforms the in-memory execution of H$_2$O and Spark MLlib by a factor of
 $3-20$ and outperforms Revolution R Open by more than an order of magnitude.

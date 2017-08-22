@@ -1,8 +1,8 @@
 % What problem are you going to solve.
 
-The explosion of data volume and the increasing complexity of data analysis
-generate a growing demand for scalable statistical analysis and machine
-learning tools that are simple and efficient.
+The explosion of data and the increasing complexity of data analysis
+generate a growing demand for parallel, scalable statistical analysis
+and machine learning tools that are simple and efficient.
 Simple tools need to be programmable, interactive, and extensible, 
 allowing scientists to encode and deploy complex algorithms. 
 Successful examples include R, SciPy, and Matlab.  Efficiency dictates that
@@ -12,18 +12,19 @@ storage. The current approach for utilizing the full
 capacity of modern parallel systems often uses a low-level programming
 language such as C and parallelizes computation with MPI or OpenMP.
 This approach is time-consuming and error-prone, and requires machine learning
-researchers to have expert knowledge in the parallel programming models.
+researchers to develop expertise in parallel programming models.
  
 % How have others addressed the problem?
 
 While conventional wisdom addresses large-scale data analysis and machine
 learning with clusters
 \cite{mapreduce,spark,systemml,tensorflow,petuum,graphlab}, recent works
-\cite{flashgraph,gridgraph,Matveev17,hotos} demonstrate a single-machine solution
-can deal with large-scale data analysis efficiently in a multicore
+\cite{flashgraph,gridgraph,Matveev17,hotos} demonstrate a single-machine
+solution can deal with large-scale data analysis efficiently in a multicore
 machine. The advance of solid-state drives (SSDs) allows us to tackle data
-analysis in a single machine efficiently at a larger scale with a cheaper price.
-Previous SSD-based graph analysis frameworks \cite{flashgraph, gridgraph, graphene}
+analysis in a single machine efficiently at a larger scale and more economically
+than possible before. Previous SSD-based graph analysis frameworks
+\cite{flashgraph, gridgraph, graphene}
 have demonstrated the comparable efficiency to state-of-the-art in-memory graph
 analysis, while scaling to arbitrarily large datasets. This work extends
 these findings to matrix operations using SSDs for machine learning and
@@ -44,9 +45,6 @@ As such, FlashR executes existing R code with little/no modification.
 FlashR focuses on optimizations in a single machine (with multiple CPUs and
 many cores) and scales matrix operations beyond memory capacity by 
 utilizing solid-state drives (SSDs).  
-%This paper does not address distributed matrix operations, but, 
-%FlashR is suitable for executing the local part of a distributed 
-%computation.   
 Our evaluation shows that we can solve billion row, Internet-scale 
 problems on a single thick node, which can prevent the complexity,
 expense, and power consumption of distributed systems when they are
@@ -61,14 +59,15 @@ not strictly necessary \cite{hotos}.
 
 To utilize the full capacity of a large parallel machine, we overcome
 many technical challenges to move data from SSDs to CPU efficiently for matrix
-computations,
-notably the large performance disparities between CPU and memory and between
-memory and SSDs. The ``memory gap'' \cite{Wilkes01} continues to grow, with 
+computations, notably the large performance disparities between CPU and memory
+and between memory and SSDs. In the memory hierarchy, a memory media in a layer
+is in general at least an order of magnitude faster than the memory media in
+the layer below for both latency and throughput.
+The ``memory gap'' \cite{Wilkes01} continues to grow, with 
 the difference between CPU and DRAM performance increasing exponentially. 
 There are also performance differences between
 local and remote memory in a non-uniform memory architecture (NUMA), which are prevalent
 in modern multiprocessor machines. 
-RAM outperforms SSDs by an order of magnitude for both latency and throughput.
 %Even though the I/O
 %performance of SSDs has advanced to outperform hard drives by a large factor,
 %FDespite advances in SSD I/O performance, 
@@ -89,13 +88,15 @@ RAM outperforms SSDs by an order of magnitude for both latency and throughput.
 FlashR evaluates expressions lazily and fuses operations aggressively
 in a single parallel execution job to minimize data movement. FlashR
 builds a directed acyclic graph (DAG) to represent a sequence of matrix
-operations and grows a DAG as much as possible to increase the ratio of
-computation to I/O. FlashR evaluates all matrix operations in a DAG
-in a single execution and performs two levels of matrix partitioning to
-reduce data movement in the memory hierarchy. FlashR by default avoids
-physically generating new large matrices and materializes only the output
-matrices (leaf nodes) of a DAG, which are in generally small. FlashR streams
-data from SSDs to maximize I/O throughput for most computation tasks.
+operations. To increase the ratio of computation to I/O, materialization
+of any matrix operation in a DAG triggers materialization of all operations
+in the DAG, which leads to a single scan over the input matrices of the DAG.
+FlashR by default keeps only the output matrices (leaf nodes) of the DAG
+in memory to have a small memory footprint. When materializing all matrix
+operations in a DAG,
+FlashR performs two levels of matrix partitioning and reorder computation
+in matrix partitions to reduce data movement in the memory hierarchy.
+\dz{more on two-level matrix partitioning}
 
 % What are it's key features?
 
@@ -106,8 +107,8 @@ FlashR achieves performance comparable to their in-memory execution, even
 on a large parallel machine and Amazon cloud. Furthermore, FlashR outperforms
 the same algorithms in H$_2$O \cite{h2o} and Spark MLlib \cite{spark} by a factor
 of $3-20$ in a large parallel machine with 48 CPU cores. In the Amazon cloud,
-FlashR uses only one fourth of resources still matches or even outperforms H$_2$O
-and Spark MLlib, which suggests that FlashR is a much
+FlashR using only one fourth of the resources still matches or even outperforms
+H$_2$O and Spark MLlib. This suggests that FlashR is a much
 more cost-effective solution for large-scale data analysis in the cloud.
 FlashR effortlessly scales to datasets with billions
 of data points and its out-of-core execution uses a negligible amount of memory
@@ -117,7 +118,7 @@ the execution of the same functions in Revolution R Open \cite{rro} by more
 than an order of magnitude.
 
 Given its high-level array-oriented programming interface and superior performance,
-we believe that FlashR significantly lowers the requirements for writing
+we argue that FlashR significantly lowers the requirements for writing
 parallel and scalable implementations of machine learning algorithms. It also
 offers new design possibilities for data analysis clusters, replacing memory
 with larger and cheaper SSDs and processing bigger problems on fewer nodes.

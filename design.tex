@@ -3,8 +3,8 @@
 FlashR provides parallelized matrix operations in R for machine learning and
 statistics. It scales matrix operations beyond memory capacity by utilizing
 fast I/O devices, such as solid-state drives (SSDs), in a non-uniform memory
-architecture (NUMA) machine. Figure \ref{fig:arch} shows the architecture of
-FlashR. FlashR supports a small number of classes of generalized operations (GenOps)
+access (NUMA) machine. Figure \ref{fig:arch} shows the architecture of FlashR.
+FlashR supports a small number of classes of generalized operations (GenOps)
 and use GenOps to implement many matrix operations in the R base package
 to provide users a familiar programming interface. The GenOps simplify
 the implementation and improve expressiveness of the framework. 
@@ -51,11 +51,11 @@ We store vectors as a one-column TAS matrix.
 A TAS matrix is partitioned physically into I/O-partitions (Figure
 \ref{fig:den_mat}). We refer to the dimension that is partitioned as
 \textit{partition dimension}. All elements in an I/O-partition are stored
-contiguously regardless of the data layout in the matrix. All
-I/O-partitions have the same number of rows regardless of
-the number of columns in a TAS matrix. The number of rows in
-an I/O-partition is always $2^i$. This produces column-major TAS
-matrices whose data are well aligned in memory to help CPU vectorization.
+contiguously regardless of the data layout in the matrix. All I/O-partitions
+have the same number of rows regardless of the number of columns in a TAS
+matrix. The number of rows in an I/O-partition is always $2^i$, where
+$i \in \mathbb{N}$. This produces column-major TAS
+matrices whose data are well aligned in memory to encourage CPU vectorization.
 
 When a TAS matrix is stored in memory, FlashR stores its I/O partitions in
 fixed-size memory chunks (e.g., 64MB) across NUMA nodes.
@@ -122,7 +122,8 @@ the GenOps are lazily evaluated to gain efficiency (Section
 \begin{center}
 \caption{Generalized operations (GenOps) in FlashR. $A$, $B$ and $C$ are
 	matrices, and $c$ is a scalar. $f$ is a user-defined function that
-	operates on elements of matrices.}
+	operates on elements of matrices. $A_{i,j}$ indicates the element
+	in row $i$ and column $j$ of matrix $A$.}
 \vspace{-10pt}
 \footnotesize
 \begin{tabular}{|l|l|l|}
@@ -132,19 +133,19 @@ GenOp & Description \\
 $C=sapply(A, f)$ & $C_{i,j}=f(A_{i,j})$ \\
 $C=mapply(A, B, f)$ & $C_{i,j}=f(A_{i,j}, B_{i,j})$ \\
 \hline
-$c=agg(A, f)$ & $c=f(A_{i,j}, c)$, over all $i$, $j$ \\
-$C=agg.row(A, f)$ & $C_i=f(A_{i,j}, C_i)$, over all $j$ \\
-$C=agg.col(A, f)$ & $C_j=f(A_{i,j}, C_j)$, over all $i$ \\
+$c=agg(A, f)$ & $c=f(A_{i,j}, c)$, $\forall i, j$ \\
+$C=agg.row(A, f)$ & $C_i=f(A_{i,j}, C_i)$, $\forall j$ \\
+$C=agg.col(A, f)$ & $C_j=f(A_{i,j}, C_j)$, $\forall i$ \\
 \hline
-$C=groupby(A, f)$ & $C_{k}=f(A_{i,j}, C_{k})$,\\ & where $A_{i, j}=k$, over all $i,j$ \\
-$C=groupby.row(A, B, f)$ & $C_{k,j}=f(A_{i,j}, C_{k,j})$,\\ & where $B_i=k$, over all $i$ \\
-$C=groupby.col(A, B, f)$ & $C_{i,k}=f(A_{i,j}, C_{i,k})$,\\ & where $B_j=k$, over all $j$ \\
+$C=groupby(A, f)$ & $C_{k}=f(A_{i,j}, C_{k})$,\\ & where $A_{i, j}=k$, $\forall i,j$ \\
+$C=groupby.row(A, B, f)$ & $C_{k,j}=f(A_{i,j}, C_{k,j})$,\\ & where $B_i=k$, $\forall i$ \\
+$C=groupby.col(A, B, f)$ & $C_{i,k}=f(A_{i,j}, C_{i,k})$,\\ & where $B_j=k$, $\forall j$ \\
 \hline
 $C=inner.prod(A, B, f1, f2)$ & $t=f1(A_{i,k}, B_{k,j})$,
-\\ & $C_{i,j}=f2(t, C_{i,j})$, over all $k$ \\
+\\ & $C_{i,j}=f2(t, C_{i,j})$, $\forall k$ \\
 \hline
-$C=cum.row(A, f)$ & $C_{i,j}=f(A_{i,j}, C_{i-1,j})$ \\
-$C=cum.col(A, f)$ & $C_{i,j}=f(A_{i,j}, C_{i,j-1})$ \\
+$C=cum.row(A, f)$ & $C_{i,j}=f(A_{i,j}, C_{i,j-1})$ \\
+$C=cum.col(A, f)$ & $C_{i,j}=f(A_{i,j}, C_{i-1,j})$ \\
 \hline
 \end{tabular}
 \normalsize
@@ -274,9 +275,13 @@ $materialize$ & Materialize a \textit{virtual matrix} \\
 
 \subsection{Parallelize matrix operations}
 
-When parallelizing matrix operations, FlashR aims at achieving good I/O
-performance and load balancing as well as reducing remote memory access
-in the NUMA architecture. As such, FlashR deploys a scheduler that dispatches
+FlashR parallelizes matrix operations to achieve performance for both
+a single matrix operation and a sequence of matrix operations. In a large
+parallel NUMA machine with a deep memory hierarchy, FlashR aims at achieving good
+I/O performance and load balancing as well as reducing remote memory access
+in the NUMA architecture. To evaluate a sequence of matrix operations
+efficiently, FlashR performs computation for all matrix operations with
+a single pass on input data. FlashR deploys a scheduler that dispatches
 tasks to threads sequentially to maximize I/O contiguity and accesses
 partitions of a matrix asynchronously.
 
@@ -314,7 +319,7 @@ samples than features.
 		\ref{fig:parallel} (g, h, i), the output matrix contains the aggregation
 		over all partitions of the input matrices. To parallelize these operations,
 		FlashR maintains a local buffer for the partial aggregation result in each
-		thread and combine all partial results at the end of
+		thread and combines all partial results at the end of
 		the computation. The local buffers may grow large in
 		\textit{groupby.row} because the size of partial aggregation
 		results in each thread is determined by the number of different keys in
@@ -322,9 +327,12 @@ samples than features.
 		partial aggregation in a local buffer to a global buffer when the size of
 		a local buffer reaches a threshold. 
 	\item For cumulative operations on a tall matrix in Figure \ref{fig:parallel}
-		(j), a partition $i$ of the output matrix depends on
-		a partition $i$ of the input matrix as well as a partition $i-1$
-		of the output matrix. To reduce I/O and evaluate this operation with
+		(j), a partition $i$ of the output matrix depends on a partition $i$ of
+		the input matrix as well as a partition $i-1$ of the output matrix.
+		Executing this operation in parallel typically requires two passes over
+		the input data \cite{Ladner1980}: the first pass builds a tree of
+		aggregation bottom-up and the second pass traverses the tree top-down
+		to compute the final result. To reduce I/O and evaluate this operation with
 		other operations together (Section \ref{sec:materialize}), FlashR performs
 		computation in a cumulative operation with a single scan over input
 		data. To perform cumulative operations efficiently in parallel, FlashR
@@ -332,11 +340,11 @@ samples than features.
 		FlashR maintains
 		a current global accumulated result and a small set of local accumulated
 		results from some partitions, and shares them among all threads. If the data
-		that a partition $i$ depends on is ready, a thread generates the partition
-		and moves it to the subsequent matrix operations. Otherwise, a thread moves
+		that a partition $i$ depends on is ready, a thread computes the partition
+		and passes it to the subsequent matrix operations. Otherwise, a thread moves
 		to the next partition $i+1$ and gets its dependancy data ready. If the number
-		of pending partitions reaches a threshold, a thread puts itself into sleep
-		and waits for all dependancy data ready.
+		of pending partitions reaches a threshold, a thread puts itself to sleep
+		and waits for all dependancy data to become available.
 \end{itemize}
 
 For good load balancing and I/O performance, FlashR uses a global task scheduler
@@ -379,7 +387,7 @@ With lazily evaluation, matrix operations
 output \textit{virtual matrices} that represent the computation result,
 instead of storing data physically. In the current implementation,
 the only operations that are not lazily evaluated are operations that
-load data from external source, such as \textit{load.dense} and
+load data from external sources, such as \textit{load.dense} and
 \textit{load.sparse}, and the operations that output matrices
 with the size depending on data of the input matrices, such as \textit{unique}
 and \textit{table}.
@@ -397,8 +405,7 @@ Some of the matrix operations output matrices with
 a different \textit{partition dimension} size than the input matrices and,
 in general, forms the edge nodes of a DAG. We denote these matrices as
 \textit{sink matrices}. Operations, such as aggregation and groupby,
-output \textit{sink matrices}.
-\textit{Sink matrices} tend to be small and once being
+output \textit{sink matrices}. \textit{Sink matrices} tend to be small and, once
 materialized, their materialized results are stored in memory.
 %The maximum size of a sink matrix from an aggregation
 %is $\sqrt{N}$ for $N$ elements in the input matrix and for groupby
@@ -423,7 +430,7 @@ movement in the memory hierarchy to achieve efficiency. This data-driven,
 operation fusion allows out-of-core problems to approach in-memory speed.
 
 FlashR allows both explicit and implicit DAG materialization to simplify
-programming while providing the opportunities to tune the code for
+programming while providing the opportunity to tune the code for
 better speed. For explicit materialization, a user can invoke the
 \textit{materialize} function in Table \ref{tbl:utility} to materialize
 a virtual matrix. Implicit materialization includes access to individual
@@ -433,17 +440,17 @@ on a virtual matrix triggers materialization on the DAG where the virtual
 matrix connects.
 
 By default, FlashR saves the computation results of all sink matrices of
-the DAG in memory and discard the data of non-sink matrices on the fly.
+the DAG in memory and discards the data of non-sink matrices on the fly.
 Because sink matrices tend to be small, this rule leads to small memory
 consumption. In exceptional cases, especially for iterative algorithms,
 it is helpful to save some non-sink matrices to avoid
 redundant computation and I/O across iterations.  We allow users to
 set a flag on any virtual matrix with \textit{set.cache} to materialize and
 cache data in memory or on SSDs during computation, similar to caching
-a \textit{resilient distributed dataset} (RDD) in Spark \cite{spark}.
-Internally, FlashR uses this mechanisum to lazily evaluate \textit{runif.matrix}:
+a resilient distributed dataset (RDD) in Spark \cite{spark}.
+Internally, FlashR uses this mechanism to lazily evaluate \textit{runif.matrix}:
 FlashR generates random numbers when the matrix is used for the first time and
-generated random numbers is cached so that the matrix returns the same
+the generated random numbers are cached so that the matrix returns the same
 data when the matrix is accessed again.
 
 \begin{figure}
@@ -460,8 +467,8 @@ data when the matrix is accessed again.
   \vspace{-8pt}
 \end{figure}
 
-FlashR partitions matrices in a DAG and materializes partitions relatively
-separately. This is possible because all matrices in a DAG except sink matrices
+FlashR partitions matrices in a DAG and materializes partitions \hl{relatively
+separately}. This is possible because all matrices in a DAG except sink matrices
 share the same \textit{partition dimension} and the same I/O partition size.
 As illustrated in Figure \ref{fig:dag} (b), a partition $i$ of a virtual
 matrix requires data only from partitions
@@ -474,32 +481,30 @@ FlashR uses two-level partitioning on dense matrices to reduce data movement
 between SSDs and CPU (Figure \ref{fig:dag} (b)). It reads data on SSDs in
 I/O partitions and assigns these partitions to a thread as a parallel task.
 It further splits I/O-partitions into processor cache (Pcache) partitions
-at run time.  Each thread materializes one Pcache-partition at a time from
+at runtime.  Each thread materializes one Pcache-partition at a time from
 a matrix. Regular tall matrices are divided into TAS matrices and matrix
 operations are converted to running on these TAS matrices instead. As such,
 a Pcache-partition is sufficiently small to fit in the CPU L1/L2 cache.
 
-FlashR further deploys multiple techniques to reduce CPU cache polution to
-reduce data movement between CPU and memory. When evaluating the computations
-in a DAG, a thread performs depth-first traversal and performs matrix operations
+To reduce CPU cache polution and reduce data movement between CPU and memory,
+a thread performs depth-first traversal in a DAG and evaluates matrix operations
 in the order that they are traversed. Each time, a thread performs a matrix
 operation on a Pcache partition of a matrix and passes the Pcache partition to
-the subsequent matrix operation, instead of materializing the next Pcache-partition.
-This ensures that a Pcache-partition resides in the CPU cache when the next
+the subsequent matrix operation, instead of materializing the next Pcache partition.
+This ensures that a Pcache partition resides in the CPU cache when the next
 matrix operation consumes it. In each thread, all intermediate matrices have
-only one Pcache-partition materialized at any time.
-To further reduce CPU cache polution, FlashR discards a Pcache partition
-once it is used by all subsequent matrix operations, and the memory buffer
-of the Pcache partition are reused by the next matrix operation. As such,
-the next matrix operation writes its output data in the memory that is
-already in CPU cache. A Pcache partition can be read by multiple matrix
-operations. As such, FlashR maintains a counter on each Pcache partition.
+only one Pcache partition materialized at any time.
+
+To further reduce CPU cache polution, FlashR recycles memory buffers used
+by Pcache partitions in the CPU cache. FlashR maintains a counter on each
+Pcache partition.
 When the counter indicates the partition has been used by all subsequent
-matrix operations, the Pcache partition is discarded.
-
-%\subsection{Memory management}
-
-%How to handle garbage collection?
+matrix operations, the memory buffer of the partition is deallocated and
+reused to store the output of
+the next matrix operation. As such, the next matrix operation writes
+its output data in the memory that is already in CPU cache. To reduce
+memory allocation overhead, each thread maintains pools of memory buffers
+and always allocates a buffer that is deallocated most recently.
 
 \section{Machine learning algorithms} \label{sec:apps}
 To illustrate the programming interface of FlashR, we showcase some classic
@@ -534,7 +539,7 @@ kmeans.iter <- function(X,C) {
 \end{figure}
 
 K-means is a commonly used clustering algorithm that partitions data points
-into $k$ clusters so that each cluster has the minimal mean distance between
+into $k$ clusters and minimizes the mean distance between
 the data points and the cluster center. We use this algorithm
 to illustrate programming with GenOps (Figure \ref{fig:kmeans}).
 It first uses \textit{inner.prod} to

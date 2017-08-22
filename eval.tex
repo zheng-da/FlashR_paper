@@ -35,8 +35,8 @@ Our implementation assumes data follows the normal distribution.
 \noindent \textbf{Logistic regression} is a linear regression model with
 categorical dependent variables. We use the LBFGS algorithm \cite{lbfgs}
 to optimize logistic regression.
-% It converges when $logloss_{i-1}-logloss_i < 1e-6$, where $logloss_i$
-% is the logarithmic loss at iteration $i$.
+It converges when $logloss_{i-1}-logloss_i < 1e-6$, where $logloss_i$
+is the logarithmic loss at iteration $i$.
 
 \noindent \textbf{K-means} is an iterative clustering algorithm that
 partitions data points to $k$ clusters. Its R implementation is illustrated
@@ -204,8 +204,8 @@ Spark MLlib on an EC2 cluster (Figure \ref{perf:cloud}). H$_2$O recommends
 allocating a total of four times the memory of the input data. As such,
 4 m4.16xlarge instances provide sufficient memory and computation power to
 Spark MLlib and H$_2$O to process the datasets (PageGraph-32ev-sub and Criteo-sub).
-Even though Spark MLlib and H$_2$O has four times as much computation power as FlashR, FlashR
-still outperforms both distributed machine learning libraries in most algorithms.
+Even though Spark MLlib and H$_2$O have four times as much computation power as FlashR,
+FlashR still outperforms both distributed machine learning libraries in most algorithms.
 Because the NVMes in i3.16xlarge provide higher I/O throughput than the SSDs
 in our local server, the performance gap between FlashR-IM and FlashR-EM is
 smaller.
@@ -254,21 +254,22 @@ the datasets until they converge (see their convergence condition in Section
 \footnotesize
 \begin{tabular}{|c|c|c|}
 \hline
-	& Runtime (s) & Memory (GB) \\
+	& Runtime (min) & Peak memory (GB) \\
 \hline
-Correlation & $91.23$ & $1.5$ \\
+Correlation & $1.5$ & $1.5$ \\
 \hline
-PCA & $136.71$ & $1.5$ \\
+PCA & $2.3$ & $1.5$ \\
 \hline
-NaiveBayes & $76.55$ & $3$ \\
+NaiveBayes & $1.3$ & $3$ \\
 \hline
-LDA & $2280$ & $8$ \\
+LDA & $38$ & $8$ \\
 \hline
-Logistic regression & $4154.40$ & $26$ \\
+% in 23 iterations.
+Logistic regression & $29.8$ & $26$ \\
 \hline
-k-means & $1110.82$ & $28$ \\
+k-means & $18.5$ & $28$ \\
 \hline
-GMM & & \\
+GMM & $350.6$ & $18$ \\
 \hline
 \end{tabular}
 \normalsize
@@ -309,7 +310,7 @@ whose computation and I/O complexity are the same, \textit{(ii)}
 correlation, whose computation complexity grows quadratically with $p$ while
 its I/O complexity grows linearly with $p$, \textit{(iii)} k-means, whose computation
 complexity grows linearly with $k$ while its I/O complexity is independent
-to $k$. We run the first two algorithms on datasets with $n=100M$ and $p$
+from $k$. We run the first two algorithms on datasets with $n=100M$ and $p$
 varying from 8 to 512. We run k-means on a dataset with $p=100M$ and $p=32$
 and vary the number of clusters from 2 to 64.
 
@@ -363,7 +364,6 @@ achieve the same speed as in memory on datasets with a higher dimension size.
 %	\end{center}
 %\end{figure}
 
-\begin{comment}
 \subsection{Effectiveness of optimizations}
 We illustrate the effectiveness of our memory optimizations in FlashR.
 We focus on two main optimizations: matrix operation fusion in main memory
@@ -402,6 +402,4 @@ I/O has been optimized.
 		incrementally.}
 		\label{perf:em_opts}
 	\end{center}
-  \vspace{-15pt}
 \end{figure}
-\end{comment}

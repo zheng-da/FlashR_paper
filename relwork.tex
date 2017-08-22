@@ -26,10 +26,11 @@ its I/O streaming primitives do not match matrix data access patterns.
 
 The Spark \cite{spark} is a distributed, in-memory framework that provides more
 primitives for efficient computation and provides a distributed machine
-learning library (MLlib, \cite{mllib}).
-Spark is the most efficient distributed engine.
+learning library (MLlib, \cite{mllib}). Spark is the most efficient distributed
+in-memory engine but usually requires a large amount of RAM to process large
+datasets.
 
-SystemML \cite{systemml, systemml2} develops an R-like script language for
+SystemML \cite{systemml, systemml2} develops an R-like scripting language for
 machine learning on top of MapReduce and Spark. It deploys many optimizations,
 such as data compression \cite{Elgohary16} and hybrid parallelization
 \cite{Boehm14}. These optimizations are orthogonal with the ones in FlashR
