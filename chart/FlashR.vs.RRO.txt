@@ -1,0 +1,5 @@
+#	FlashR-IM	FlashR-EM	RRO
+Crossprod	1	1.26	1.32
+PCA			1	1.86	24.52
+Mvrnorm		1	1.23	14.85
+LDA			1	1.24	43.10

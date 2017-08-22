@@ -1,0 +1,6 @@
+#IM		mem alloc	mem fuse	CPU fuse
+summary	1	1.31	2.04	3.11
+cor		1	1.21	1.23	1.89
+SVD		1	0.96	0.94	1.64
+KMeans	1	3.02	3.29	3.94
+GMM		1	1.34	1.57	2.26

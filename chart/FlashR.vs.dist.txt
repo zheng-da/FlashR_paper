@@ -1,0 +1,7 @@
+#awesomer	FlashR-IM	FlashR-EM	H2O	MLlib
+Corr		1	1.38	0		3.94
+PCA			1	1.07	16.67	9.94
+NaiveBayes	1	1.44	20.91	8.87
+Logistic	1	1.90	3.14	10.65
+K-means		1	1.81	8.65	11.35
+GMM			1	1.41	0		4.73
