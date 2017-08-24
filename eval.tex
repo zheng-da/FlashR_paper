@@ -38,9 +38,9 @@ Our implementation assumes data follows the normal distribution.
 
 \noindent \textbf{Logistic regression} is a linear regression model with
 categorical dependent variables. We use the LBFGS algorithm \cite{lbfgs}
-to optimize logistic regression.
-It converges when $logloss_{i-1}-logloss_i < 1e-6$, where $logloss_i$
-is the logarithmic loss at iteration $i$.
+to optimize logistic regression. In the experiments, it converges when
+$logloss_{i-1}-logloss_i < 1e-6$, where $logloss_i$ is the logarithmic loss
+at iteration $i$.
 
 \noindent \textbf{K-means} is an iterative clustering algorithm that
 partitions data points to $k$ clusters. Its R implementation is illustrated
@@ -51,7 +51,9 @@ move.
 \noindent \textbf{Gaussian mixture models (GMM)} assumes data follows
 a mixture of Gaussian distribution and learns parameters of Gaussian mixture
 models from data. It typically uses the expectation-maximization (EM)
-algorithm \cite{em} to fit the models, similar to k-means.
+algorithm \cite{em} to fit the models, similar to k-means. In the experiments,
+it converges when $loglike_{i-1} - loglike_i < 1e-2$, where $loglike_i$
+is the mean of log likelihood over all data points at iteration $i$.
 
 \noindent \textbf{Multivariate Normal Distribution (mvrnorm)} generates
 samples from the specified multivariate normal distribution. We use
@@ -112,11 +114,12 @@ We use two real-world datasets with billions of data points (Table \ref{tbl:data
 to benchmark the algorithms above. The Criteo dataset has over four billion data
 points with binary labels (click vs. no-click), used for advertisement click
 prediction \cite{criteo}. PageGraph-32ev are 32 singular vectors that we computed
-on the largest connected component of a Page graph whose vertices represent Web
-pages and edges represents hyperlinks between Web pages \cite{webgraph}.
-To compare FlashR with other frameworks, we take part of the Criteo and
-PageGraph-32ev datasets to
-create smaller datasets. PageGraph-32ev-sub is the first 336 million data points
+on the largest connected component of a Page graph with our own SSD-based
+eigensolvers \cite{FlashEigen}. The Page graph has 3.5 billion vertices and
+129 billion edges \cite{webgraph}. Because Spark MLlib and H$_2$O cannot process
+the entire datasets in a single machine, we take part of the Criteo and
+PageGraph-32ev datasets to create smaller datasets.
+PageGraph-32ev-sub is the first 336 million data points
 of the PageGraph-32ev dataset. Criteo-sub contains the data points collected
 on the first two days, which is about one tenth of the whole dataset.
 
@@ -148,13 +151,14 @@ Criteo-sub \cite{criteo} & 325M & 40 \\
 \subsection{Comparative performance}
 %\vspace{-4pt}
 We evaluate FlashR against H$_2$O \cite{h2o} and Spark MLlib \cite{mllib} as well
-as Revolution R Open \cite{rro} in our local server and in the Amazon
-cloud. When running in the 48 CPU core local server, all frameworks
-use 48 threads. H$_2$O and MLlib have a large heap size (500GB) to ensure that
-all data are cached in memory. When running in the cloud, we run FlashR
-in an i3.16xlarge instance
-and MLlib in a cluster of four EC2 m4.16xlarge instances (256 CPU cores, 1TB RAM
-and 20Gbps network). We also use FlashR to parallelize functions (mvrnorm and LDA)
+as Revolution R Open \cite{rro} in our local server and in the Amazon cloud.
+Before running the algorithms in H$_2$O and MLlib, we ensure that all data are
+loaded and cached in memory. When running in the 48 CPU core local server,
+all frameworks use 48 threads. When running in the cloud, we compare FlashR
+running in one of the largest I/O-optimized instance (i3.16xlarge) with MLlib
+and H$_2$O in a cluster with four of the largest general-purpose instances
+(m4.16xlarge), which in total has 256 CPU cores, 1TB RAM
+and 20Gbps network. We also use FlashR to parallelize functions (mvrnorm and LDA)
 in the R MASS package and compare their performance with Revolution R Open. We use
 Spark v2.0.1, H$_2$O v3.14.2 and Revolution R Open v3.3.2.
 
@@ -335,7 +339,7 @@ performance approaches in-memory performance for correlation and k-means
 but not Naive Bayes (Figure \ref{perf:stat}). This observation conforms with
 the computation and I/O complexity of the algorithms in Table \ref{tbl:algs}.
 For correlation and k-means, the number of clusters or features causes computation
-to grow more quickly than the I/O, driving performance toward a computation bound.
+to grow more quickly than I/O, driving performance toward a computation bound.
 % When the number of features
 %gets larger, the computation of matrix multiplication in
 %correlation and SVD grows more rapidly than I/O and eventually CPU becomes
@@ -345,8 +349,8 @@ to grow more quickly than the I/O, driving performance toward a computation boun
 %increases, the computation of k-means and GMM increases rapidly and
 %these algorithms are dominated by their CPU computation as the number
 %of clusters gets larger. 
-The computation bound can be realized on few features or clusters for an I/O throughput of 10GB/s.
-Because most of the machine learning algorithms in Table \ref{tbl:algs} have
+The computation bound is realized on few features or clusters for an I/O throughput
+of 10GB/s. Because most of the machine learning algorithms in Table \ref{tbl:algs} have
 computation complexities that grow quadratically with $p$, we expect FlashR on SSDs to
 achieve the same performance as in memory on datasets with a higher dimension size.
 
@@ -371,11 +375,11 @@ DAG materialization.
 We focus on two main optimizations: matrix operation fusion in main memory
 to reduce data movement between SSDs and main memory (mem-fuse), and matrix
 operation fusion in CPU cache to reduce data movement between main memory and
-CPU cache (cache-fuse).
+CPU cache (cache-fuse). Due to the limit of space, we only illustrate their
+effectiveness when FlashR runs on SSDs.
 
-Both optimizations have significant performance improvement on all
-algorithms when FlashR runs on SSDs (Figure \ref{perf:em_opts}).
-Operation fusion in main memory (mem-fuse) achieves
+Both optimizations have significant performance improvement on all algorithms
+(Figure \ref{perf:em_opts}). Operation fusion in main memory (mem-fuse) achieves
 substantial performance improvement in most algorithms, even in GMM,
 which has the highest asymptotic computation complexity. 
 This indicates that materializing every matrix operation

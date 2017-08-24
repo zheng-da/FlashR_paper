@@ -120,12 +120,13 @@ a large number of matrix functions in the R \textit{base} package with a small
 number of generalized operations (GenOps). As such,
 FlashR parallelizes and scales existing R code with little/no modification.
 	
-To further accelerate
-R code, FlashR deploys techniques to reduce data movement between CPU and SSDs:
-evaluating matrix operations lazily and performing all matrix operations in
-a DAG in a single execution to increase the ratio of computation to I/O,
-performing two levels of matrix partitioning and reordering computation on
-matrix partitions to reduce data movement in the memory hierarchy.
+FlashR accelerates parallelized R code by deploying techniques that reduce data
+movement between CPU and SSDs:
+	\textit{(i)} evaluating all matrix operations lazily,
+	\textit{(ii)} performing all matrix operations in a DAG in a single execution
+	and with only one pass over data to increase the ratio of computation to I/O,
+	\textit{(iii)} performing two levels of matrix partitioning and reordering
+	computation on matrix partitions to reduce data movement in the memory hierarchy.
 %recycle all memory buffers to reduce memory allocation and CPU cache polution.
 We evaluate FlashR on a variety of machine learning and statistics algorithms 
 on inputs of up to four billion data points. Despite the huge performance
@@ -133,7 +134,7 @@ gap between SSDs and RAM, FlashR running on SSDs closely tracks the performance
 of FlashR in memory for many machine learning algorithms.
 The R code of these machine learning algorithms executed in FlashR
 outperforms the in-memory execution of H$_2$O and Spark MLlib by a factor of
-$3-20$ and outperforms Revolution R Open by more than an order of magnitude.
+$3-20$.
 \end{abstract}
 
 

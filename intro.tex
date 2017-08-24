@@ -7,8 +7,8 @@ Simple tools need to be programmable, interactive, and extensible,
 allowing scientists to encode and deploy complex algorithms. 
 Successful examples include R, SciPy, and Matlab.  Efficiency dictates that
 tools should leverage modern computer architectures, including scalable
-parallelism, high-speed networking, and fast I/O from memory and solid-state
-storage. The current approach for utilizing the full
+parallelism, high-speed networking, and fast I/O from memory and storage.
+The current approach for utilizing the full
 capacity of modern parallel systems often uses a low-level programming
 language such as C and parallelizes computation with MPI or OpenMP.
 This approach is time-consuming and error-prone, and requires machine learning
@@ -44,7 +44,7 @@ and matrices.
 As such, FlashR executes existing R code with little/no modification.
 FlashR focuses on optimizations in a single machine (with multiple CPUs and
 many cores) and scales matrix operations beyond memory capacity by 
-utilizing solid-state drives (SSDs).  
+utilizing SSDs.
 Our evaluation shows that we can solve billion row, Internet-scale 
 problems on a single thick node, which can prevent the complexity,
 expense, and power consumption of distributed systems when they are
@@ -59,11 +59,9 @@ not strictly necessary \cite{hotos}.
 
 To utilize the full capacity of a large parallel machine, we overcome
 many technical challenges to move data from SSDs to CPU efficiently for matrix
-computations, notably the large performance disparities between CPU and memory
-and between memory and SSDs. In the memory hierarchy, a memory media in a layer
-is in general at least an order of magnitude faster than the memory media in
-the layer below for both latency and throughput.
-The ``memory gap'' \cite{Wilkes01} continues to grow, with 
+computations. Notably, there exist large performance disparities between CPU
+and memory and between memory and SSDs, at least an order of magnitude between
+every two layers. The ``memory gap'' \cite{Wilkes01} continues to grow, with 
 the difference between CPU and DRAM performance increasing exponentially. 
 There are also performance differences between
 local and remote memory in a non-uniform memory architecture (NUMA), which are prevalent
@@ -90,19 +88,21 @@ in a single parallel execution job to minimize data movement. FlashR
 builds a directed acyclic graph (DAG) to represent a sequence of matrix
 operations. To increase the ratio of computation to I/O, materialization
 of any matrix operation in a DAG triggers materialization of all operations
-in the DAG and FlashR requires only one pass over the input matrices of
-the DAG to perform all operations in the DAG.
-FlashR by default keeps only the output matrices (leaf nodes) of the DAG
-in memory to have a small memory footprint. When materializing a DAG,
-FlashR performs two levels of matrix partitioning and reorder computation
-on matrix partitions to reduce data movement in the memory hierarchy.
+in the DAG. FlashR requires only one pass over the input matrices of
+the DAG to perform all operations. FlashR by default keeps only the output
+matrices (leaf nodes) of the DAG in memory to have a small memory footprint.
+When materializing a DAG, FlashR assigns the same partitions from
+different matrices to the same NUMA node
+to reduce remote memory access, performs two levels of matrix partitioning
+and reorders computation on matrix partitions to reduce data movement
+in the memory hierarchy.
 
 % What are it's key features?
 
 We implement multiple machine learning algorithms, including principal component
 analysis, logistic regression and k-means, in FlashR. We demonstrate that
 with today's fast commodity storage technology, the out-of-core execution of
-FlashR achieves performance comparable to their in-memory execution, even
+FlashR achieves performance comparable to their in-memory execution, both
 on a large parallel machine and Amazon cloud. Furthermore, FlashR outperforms
 the same algorithms in H$_2$O \cite{h2o} and Spark MLlib \cite{spark} by a factor
 of $3-20$ in a large parallel machine with 48 CPU cores. In the Amazon cloud,

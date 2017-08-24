@@ -14,21 +14,21 @@ redesign algorithms to achieve efficient I/O access and reduce I/O
 complexity. These works are orthogonal to our work and can be adopted.
 Optimizing I/O
 alone is insufficient. To achieve performance comparable to state-of-the-art
-in-memory implementations, it is essential to move data efficiently both from
-SSDs to memory and from memory to CPU caches.
+in-memory implementations, it is essential to move data efficiently in
+the entire memory hierarchy.
 
 MapReduce \cite{mapreduce} has been used for parallelizing machine learning
 algorithms \cite{Chu06}. Even though MapReduce simplifies parallel programming,
-it still requires low-level programming. As such, frameworks are built on top
+it still requires low-level programming. As such, frameworks, such as Pig Latin
+\cite{pig} and FlumeJava \cite{flumejava}, are built on top
 of MapReduce to reduce programming complexity. MapReduce is inefficient for
 matrix operations because
 its I/O streaming primitives do not match matrix data access patterns.
 
-The Spark \cite{spark} is a distributed, in-memory framework that provides more
+Spark \cite{spark} is a distributed, in-memory framework that provides more
 primitives for efficient computation and provides a distributed machine
-learning library (MLlib, \cite{mllib}). Spark is the most efficient distributed
-in-memory engine but usually requires a large amount of RAM to process large
-datasets.
+learning library (MLlib \cite{mllib}). Although Spark is efficient, it usually
+requires a large amount of RAM to process large datasets.
 
 SystemML \cite{systemml, systemml2} develops an R-like scripting language for
 machine learning on top of MapReduce and Spark. It deploys many optimizations,
