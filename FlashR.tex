@@ -114,20 +114,25 @@ R is one of the most popular programming languages for statistics and machine
 learning, but the R framework is relatively slow and unable to scale to large
 datasets. The general approach for speeding up an implementation in R is to
 implement the algorithms in C or FORTRAN and provide an R wrapper. FlashR takes
-a different approach: it executes R code in parallel and scales the code beyond
-memory capacity by utilizing solid-state drives (SSDs) automatically. It
-provides a small number of generalized 
-operations (GenOps) upon which we reimplement a large number of
-matrix functions in the R \textit{base} package. As such, FlashR parallelizes
-and scales existing R code with little/no modification. To reduce data movement
-between CPU and SSDs, FlashR evaluates matrix operations lazily, fuses
-as many matrix operations as possible in a single execution, and uses
-cache-aware, two-level matrix partitioning.
+a different approach: it parallelizes R code and scales the code beyond memory
+capacity by utilizing solid-state drives (SSDs) automatically. It provides
+a small number of generalized operations (GenOps) upon which we reimplement
+a large number of matrix functions in the R \textit{base} package. As such,
+FlashR parallelizes and scales existing R code with little/no modification.
+	
+To further accelerate
+R code, FlashR deploys techniques to reduce data movement between CPU and SSDs:
+evaluating matrix operations lazily and performing all matrix operations in
+a DAG in a single execution to increase the ratio of computation to I/O,
+performing two levels of matrix partitioning and reordering
+computation on matrix partitions to reduce data movement in the memory
+hierarchy,
+%recycle all memory buffers to reduce memory allocation and CPU cache polution.
 We evaluate FlashR on a variety of machine learning and statistics algorithms 
-on inputs of up to four billion data points. \hl{Despite the huge performance
+on inputs of up to four billion data points. Despite the huge performance
 gap between SSDs and RAM, FlashR running on SSDs closely tracks the performance
-of FlashR in memory for many machine learning algorithms}.
-The R code for machine learning algorithms executed in FlashR
+of FlashR in memory for many machine learning algorithms.
+The R code of these machine learning algorithms executed in FlashR
 outperforms the in-memory execution of H$_2$O and Spark MLlib by a factor of
 $3-20$ and outperforms Revolution R Open by more than an order of magnitude.
 \end{abstract}

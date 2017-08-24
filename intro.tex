@@ -90,13 +90,12 @@ in a single parallel execution job to minimize data movement. FlashR
 builds a directed acyclic graph (DAG) to represent a sequence of matrix
 operations. To increase the ratio of computation to I/O, materialization
 of any matrix operation in a DAG triggers materialization of all operations
-in the DAG, which leads to a single scan over the input matrices of the DAG.
+in the DAG and FlashR requires only one pass over the input matrices of
+the DAG to perform all operations in the DAG.
 FlashR by default keeps only the output matrices (leaf nodes) of the DAG
-in memory to have a small memory footprint. When materializing all matrix
-operations in a DAG,
+in memory to have a small memory footprint. When materializing a DAG,
 FlashR performs two levels of matrix partitioning and reorder computation
-in matrix partitions to reduce data movement in the memory hierarchy.
-\dz{more on two-level matrix partitioning}
+on matrix partitions to reduce data movement in the memory hierarchy.
 
 % What are it's key features?
 

@@ -7,12 +7,27 @@ access (NUMA) machine. Figure \ref{fig:arch} shows the architecture of FlashR.
 FlashR supports a small number of classes of generalized operations (GenOps)
 and use GenOps to implement many matrix operations in the R base package
 to provide users a familiar programming interface. The GenOps simplify
-the implementation and improve expressiveness of the framework. 
-The optimizer aggressively merges operations to
-reduce data movement in the memory hierarchy.
-It stores matrices on SSDs through SAFS \cite{safs},
-a user-space filesystem for SSD arrays, to fully utilize high I/O
-throughput of SSDs.
+the implementation and improve expressiveness of the framework. The optimizer
+aggressively merges operations to reduce data movement in the memory hierarchy.
+
+FlashR supports both sparse matrices and dense matrices. For large sparse matrices,
+FlashR integrates with our prior work \cite{SEM_SpMM} that stores sparse matrices
+in a compact format on SSDs and performs sparse matrix multiplication
+in semi-external memory, i.e., keeping the sparse matrix on SSDs and
+the dense matrix or part of the dense matrix in memory. FlashR stores matrices
+on SSDs through SAFS \cite{safs}, a user-space filesystem for SSD arrays,
+to fully utilize high I/O throughput of SSDs.
+
+%FlashR supports sparse matrices and optimizes sparse matrices of different
+%shapes differently.
+%For large sparse matrices that arise from graphs (e.g., social networks
+%and Web graphs), which have a large number of rows and columns, FlashR integrates
+%with our prior work \cite{SEM_SpMM} that stores sparse matrices
+%in a compact format on SSDs and performs sparse matrix multiplication
+%in semi-external memory, i.e., we keep the sparse matrix on SSDs and
+%the dense matrix or part of the dense matrix in memory.
+%Because many graph algorithms can be formulated with sparse matrix multiplication
+%\cite{linear_algebra}, we can express these algorithms in FlashR. In contrast,
 
 \begin{figure}
 \centering
@@ -86,22 +101,22 @@ Coupled with the I/O partitioning on TAS matrices, this strategy enables
 
 %\dz{Should we explain GenOps on block matrices in more details?}
 
-\subsection{Sparse matrices}
-FlashR supports sparse matrices and optimizes sparse matrices of different
-shapes differently.
-For large sparse matrices that arise from graphs (e.g., social networks
-and Web graphs), which have a large number of rows and columns, FlashR integrates
-with our prior work \cite{SEM_SpMM} that stores sparse matrices
-in a compact format on SSDs and performs sparse matrix multiplication
-in semi-external memory, i.e., we keep the sparse matrix on SSDs and
-the dense matrix or part of the dense matrix in memory.
-Because many graph algorithms can be formulated with sparse matrix multiplication
-\cite{linear_algebra}, we can express these algorithms in FlashR. In contrast,
-for sparse matrices with many rows and few columns or with many columns
-and few rows, FlashR stores the sparse matrices with the coordinate format
-(COO). These sparse matrices can be used in sparse random projection
-\cite{sparse_proj} or to store categorial values for computation.
-FlashR keeps these sparse matrices in memory.
+%\subsection{Sparse matrices}
+%FlashR supports sparse matrices and optimizes sparse matrices of different
+%shapes differently.
+%For large sparse matrices that arise from graphs (e.g., social networks
+%and Web graphs), which have a large number of rows and columns, FlashR integrates
+%with our prior work \cite{SEM_SpMM} that stores sparse matrices
+%in a compact format on SSDs and performs sparse matrix multiplication
+%in semi-external memory, i.e., we keep the sparse matrix on SSDs and
+%the dense matrix or part of the dense matrix in memory.
+%Because many graph algorithms can be formulated with sparse matrix multiplication
+%\cite{linear_algebra}, we can express these algorithms in FlashR. In contrast,
+%for sparse matrices with many rows and few columns or with many columns
+%and few rows, FlashR stores the sparse matrices with the coordinate format
+%(COO). These sparse matrices can be used in sparse random projection
+%\cite{sparse_proj} or to store categorial values for computation.
+%FlashR keeps these sparse matrices in memory.
 
 \subsection{Programming interface} \label{sec:api}
 
@@ -467,8 +482,8 @@ data when the matrix is accessed again.
   \vspace{-8pt}
 \end{figure}
 
-FlashR partitions matrices in a DAG and materializes partitions \hl{relatively
-separately}. This is possible because all matrices in a DAG except sink matrices
+FlashR partitions matrices in a DAG and materializes partitions separately in
+most cases. This is possible because all matrices in a DAG except sink matrices
 share the same \textit{partition dimension} and the same I/O partition size.
 As illustrated in Figure \ref{fig:dag} (b), a partition $i$ of a virtual
 matrix requires data only from partitions
