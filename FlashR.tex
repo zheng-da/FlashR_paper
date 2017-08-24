@@ -115,18 +115,17 @@ learning, but the R framework is relatively slow and unable to scale to large
 datasets. The general approach for speeding up an implementation in R is to
 implement the algorithms in C or FORTRAN and provide an R wrapper. FlashR takes
 a different approach: it parallelizes R code and scales the code beyond memory
-capacity by utilizing solid-state drives (SSDs) automatically. It provides
-a small number of generalized operations (GenOps) upon which we reimplement
-a large number of matrix functions in the R \textit{base} package. As such,
+capacity by utilizing solid-state drives (SSDs) automatically. It reimplements
+a large number of matrix functions in the R \textit{base} package with a small
+number of generalized operations (GenOps). As such,
 FlashR parallelizes and scales existing R code with little/no modification.
 	
 To further accelerate
 R code, FlashR deploys techniques to reduce data movement between CPU and SSDs:
 evaluating matrix operations lazily and performing all matrix operations in
 a DAG in a single execution to increase the ratio of computation to I/O,
-performing two levels of matrix partitioning and reordering
-computation on matrix partitions to reduce data movement in the memory
-hierarchy.
+performing two levels of matrix partitioning and reordering computation on
+matrix partitions to reduce data movement in the memory hierarchy.
 %recycle all memory buffers to reduce memory allocation and CPU cache polution.
 We evaluate FlashR on a variety of machine learning and statistics algorithms 
 on inputs of up to four billion data points. Despite the huge performance
