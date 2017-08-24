@@ -9,14 +9,14 @@ and use GenOps to implement many matrix operations in the R base package
 to provide users a familiar programming interface. The GenOps simplify
 the implementation and improve expressiveness of the framework. The optimizer
 aggressively merges operations to reduce data movement in the memory hierarchy.
+FlashR stores matrices on SSDs through SAFS \cite{safs}, a user-space filesystem
+for SSD arrays, to fully utilize high I/O throughput of SSDs.
 
 FlashR supports both sparse matrices and dense matrices. For large sparse matrices,
 FlashR integrates with our prior work \cite{SEM_SpMM} that stores sparse matrices
 in a compact format on SSDs and performs sparse matrix multiplication
 in semi-external memory, i.e., keeping the sparse matrix on SSDs and
-the dense matrix or part of the dense matrix in memory. FlashR stores matrices
-on SSDs through SAFS \cite{safs}, a user-space filesystem for SSD arrays,
-to fully utilize high I/O throughput of SSDs.
+the dense matrix or part of the dense matrix in memory.
 
 %FlashR supports sparse matrices and optimizes sparse matrices of different
 %shapes differently.
