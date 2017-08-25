@@ -114,8 +114,7 @@ We use two real-world datasets with billions of data points (Table \ref{tbl:data
 to benchmark the algorithms above. The Criteo dataset has over four billion data
 points with binary labels (click vs. no-click), used for advertisement click
 prediction \cite{criteo}. PageGraph-32ev are 32 singular vectors that we computed
-on the largest connected component of a Page graph with our own SSD-based
-eigensolvers \cite{FlashEigen}. The Page graph has 3.5 billion vertices and
+on the largest connected component of a Page graph, which has 3.5 billion vertices and
 129 billion edges \cite{webgraph}. Because Spark MLlib and H$_2$O cannot process
 the entire datasets in a single machine, we take part of the Criteo and
 PageGraph-32ev datasets to create smaller datasets.

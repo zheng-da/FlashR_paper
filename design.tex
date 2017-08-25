@@ -13,21 +13,10 @@ FlashR stores matrices on SSDs through SAFS \cite{safs}, a user-space filesystem
 for SSD arrays, to fully utilize high I/O throughput of SSDs.
 
 FlashR supports both sparse matrices and dense matrices. For large sparse matrices,
-FlashR integrates with our prior work \cite{SEM_SpMM} that stores sparse matrices
+FlashR integrates with the work \cite{SEM_SpMM} that stores sparse matrices
 in a compact format on SSDs and performs sparse matrix multiplication
 in semi-external memory, i.e., keeping the sparse matrix on SSDs and
 the dense matrix or part of the dense matrix in memory.
-
-%FlashR supports sparse matrices and optimizes sparse matrices of different
-%shapes differently.
-%For large sparse matrices that arise from graphs (e.g., social networks
-%and Web graphs), which have a large number of rows and columns, FlashR integrates
-%with our prior work \cite{SEM_SpMM} that stores sparse matrices
-%in a compact format on SSDs and performs sparse matrix multiplication
-%in semi-external memory, i.e., we keep the sparse matrix on SSDs and
-%the dense matrix or part of the dense matrix in memory.
-%Because many graph algorithms can be formulated with sparse matrix multiplication
-%\cite{linear_algebra}, we can express these algorithms in FlashR. In contrast,
 
 \begin{figure}
 \centering
