@@ -175,8 +175,7 @@ outputs a vector.
 into groups, applies \textit{agg} to each group and outputs a vector;
 \textit{groupby.row} splits rows into groups and applies \textit{agg.col}
 to each group; \textit{groupby.col} splits columns into groups and applies
-\textit{agg.row} to each group. Both \textit{groupby.row} and
-\textit{groupby.col} output a matrix.
+\textit{agg.row} to each group.
 
 \noindent \textbf{Inner product} is a generalized matrix multiplication
 that replaces multiplication and addition with two functions.
@@ -554,16 +553,13 @@ fontsize=\footnotesize,
 frame=single,
 tabsize=2,
 ]{R}
-# `X' is the data matrix, whose rows represent
-# data points and columns represent features.
-# `y' stores the labels of data points. `w' is
-# the weight vector.
+# `X' is the data matrix, whose rows represent data points.
+# `y' stores the labels of data points.
 logistic.regression <- function(X,y) {
-	Xtw <- X%*%t(w)
 	grad <- function(X,y,w)
-		(t(X)%*%(1/(1+exp(-Xtw))-y))/length(y)
+		(t(X)%*%(1/(1+exp(-X%*%t(w)))-y))/length(y)
 	cost <- function(X,y,w)
-		sum(y*(-Xtw)+log(1+exp(Xtw)))/length(y)
+		sum(y*(-X%*%t(w))+log(1+exp(X%*%t(w))))/length(y)
 	# Gradient descent with line search.
 	theta <- matrix(rep(0, num.features), nrow=1)
 	for (i in 1:max.iters) {
