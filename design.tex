@@ -5,7 +5,7 @@ statistics. It scales matrix operations beyond memory capacity by utilizing
 fast I/O devices, such as solid-state drives (SSDs), in a non-uniform memory
 access (NUMA) machine. Figure \ref{fig:arch} shows the architecture of FlashR.
 FlashR supports a small number of classes of generalized operations (GenOps)
-and use GenOps to implement many matrix operations in the R base package
+and uses GenOps to implement many matrix operations in the R base package
 to provide users a familiar programming interface. The GenOps simplify
 the implementation and improve expressiveness of the framework. The optimizer
 aggressively merges operations to reduce data movement in the memory hierarchy.
@@ -190,7 +190,7 @@ With the GenOps, we reimplement a large number of matrix functions in
 the R \textit{base} package.
 By overriding existing R matrix functions, FlashR scales and parallelizes
 existing R code with little/no modification. Table \ref{tbl:Rfuns} shows
-a small subset of R matrix operations overriden by FlashR and their
+a small subset of R matrix operations overridden by FlashR and their
 implementations with GenOps.
 
 \begin{table}
@@ -356,9 +356,9 @@ samples than features.
 		results from some partitions, and shares them among all threads. If the data
 		that a partition $i$ depends on is ready, a thread computes the partition
 		and passes it to the subsequent matrix operations. Otherwise, a thread moves
-		to the next partition $i+1$ and gets its dependancy data ready. If the number
+		to the next partition $i+1$ and gets its dependency data ready. If the number
 		of pending partitions reaches a threshold, a thread puts itself to sleep
-		and waits for all dependancy data to become available.
+		and waits for all dependency data to become available.
 \end{itemize}
 
 %\dz{NUMA optimizations.}
@@ -488,7 +488,7 @@ a matrix. Regular tall matrices are divided into TAS matrices and matrix
 operations are converted to running on these TAS matrices instead. As such,
 a Pcache-partition is sufficiently small to fit in the CPU L1/L2 cache.
 
-To reduce CPU cache polution and reduce data movement between CPU and memory,
+To reduce CPU cache pollution and reduce data movement between CPU and memory,
 a thread performs depth-first traversal in a DAG and evaluates matrix operations
 in the order that they are traversed. Each time, a thread performs a matrix
 operation on a Pcache partition of a matrix and passes the Pcache partition to
@@ -497,7 +497,7 @@ This ensures that a Pcache partition resides in the CPU cache when the next
 matrix operation consumes it. In each thread, all intermediate matrices have
 only one Pcache partition materialized at any time.
 
-To further reduce CPU cache polution, FlashR recycles memory buffers used
+To further reduce CPU cache pollution, FlashR recycles memory buffers used
 by Pcache partitions in the CPU cache. FlashR maintains a counter on each
 Pcache partition. When the counter indicates the partition has been used
 by all subsequent matrix operations, the memory buffer of the partition is
@@ -587,7 +587,7 @@ steepest gradient descent in FlashR.}
 
 Logistic regression is a commonly used classification algorithm.
 We implement this algorithm solely with the R \textit{base} functions
-overriden by FlashR. Figure
+overridden by FlashR. Figure
 \ref{logistic} implements logistic regression for problems with binary-class
 labels. It uses steepest gradient descent with line search to minimize
 the \textit{cost} function. This example does not have a regularization term
