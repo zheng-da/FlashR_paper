@@ -123,6 +123,19 @@ offers new design possibilities for data analysis clusters, replacing memory
 with larger and cheaper SSDs and processing bigger problems on fewer nodes.
 FlashR is released as an open-source project at \href{http://flashx.io}{http://flashx.io}.
 
+Our contributions include:
+\begin{itemize}
+\item We develop an R-based programming framework that executes native R code
+in parallel and out of core automatically.
+\item We deploy multiple techniques in our framework to move data from
+I/O storage to CPU cache efficiently and demonstrate that today's I/O
+technology (e.g., SSDs) can deliver sufficient I/O to match the performance of
+in-memory computation for many machine learning algorithms.
+\item We demonstrate that with sufficient system-level optimizations, R code
+can easily scale to terabytes of data in a single machine and significantly
+outperform optimized parallel machine learning libraries.
+\end{itemize}
+
 %\begin{itemize}
 %\item identify a set of generalized matrix operations that cover all matrix
 %operations in NumPy.
