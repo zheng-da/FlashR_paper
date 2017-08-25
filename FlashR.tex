@@ -1,5 +1,5 @@
 %% For double-blind review submission
-\documentclass[sigplan,10pt,review,anonymous]{acmart}\settopmatter{printfolios=true}
+\documentclass[sigplan,10pt,review,anonymous]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
 %% For single-blind review submission
 %\documentclass[sigplan,10pt,review]{acmart}\settopmatter{printfolios=true}
 %% For final camera-ready submission
@@ -17,29 +17,23 @@
                         %% http://ctan.org/pkg/subcaption
 \usepackage{minted}
 \usepackage{color,soul}
+%% Some recommended packages.
+\usepackage{booktabs}   %% For formal tables:
+%% http://ctan.org/pkg/booktabs
+\usepackage{subcaption} %% For complex figures with subfigures/subcaptions
+						%% http://ctan.org/pkg/subcaption
+
 
 \newcommand{\dz}[1]{{\color{blue}{\it DZ: #1}}}
 
-\makeatletter\if@ACM@journal\makeatother
-%% Journal information (used by PACMPL format)
-%% Supplied to authors by publisher for camera-ready submission
-\acmJournal{PACMPL}
-\acmVolume{1}
-\acmNumber{1}
-\acmArticle{1}
-\acmYear{2017}
-\acmMonth{1}
-\acmDOI{10.1145/nnnnnnn.nnnnnnn}
-\startPage{1}
-\else\makeatother
-%% Conference information (used by SIGPLAN proceedings format)
-%% Supplied to authors by publisher for camera-ready submission
+%% Conference information
+%% Supplied to authors by publisher for camera-ready submission;
+%% use defaults for review submission.
 \acmConference[PPoPP'18]{ACM SIGPLAN Symposium on Principles \& Practice of Parallel Programming}{Feb 24--28, 2018}{Vienna, Austria}
 \acmYear{2018}
-%\acmISBN{978-x-xxxx-xxxx-x/YY/MM}
-%\acmDOI{10.1145/nnnnnnn.nnnnnnn}
+\acmISBN{} % \acmISBN{978-x-xxxx-xxxx-x/YY/MM}
+\acmDOI{} % \acmDOI{10.1145/nnnnnnn.nnnnnnn}
 \startPage{1}
-\fi
 
 
 %% Copyright information
