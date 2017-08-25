@@ -108,11 +108,10 @@ R is one of the most popular programming languages for statistics and machine
 learning, but the R framework is relatively slow and unable to scale to large
 datasets. The general approach for speeding up an implementation in R is to
 implement the algorithms in C or FORTRAN and provide an R wrapper. FlashR takes
-a different approach: it parallelizes R code and scales the code beyond memory
-capacity by utilizing solid-state drives (SSDs) automatically. It reimplements
-a large number of matrix functions in the R \textit{base} package with a small
-number of generalized operations (GenOps). As such,
-FlashR parallelizes and scales existing R code with little/no modification.
+a different approach: it parallelizes a large number of matrix functions in
+the R \textit{base} package and scales them beyond memory capacity by utilizing
+solid-state drives (SSDs) automatically. As such, FlashR parallelizes and scales
+existing R code with little/no modification.
 	
 FlashR accelerates parallelized R code by deploying techniques that reduce data
 movement between CPU and SSDs:
