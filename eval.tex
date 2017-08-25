@@ -387,7 +387,7 @@ fusing matrix operations in memory significantly reduces I/O.
 Operation fusion in the CPU cache (cache-fuse) has significant impact
 on the algorithms that are more complex and less bottlenecked by I/O.
 This demonstrates that memory bandwidth is a limiting performance factor
-once I/O has been optimized.
+once I/O is optimized.
 
 \begin{figure}
 	\begin{center}
@@ -396,8 +396,10 @@ once I/O has been optimized.
 		\vspace{-10pt}
 		\caption{The speedup by the optimizations in FlashR over the base
 		implementation for different machine learning algorithms running on SSDs.
-		The base implementation does not have optimizations that fuse matrix
-		operations. The optimizations are applied to FlashR incrementally.}
+		The speedup is relative to the base implementation, which does not have
+		optimizations to fuse matrix operations. The optimizations are applied
+		to FlashR incrementally.}
 		\label{perf:em_opts}
 	\end{center}
+  \vspace{-15pt}
 \end{figure}

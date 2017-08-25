@@ -2,8 +2,10 @@
 set terminal postscript eps size 3.3in,1.5in enhanced color font 'Serif'
 set output "opts-EM.eps"
 
-set boxwidth 1 relative
-set ylabel 'Relative speedup'
+set style data histograms
+set style histogram rowstacked
+set boxwidth 0.5 relative
+set ylabel 'Cumulative speedup'
 set style fill pattern border
 set key left top
 set key outside above horizontal
