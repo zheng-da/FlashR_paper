@@ -54,7 +54,7 @@ We store vectors as a one-column TAS matrix.
 
 A TAS matrix is partitioned physically into I/O-partitions (Figure
 \ref{fig:den_mat}). We refer to the dimension that is partitioned as
-\textit{partition dimension}. All elements in an I/O-partition are stored
+the \textit{partition dimension}. All elements in an I/O-partition are stored
 contiguously regardless of the data layout in the matrix. All I/O-partitions
 have the same number of rows regardless of the number of columns in a TAS
 matrix. The number of rows in an I/O-partition is always $2^i$, where

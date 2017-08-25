@@ -1,5 +1,5 @@
 #	base	mem-fuse	cpu-fuse
-Corr		1.00	8.98	8.94
+Corr		1.00	9.33	11.50
 PCA			1.00	5.08	5.20
 NaiveBayes	1.00	1.12	8.16
 Logistic	1.00	3.03	4.68

@@ -43,7 +43,7 @@ $logloss_{i-1}-logloss_i < 1e-6$, where $logloss_i$ is the logarithmic loss
 at iteration $i$.
 
 \noindent \textbf{K-means} is an iterative clustering algorithm that
-partitions data points to $k$ clusters. Its R implementation is illustrated
+partitions data points into $k$ clusters. Its R implementation is illustrated
 in Figure \ref{fig:kmeans}. In the experiments, we run k-means to split
 a dataset into 10 clusters by default. It converges when no data points
 move.
@@ -386,7 +386,7 @@ separately causes SSDs to be the main bottleneck in the system and
 fusing matrix operations in memory significantly reduces I/O.
 Operation fusion in the CPU cache (cache-fuse) has significant impact
 on the algorithms that are more complex and less bottlenecked by I/O.
-This suggests that memory bandwidth is a limiting performance factor
+This demonstrates that memory bandwidth is a limiting performance factor
 once I/O has been optimized.
 
 \begin{figure}
@@ -394,9 +394,10 @@ once I/O has been optimized.
 		\footnotesize
 		\includegraphics{FlashMatrix_figs/opts-EM.eps}
 		\vspace{-10pt}
-		\caption{The speedup by the optimizations on different algorithms
-		running on SSDs. The optimizations are applied to FlashR
-		incrementally.}
+		\caption{The speedup by the optimizations in FlashR over the base
+		implementation for different machine learning algorithms running on SSDs.
+		The base implementation does not have optimizations that fuse matrix
+		operations. The optimizations are applied to FlashR incrementally.}
 		\label{perf:em_opts}
 	\end{center}
 \end{figure}
