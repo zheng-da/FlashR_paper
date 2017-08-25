@@ -3,8 +3,8 @@
 The explosion of data and the increasing complexity of data analysis
 generate a growing demand for parallel, scalable statistical analysis
 and machine learning tools that are simple and efficient.
-Simple tools need to be programmable, interactive, and extensible, 
-allowing scientists to encode and deploy complex algorithms. 
+Simple tools need to be programmable, interactive, and extensible,
+allowing scientists to encode and deploy complex algorithms.
 Successful examples include R, SciPy, and Matlab.  Efficiency dictates that
 tools should leverage modern computer architectures, including scalable
 parallelism, high-speed networking, and fast I/O from memory and storage.
@@ -13,7 +13,7 @@ capacity of modern parallel systems often uses a low-level programming
 language such as C and parallelizes computation with MPI or OpenMP.
 This approach is time-consuming and error-prone, and requires machine learning
 researchers to develop expertise in parallel programming models.
- 
+
 % How have others addressed the problem?
 
 While conventional wisdom addresses large-scale data analysis and machine
@@ -43,9 +43,9 @@ vectors and matrices on SSDs and overrides many R functions in the R
 and matrices.
 As such, FlashR executes existing R code with little/no modification.
 FlashR focuses on optimizations in a single machine (with multiple CPUs and
-many cores) and scales matrix operations beyond memory capacity by 
+many cores) and scales matrix operations beyond memory capacity by
 utilizing SSDs.
-Our evaluation shows that we can solve billion row, Internet-scale 
+Our evaluation shows that we can solve billion row, Internet-scale
 problems on a single thick node, which can prevent the complexity,
 expense, and power consumption of distributed systems when they are
 not strictly necessary \cite{hotos}.
@@ -61,19 +61,19 @@ To utilize the full capacity of a large parallel machine, we overcome
 many technical challenges to move data from SSDs to CPU efficiently for matrix
 computations. Notably, there exist large performance disparities between CPU
 and memory and between memory and SSDs, at least an order of magnitude between
-every two layers. The ``memory gap'' \cite{Wilkes01} continues to grow, with 
-the difference between CPU and DRAM performance increasing exponentially. 
+every two layers. The ``memory gap'' \cite{Wilkes01} continues to grow, with
+the difference between CPU and DRAM performance increasing exponentially.
 There are also performance differences between
 local and remote memory in a non-uniform memory architecture (NUMA), which are prevalent
-in modern multiprocessor machines. 
+in modern multiprocessor machines.
 %Even though the I/O
 %performance of SSDs has advanced to outperform hard drives by a large factor,
-%FDespite advances in SSD I/O performance, 
+%FDespite advances in SSD I/O performance,
 %they remain an order of magnitude slower than RAM.
 %Most matrix computation engines increase data movement,
-%because they perform an operation on an entire input matrix prior to moving 
+%because they perform an operation on an entire input matrix prior to moving
 %to the next operation.
-% RB -- 
+% RB --
 %On the other hand, many analysis tasks are
 %data-intensive. Matrix
 %formulation further increases data movement between CPU and SSDs because
@@ -126,7 +126,7 @@ FlashR is released as an open-source project at \href{http://flashx.io}{http://f
 Our contributions include:
 \begin{itemize}
 \item We develop an R-based programming framework that executes native R code
-in parallel and out of core automatically.
+in parallel and out-of-core automatically.
 \item We design multiple techniques in our framework to move data from
 I/O storage to the CPU cache efficiently and demonstrate that with today's I/O
 technology, our SSD-based solution delivers performance approaching that of

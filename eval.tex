@@ -22,7 +22,7 @@ These algorithms have various ratios of computation and I/O complexity
 (Table \ref{tbl:algs}) to thoroughly evaluate performance of FlashR on SSDs.
 Like the algorithms
 shown in Section \ref{sec:apps}, we implement these algorithms completely with
-the R code and rely on FlashR to execute them in parallel and out of core.
+the R code and rely on FlashR to execute them in parallel and out-of-core.
 
 \noindent \textbf{Correlation} computes pair-wise Pearson's correlation
 \cite{cor} and is commonly used in statistics.
@@ -292,7 +292,7 @@ Even though GMM is a computation-intensive algorithm, it does not take
 a prohibitively long time to complete.
 
 FlashR scales to datasets with billions of data points easily when running
-out of core. All of the algorithms have negligible memory consumption.
+out-of-core. All of the algorithms have negligible memory consumption.
 The scalability of FlashR is mainly bound by the capacity of SSDs.
 The functional programming
 interface generates a new matrix in each matrix operation, which potentially
@@ -300,9 +300,9 @@ leads to high memory consumption. Due to lazy evaluation and virtual matrices,
 FlashR only needs to materialize the small matrices to effectively reduce
 memory consumption.
 %Owing to lazy evaluation, FlashR does not store majority of matrices in
-% the computation physically. As such, its in-memory 
+% the computation physically. As such, its in-memory
 %out-of-core execution barely increases memory consumption from
-%the minimum memory requirement of the algorithms. 
+%the minimum memory requirement of the algorithms.
 %This indicates that the out-of-core execution consumes small space on SSDs, which leads to
 %very high scalability.
 
@@ -347,7 +347,7 @@ to grow more quickly than I/O, driving performance toward a computation bound.
 %lower external-memory performance. Similarly, as the number of clusters
 %increases, the computation of k-means and GMM increases rapidly and
 %these algorithms are dominated by their CPU computation as the number
-%of clusters gets larger. 
+%of clusters gets larger.
 The computation bound is realized on few features or clusters for an I/O throughput
 of 10GB/s. Because most of the machine learning algorithms in Table \ref{tbl:algs} have
 computation complexities that grow quadratically with $p$, we expect FlashR on SSDs to
@@ -357,9 +357,9 @@ achieve the same performance as in memory on datasets with a higher dimension si
 %	\begin{center}
 %		\footnotesize
 %		\includegraphics{FlashMatrix_figs/IM-vs-EM-clust.eps}
-%		\caption{{\em Clustering} scaleup: FlashMatrix performance on SSDs 
-%      normalized to in-memory performance as the number of clusters vary. 
-%%      KMeans operates on the \rb{Friendster32} matrix and GMM on the  
+%		\caption{{\em Clustering} scaleup: FlashMatrix performance on SSDs
+%      normalized to in-memory performance as the number of clusters vary.
+%%      KMeans operates on the \rb{Friendster32} matrix and GMM on the
 %%			by its performance in memory. As the number of clusters increases,
 %%			the external-memory performance of these implementations approach
 %%			to their in-memory performance.}
@@ -380,7 +380,7 @@ effectiveness when FlashR runs on SSDs.
 Both optimizations have significant performance improvement on all algorithms
 (Figure \ref{perf:em_opts}). Operation fusion in main memory (mem-fuse) achieves
 substantial performance improvement in most algorithms, even in GMM,
-which has the highest asymptotic computation complexity. 
+which has the highest asymptotic computation complexity.
 This indicates that materializing every matrix operation
 separately causes SSDs to be the main bottleneck in the system and
 fusing matrix operations in memory significantly reduces I/O.
