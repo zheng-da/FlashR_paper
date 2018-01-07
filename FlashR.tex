@@ -1,5 +1,5 @@
 %% For double-blind review submission
-\documentclass[sigplan,10pt,review,anonymous]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
+\documentclass[sigplan,10pt]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
 %% For single-blind review submission
 %\documentclass[sigplan,10pt,review]{acmart}\settopmatter{printfolios=true}
 %% For final camera-ready submission
@@ -31,16 +31,16 @@
 %% use defaults for review submission.
 \acmConference[PPoPP'18]{ACM SIGPLAN Symposium on Principles \& Practice of Parallel Programming}{Feb 24--28, 2018}{Vienna, Austria}
 \acmYear{2018}
-\acmISBN{} % \acmISBN{978-x-xxxx-xxxx-x/YY/MM}
-\acmDOI{} % \acmDOI{10.1145/nnnnnnn.nnnnnnn}
+\acmISBN{978-x-xxxx-xxxx-x/YY/MM}
+\acmDOI{10.1145/nnnnnnn.nnnnnnn}
 \startPage{1}
 
 
 %% Copyright information
 %% Supplied to authors (based on authors' rights management selection;
 %% see authors.acm.org) by publisher for camera-ready submission
-\setcopyright{none}             %% For review submission
-%\setcopyright{acmcopyright}
+%\setcopyright{none}             %% For review submission
+\setcopyright{acmcopyright}
 %\setcopyright{acmlicensed}
 %\setcopyright{rightsretained}
 %\copyrightyear{2017}           %% If different from \acmYear
@@ -62,7 +62,6 @@
                             %% single citation;
                             %% e.g., \cite{Baker12,Baker14,Baker16}
                             %% rendered as [2,3,4] rather than [2-4].
-
 
 
 \begin{document}
@@ -89,6 +88,32 @@
 %\affil[2]{Department of Applied Mathematics and Statistics, Johns Hopkins University}
 %\affil[3]{Department of Biomedical Engineering, Johns Hopkins University}
 
+\author{Da Zheng}
+\authornote{The work is done when the author was at Johns Hopkins University}          %% \authornote is optional;
+\affiliation{
+    \institution{Amazon}            %% \institution is required
+}
+
+\author{Disa Mhembere}
+\affiliation{
+    \institution{Dept. of Computer Science, Johns Hopkins University}
+}
+
+\author{Joshua T. Vogelstein}
+\affiliation{
+    \institution{Institute for Computational Medicine,
+      Dept. of Biomedical Engineering, Johns Hopkins University}
+}
+
+\author{Carey E. Priebe}
+\affiliation{
+    \institution{Dept. of Applied Math and Statistics, Johns Hopkins University}
+}
+
+\author{Randal Burns}
+\affiliation{
+    \institution{Dept. of Computer Science, Johns Hopkins University}
+}
 
 %% Paper note
 %% The \thanks command may be used to create a "paper note" ---
@@ -176,6 +201,9 @@ $3-20$.
 
 \section{Conclusions}
 \input{conclusion}
+
+\section{Acknowledgement}
+NSF Grant \# 1649880
 
 %% Bibliography
 {\footnotesize \bibliographystyle{acm}
