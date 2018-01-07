@@ -36,6 +36,38 @@ such as data compression \cite{Elgohary16} and hybrid parallelization
 \cite{Boehm14}. These optimizations are orthogonal with the ones in FlashR
 and can be adopted.
 
+There is a large literature for deploying lazy evaluation and operation fusion
+in a programming framework to improvement performance. There are a few attempts
+in the APL literature for deferred operations. For example, Guibas et al.
+\cite{Guibas78} defers operations for streaming data among operations and
+reordering operations, while Ching et al. \cite{Ching12} compiles APL code
+to fuse multiple operations together for better parallelization.
+Riposte \cite{riposte} uses
+\textit{tracing} to collect operations for vectorization and vector fusion
+with JIT to speed up the operations on vectors in R.
+Delite \cite{delite} is a system designed to parallelize domain-specific languages
+(DSL), such as OptiML \cite{optiml} for machine learning, in a heterogeneous
+computation environment in a single machine. This system
+defers operation execution to allow both data and task parallelism.
+DESOLA \cite{desola} is a linear algebra library that delays matrix operations
+and deploys runtime code generation to fuse operations and arry constraction.
+All of the works above rely on compilation to achieve optimizations such as
+operation fusion or operation reordering.
+It is difficult to compile a dynamic programming language such as APL and R.
+The compilation is inefficent or requires some constrants in the language,
+while runtime compilation has large overhead.
+FlashR adopts and enhances these techniques with a focus on large-scale
+data analysis. Unlike most of the previous works, FlashR applies lazy evaluation
+and operation fusion at runtime without compilation and focuses on reducing
+data movement in the memory hierarchy.
+
+Sequoia \cite{sequoia} is a programming language designed to facilitate
+memory hierarchy aware parallel programming on large array operations.
+It exposes memory hierarchy to the programming model and performs static
+analysis at compile time. In contrast, FlashR enhances an existing popular
+programming language and chooses to hide memory
+hierarchy from R users completely and optimize data movement at runtime.
+
 Distributed machine learning frameworks have been developed to train machine
 learning models on large datasets. For example, GraphLab \cite{graphlab}
 formulates machine learning algorithms as graph computation; Petuum \cite{petuum}
@@ -51,12 +83,6 @@ Efforts to parallelize array programming include Revolution R \cite{rro} and
 Matlab's parallel computing toolbox, which offer multicore parallelism and
 explicit distributed parallelism using MPI and MapReduce. Other works focus
 on implicit parallelization. Presto \cite{presto} extends R to sparse matrix
-operations in distributed memory for graph
-analysis. Ching et. al \cite{Ching12} parallelize APL code by
-compiling it to C. Accelerator \cite{accelerator} compiles
+operations in distributed memory for graph analysis. Accelerator
+\cite{accelerator} compiles
 data-parallel operations on the fly to execute programs on a GPU.
-
-OptiML \cite{optiml} is a domain-specific language for machine
-learning in a heterogeneous computation environment such as multi-core
-processors and GPU. It designs a new programming language and relies on
-a compiler to generate code for the heterogenous environment.
