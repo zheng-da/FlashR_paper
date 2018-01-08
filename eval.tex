@@ -23,6 +23,8 @@ These algorithms have various ratios of computation and I/O complexity
 Like the algorithms
 shown in Section \ref{sec:apps}, we implement these algorithms completely with
 the R code and rely on FlashR to execute them in parallel and out-of-core.
+We implement these machine learning algorithms in FlashR identically to our
+competitors (SparkML and H2O). 
 
 \noindent \textbf{Correlation} computes pair-wise Pearson's correlation
 \cite{cor} and is commonly used in statistics.
@@ -63,13 +65,6 @@ the implementation in the MASS package.
 that assumes the normal distribution with a different mean for each class
 but sharing the same covariance matrix among classes. We use the implementation
 in the MASS package with some trivial modifications.
-
-%\noindent \textbf{PageRank} is a well-known algorithm for graph analysis.
-%We run the R implementation in Figure \ref{pagerank} in the experiment.
-%PageRank converges when
-%$\forall j, abs(PR^i(v_j) - PR^{i-1}(v_{j})) < \dfrac{0.01}{n}$,
-%where $PR^i(v_j)$ is the PageRank value of vertex $v_j$ at iteration $i$ and
-%$n$ is the number of vertices in the graph.
 
 \begin{table}
 \begin{center}
@@ -156,8 +151,11 @@ loaded and cached in memory. When running in the 48 CPU core local server,
 all frameworks use 48 threads. When running in the cloud, we compare FlashR
 running in one of the largest I/O-optimized instance (i3.16xlarge) with MLlib
 and H$_2$O in a cluster with four of the largest general-purpose instances
-(m4.16xlarge), which in total has 256 CPU cores, 1TB RAM
-and 20Gbps network. We also use FlashR to parallelize functions (mvrnorm and LDA)
+(m4.16xlarge), which in total has 256 CPU cores, 1TB RAM and 20Gbps network.
+All iterative algorithms take the same number of iterations and generate
+similar accuracy\footnote{The only exception is the logistic regression in Spark
+because we cannot control its number of iterations}.
+We also use FlashR to parallelize functions (mvrnorm and LDA)
 in the R MASS package and compare their performance with Revolution R Open. We use
 Spark v2.0.1, H$_2$O v3.14.2 and Revolution R Open v3.3.2.
 
@@ -189,8 +187,12 @@ Spark v2.0.1, H$_2$O v3.14.2 and Revolution R Open v3.3.2.
 \end{figure}
 
 FlashR running on SSDs (FlashR-EM) achieves at least half the performance of
-running in memory (FlashR-IM),
-while outperforming H$_2$O and Spark MLlib significantly on all algorithms
+running in memory (FlashR-IM), while outperforming H$_2$O\footnote{
+H$_2$O develops machine learning algorithms individually and adding
+a new algorithm in H$_2$O requires writing it from scratch, which is
+a non-trivial task. H$_2$O does not provide implementations for correlation
+and GMM, so we do not provide results for these two algorithms.}
+and Spark MLlib significantly on all algorithms
 (Figure \ref{perf:para}) in the large parallel machine with 48 CPU cores.
 When all frameworks run on the same hardware, FlashR-IM achieves 4 to 10 times
 performance gain when compared
@@ -201,6 +203,7 @@ Spark materializes operations such as aggregation separately. In contrast,
 FlashR fuses matrix operations and performs two-level partitioning to
 minimize data movement in the memory hierarchy and keeps data in CPU cache
 to achieve high memory bandwidth.
+
 
 We further evaluate the performance of FlashR on Amazon EC2 cloud and compare it
 with Spark MLlib and H$_2$O on an EC2 cluster (Figure \ref{perf:cloud}). H$_2$O
@@ -252,8 +255,8 @@ the datasets until they converge (see their convergence condition in Section
 \begin{table}
 \begin{center}
 	\caption{The runtime and memory consumption of FlashR on the billion-scale
-		datasets on the 48 CPU core machine. The runtime of iterative
-		algorithms is measured when the algorithms converge. We run k-means
+		datasets on the 48 CPU core machine. We measure the runtime of
+                iterative algorithms when they converge. We run k-means and GMM
 		on PageGraph-32ev and the remaining algorithms on Criteo.}
 \vspace{-10pt}
 \footnotesize
@@ -294,11 +297,11 @@ a prohibitively long time to complete.
 FlashR scales to datasets with billions of data points easily when running
 out-of-core. All of the algorithms have negligible memory consumption.
 The scalability of FlashR is mainly bound by the capacity of SSDs.
-The functional programming
-interface generates a new matrix in each matrix operation, which potentially
-leads to high memory consumption. Due to lazy evaluation and virtual matrices,
-FlashR only needs to materialize the small matrices to effectively reduce
-memory consumption.
+Two factors contributes to the small memory consumption: \textit{(i)}
+due to lazy evaluation, FlashR only needs to materialize the small matrices
+to effectively reduce memory consumption; \textit{(ii)} FlashR uses
+direct I/O to access data from SSDs and does not use internal buffers
+to cache data.
 %Owing to lazy evaluation, FlashR does not store majority of matrices in
 % the computation physically. As such, its in-memory
 %out-of-core execution barely increases memory consumption from
