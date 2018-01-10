@@ -90,29 +90,33 @@
 
 \author{Da Zheng}
 \authornote{The work is done when the author was at Johns Hopkins University}          %% \authornote is optional;
-\affiliation{
+\affiliation{\footnotesize
     \institution{Amazon}            %% \institution is required
 }
 
 \author{Disa Mhembere}
 \affiliation{
-    \institution{Dept. of Computer Science, Johns Hopkins University}
+    \institution{\footnotesize Dept. of Computer Science, \\
+    Johns Hopkins University}
 }
 
 \author{Joshua T. Vogelstein}
 \affiliation{
-    \institution{Institute for Computational Medicine,
-      Dept. of Biomedical Engineering, Johns Hopkins University}
+    \institution{\footnotesize Institute for Computational Medicine, \\
+    Dept. of Biomedical Engineering, \\
+    Johns Hopkins University}
 }
 
 \author{Carey E. Priebe}
 \affiliation{
-    \institution{Dept. of Applied Math and Statistics, Johns Hopkins University}
+    \institution{\footnotesize Dept. of Applied Math and Statistics, \\
+    Johns Hopkins University}
 }
 
 \author{Randal Burns}
 \affiliation{
-    \institution{Dept. of Computer Science, Johns Hopkins University}
+    \institution{\footnotesize Dept. of Computer Science, \\
+    Johns Hopkins University}
 }
 
 \renewcommand{\shortauthors}{D. Zheng, D. Mhembere, J.T. Vogelstein, C.E. Priebe
@@ -132,28 +136,25 @@
 %% before \maketitle command
 \begin{abstract}
 R is one of the most popular programming languages for statistics and machine
-learning, but the R framework alone is relatively slow and unable to scale to large
-datasets. The general approach for speeding up an implementation in R is to
-implement the algorithms in C or FORTRAN and provide an R wrapper. FlashR takes
-a different approach: it parallelizes a large number of matrix functions in
-the R \textit{base} package and scales them beyond memory capacity by utilizing
-solid-state drives (SSDs) automatically. As such, FlashR parallelizes and scales
-existing R code with little/no modification.
-FlashR further accelerates parallelized R code by deploying techniques that
-reduce data movement between CPU and SSDs:
-	\textit{(i)} evaluating all matrix operations lazily,
-	\textit{(ii)} performing all matrix operations in a DAG in a single execution
+learning, but it is slow and unable to scale to large
+datasets. The general approach for having an efficient algorithm in R is to
+implement it in C or FORTRAN and provide an R wrapper. FlashR accelerates
+and scales existing R code by parallelizing
+a large number of matrix functions in the R \textit{base} package and
+scaling them beyond memory capacity with solid-state drives (SSDs).
+FlashR performs memory hierarchy aware execution to further speed up
+parallelized R code by
+	\textit{(i)} evaluating matrix operations lazily,
+	\textit{(ii)} performing all operations in a DAG in a single execution
 	and with only one pass over data to increase the ratio of computation to I/O,
 	\textit{(iii)} performing two levels of matrix partitioning and reordering
 	computation on matrix partitions to reduce data movement in the memory hierarchy.
-%recycle all memory buffers to reduce memory allocation and CPU cache polution.
-We evaluate FlashR on a variety of machine learning and statistics algorithms
+We evaluate FlashR on various machine learning and statistics algorithms
 on inputs of up to four billion data points. Despite the huge performance
-gap between SSDs and RAM, FlashR running on SSDs closely tracks the performance
-of FlashR in memory for many machine learning algorithms.
-The R code of these machine learning algorithms executed in FlashR
-outperforms the in-memory execution of H$_2$O and Spark MLlib by a factor of
-$3-20$.
+gap between SSDs and RAM, FlashR on SSDs closely tracks the performance
+of FlashR in memory for many algorithms. The R implementations
+in FlashR outperforms the in-memory execution of H$_2$O and Spark
+MLlib by a factor of $3-20$.
 \end{abstract}
 
 
