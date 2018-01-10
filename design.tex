@@ -1,9 +1,8 @@
 \section{Design}
 
-FlashR provides parallelized matrix operations in R for machine learning and
-statistics. It scales matrix operations beyond memory capacity by utilizing
-fast I/O devices, such as solid-state drives (SSDs), in a non-uniform memory
-access (NUMA) machine. Figure \ref{fig:arch} shows the architecture of FlashR.
+FlashR parallelizes and scales matrix operations in R for machine learning and
+statistics in a non-uniform memory access (NUMA) machine. Figure \ref{fig:arch}
+shows the architecture of FlashR.
 FlashR supports a small number of classes of generalized operations (GenOps)
 and uses GenOps to implement many matrix operations in the R base package
 to provide users a familiar programming interface. The GenOps simplify
@@ -11,12 +10,9 @@ the implementation and improve expressiveness of the framework. The optimizer
 aggressively merges operations to reduce data movement in the memory hierarchy.
 FlashR stores matrices on SSDs through SAFS \cite{safs}, a user-space filesystem
 for SSD arrays, to fully utilize high I/O throughput of SSDs.
-
 FlashR supports both sparse matrices and dense matrices. For large sparse matrices,
-FlashR integrates with the work \cite{SEM_SpMM} that stores sparse matrices
-in a compact format on SSDs and performs sparse matrix multiplication
-in semi-external memory, i.e., keeping the sparse matrix on SSDs and
-the dense matrix or part of the dense matrix in memory.
+FlashR integrates with the work \cite{SEM_SpMM} that performs sparse matrix
+multiplication in semi-external memory.
 
 \begin{figure}
 \centering
@@ -30,15 +26,13 @@ the dense matrix or part of the dense matrix in memory.
 \subsection{Programming interface} \label{sec:api}
 
 FlashR provides a matrix-oriented functional programming interface built
-on Generalized Operations (GenOps). To simplify the implementation and
-increase the generality of the programming interface, FlashR provides
-a small set of GenOps and uses them to parallelize R matrix functions.
-GenOps (Table \ref{tbl:genops}) take matrices and
-some functions as input and output new matrices that represent computation results.
-The input function defines computation on individual elements in input matrices,
-and, in the current implementation, all of these functions for GenOps are predefined.
-GenOps provide a flexible and concise programming interface and, thus,
-we focus on optimizing the small set of matrix operations.
+on a small set of GenOps (Table \ref{tbl:genops}). GenOps take matrices
+and some functions
+as input and output new matrices that represent computation results.
+Input functions define computation on individual elements in matrices,
+and all of these functions for GenOps in the current implementation are
+predefined. All GenOps are lazily evaluated for better performance (Section
+\ref{sec:lazyeval}).
 
 \begin{table}
 \begin{center}
@@ -103,9 +97,8 @@ on the elements in rows or columns and outputs matrices with the same
 shape as the input matrices. Special cases in R are \textit{cumsum} and
 \textit{cumprod}.
 
-FlashR reimplements a large number of matrix functions in the R \textit{base}
-package with the GenOps to provides some level of compatibility.
-By overriding existing R matrix functions, FlashR scales and parallelizes
+FlashR overrides a large number of matrix functions in the R \textit{base}
+package with GenOps to scale and parallelize
 existing R code with little/no modification. Table \ref{tbl:Rfuns} shows
 a small subset of R matrix operations overridden by FlashR and their
 implementations with GenOps.
@@ -120,17 +113,12 @@ implementations with GenOps.
 Function & Implementation with GenOps \\
 \hline
 $C=A+B$ & $C=mapply(A, B, ``+")$ \\
-$C=A-B$ & $C=mapply(A, B, ``-")$ \\
 $C=pmin(A,B)$ & $C=mapply(A, B, ``pmin")$ \\
-$C=pmax(A,B)$ & $C=mapply(A, B, ``pmax")$ \\
 $C=sqrt(A)$ & $C=sapply(A, ``sqrt")$ \\
-$C=abs(A)$ & $C=sapply(A, ``abs")$ \\
 \hline
 $c=sum(A)$ & $c=agg(A, ``+")$ \\
 $C=rowSums(A)$ & $C=agg.row(A, ``+")$ \\
-$C=colSums(A)$ & $C=agg.col(A, ``+")$ \\
 $c=any(A)$ & $c=agg(A, ``|")$ \\
-$c=all(A)$ & $c=agg(A, ``\&")$ \\
 \hline
 $C=unique(A)$ & $C=groupby(A, ``uniq")$ \\
 $C=table(A)$ & $C=groupby(A, ``count")$ \\
@@ -145,25 +133,18 @@ $C=A \%*\% B$ & integers: $C=inner.prod(A, B, ``*", ``+")$ \\
 \end{center}
 \end{table}
 
-FlashR provides a set of matrix functions for matrix creation and matrix access
-(Table \ref{tbl:utility}). Like GenOps, FlashR tries to avoid data movement in
-most of these matrix operations. For example, transpose of a matrix in
-FlashR does not physically move elements in the matrix and, instead, FlashR
-just accesses data in the transposed matrix differently in the subsequent
-matrix operations \cite{Guibas78}. Reading columns from a tall matrix outputs
-a new matrix
-that indicates the columns to be accessed from the original matrix, instead
-of creating a new matrix that contains the specified columns. Writing data to
-a matrix is lazily evaluated and outputs a \textit{virtual matrix} (see Section
+FlashR provides a set of matrix functions for matrix creation, element access
+and execution tuning (Table \ref{tbl:utility}). Like GenOps, FlashR avoids
+data movement in most of these matrix operations. For example, transpose
+of a matrix only needs to change the way of accessing data from the original
+matrix in the subsequent
+matrix operations \cite{Guibas78}; reading columns from a tall matrix outputs
+a new matrix that indicates the columns to be accessed from the original matrix;
+writing to a matrix outputs a \textit{virtual matrix} (see Section
 \ref{sec:lazyeval}) that constructs the modified matrix on the fly.
-
-FlashR also provides functions for tuning the execution of operations (Table
-\ref{tbl:utility}).
-Majority of functions described in this section are lazily evaluated and
-it is up to FlashR to execute them together to achieve efficiency. However,
-these functions give advanced users an opportunity to control the operation
-execution. \textit{materialize} forces FlashR to perform actual computation
-in a DAG. \textit{set.cache} informs FlashR to save the computation results
+FlashR provides functions for tuning the execution of lazily evaluated operations.
+\textit{materialize} forces FlashR to perform actual computation.
+\textit{set.cache} informs FlashR to save the computation results
 of a matrix during computation. \textit{as.vector} and \textit{as.matrix}
 convert FlashR vectors and matrices to R vectors and matrices, which potentially
 force FlashR to perform computation.
@@ -209,53 +190,7 @@ $as.matrix$ & Convert to an R matrix \\
 
 \subsubsection{Examples} \label{sec:apps}
 To illustrate the programming interface of FlashR, we showcase some classic
-algorithms written in FlashR. One is implemented with R \textit{base} functions
-and can run in the existing R framework without any modification, and the other
-is written with GenOps.
-
-\begin{figure}
-\centering
-\begin{minted}[mathescape,
-	fontsize=\footnotesize,
-	frame=single,
-	tabsize=2,
-	]{R}
-# X is the data matrix. C is cluster centers.
-kmeans <- function(X,C) {
-	I <- NULL
-	num.moves > nrow(X)
-	while (num.moves > 0) {
-		# Compute pair-wise distance.
-		D <- inner.prod(X, t(C), "euclidean", "+")
-		# Find the closest center.
-		old.I <- I
-		I <- agg.row(D, "which.min")
-		# Inform FlashR to save data during computation.
-		I <- set.cache(I, TRUE)
-		# Count the number of data points in each cluster.
-		CNT <- groupby.row(rep.int(1, nrow(I)), I, "+")
-		# Compute the new centers.
-		C <- sweep(groupby.row(X, I, "+"), 2, CNT, "/")
-		if (!is.null(old.I))
-			num.moves <- as.vector(sum(old.I != I))
-	}
-	I
-}
-\end{minted}
-\vspace{-10pt}
-	\caption{The FlashR implementation of k-means.}
-	\label{fig:kmeans}
-\vspace{-10pt}
-\end{figure}
-
-Figure \ref{fig:kmeans} implements k-means, a popular clustering algorithm
-\cite{kmeans}. It uses \textit{inner.prod} to
-compute the Euclidean distance between data points and cluster centers
-and outputs a matrix whose rows represent the distances to centers.  
-It uses \textit{agg.row} to find the closest cluster for each data point.
-The output matrix 
-assigns data points to clusters. It then uses \textit{groupby.row} to count
-the number of data points in each cluster and compute the mean of each cluster.
+algorithms written in FlashR.
 
 \begin{figure}
 \begin{minted}[mathescape,
@@ -270,7 +205,6 @@ logistic.regression <- function(X,y) {
 		(t(X)%*%(1/(1+exp(-X%*%t(w)))-y))/length(y)
 	cost <- function(X,y,w)
 		sum(y*(-X%*%t(w))+log(1+exp(X%*%t(w))))/length(y)
-	# Gradient descent with line search.
 	theta <- matrix(rep(0, num.features), nrow=1)
 	for (i in 1:max.iters) {
 		g <- grad(X, y, theta)
@@ -288,24 +222,62 @@ logistic.regression <- function(X,y) {
 \end{minted}
 \vspace{-10pt}
 \caption{A simplified implementation of logistic regression using
-steepest gradient descent in FlashR.}
+  gradient descent with line search.}
 \label{logistic}
 \vspace{-5pt}
 \end{figure}
 
-Logistic regression is a commonly used classification algorithm.
-We implement this algorithm solely with the R \textit{base} functions
-overridden by FlashR. Figure
-\ref{logistic} implements logistic regression for problems with binary-class
-labels. It uses steepest gradient descent with line search to minimize
-the \textit{cost} function. This example does not have a regularization term
-in the cost function.
+Logistic regression is a commonly used classification algorithm. We implement
+this algorithm for binary-class problems and use gradient descent with
+line search to minimize the \textit{cost} function. This implementation
+solely uses the R \textit{base} functions overridden by FlashR (Figure
+\ref{logistic}) and can be executed in the existing R framework.
+
+\begin{figure}
+\centering
+\begin{minted}[mathescape,
+	fontsize=\footnotesize,
+	frame=single,
+	tabsize=2,
+	]{R}
+# X is the data matrix. C is cluster centers.
+kmeans <- function(X,C) {
+	I <- NULL
+	num.moves > nrow(X)
+	while (num.moves > 0) {
+		D <- inner.prod(X, t(C), "euclidean", "+")
+		old.I <- I
+		I <- agg.row(D, "which.min")
+		# Inform FlashR to save data during computation.
+		I <- set.cache(I, TRUE)
+		CNT <- groupby.row(rep.int(1, nrow(I)), I, "+")
+		C <- sweep(groupby.row(X, I, "+"), 2, CNT, "/")
+		if (!is.null(old.I))
+			num.moves <- as.vector(sum(old.I != I))
+	}
+	I
+}
+\end{minted}
+\vspace{-10pt}
+	\caption{A simplified implementation of k-means.}
+	\label{fig:kmeans}
+\vspace{-10pt}
+\end{figure}
+
+Figure \ref{fig:kmeans} implements k-means, a popular clustering algorithm
+\cite{kmeans}, with GenOps. It uses \textit{inner.prod} to
+compute the Euclidean distance between data points and cluster centers
+and outputs a matrix whose rows represent the distances to centers.  
+It uses \textit{agg.row} to find the closest cluster for each data point.
+The output matrix 
+assigns data points to clusters. It then uses \textit{groupby.row} to count
+the number of data points in each cluster and compute the mean of each cluster.
 
 \subsection{Dense matrices}
 FlashR optimizes for dense matrices that are rectangular---with
 a longer and shorter dimension---because of their frequent occurrence
 in machine learning and statistics. Dense matrices are optimized for
-all types of storage (SMP memory, NUMA memory and SSDs).
+all types of storage, including NUMA memory and SSDs.
 
 \subsubsection{Tall-and-skinny (TAS) matrices}
 A data matrix may contain a large number of samples with a few features
