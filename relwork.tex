@@ -1,55 +1,54 @@
-Basic Linear Algebra Subprograms (BLAS) defines a small set of vector and
-matrix operations. There exist a few highly-optimized BLAS implementations,
-such as MKL \cite{mkl} and ATLAS \cite{atlas}. 
-Distributed libraries \cite{trilinos, petsc, elemental}
-build on BLAS and distribute computation with MPI.
-BLAS provides a limited set of matrix operations and requires
-users to manually parallelize the remaining matrix operations.
-%In contrast, FlashR provides a few parallelized GenOps that 
-%represent common data access patterns. 
-%Each GenOp covers a large number of matrix operations.
+%Basic Linear Algebra Subprograms (BLAS) defines a small set of vector and
+%matrix operations. There exist a few highly-optimized BLAS implementations,
+%such as MKL \cite{mkl} and ATLAS \cite{atlas}. 
+%Distributed libraries \cite{trilinos, petsc, elemental}
+%build on BLAS and distribute computation with MPI.
+%BLAS provides a limited set of matrix operations and requires
+%users to manually parallelize the remaining matrix operations.
 
 Recent works on out-of-core linear algebra \cite{Toledo99, Quintana-Orti12}
 redesign algorithms to achieve efficient I/O access and reduce I/O
 complexity. These works are orthogonal to our work and can be adopted.
-Optimizing I/O
-alone is insufficient. To achieve performance comparable to state-of-the-art
-in-memory implementations, it is essential to move data efficiently throughout
-the entire memory hierarchy.
+Optimizing I/O alone is insufficient. To achieve state-of-the-art in-memory
+performance, it is essential to move data efficiently throughout
+the memory hierarchy.
 
-MapReduce \cite{mapreduce} has been used for parallelizing machine learning
-algorithms \cite{Chu06}. Even though MapReduce simplifies parallel programming,
-it still requires low-level programming. As such, frameworks, such as Pig Latin
-\cite{pig} and FlumeJava \cite{flumejava}, are built on top
-of MapReduce to reduce programming complexity. MapReduce is inefficient for
-matrix operations because
-its I/O streaming primitives do not match matrix data access patterns.
-
-Spark \cite{spark} is a distributed, in-memory framework that provides more
-primitives for efficient computation and provides a distributed machine
-learning library (MLlib \cite{mllib}). Although Spark is efficient, it usually
-requires a large amount of RAM to process large datasets.
-
+Many distributed frameworks have beeen developed for large-scale data analysis
+and machine learning. MapReduce \cite{mapreduce} is used for parallelizing
+machine learning algorithms \cite{Chu06}.
+%However, MapReduce still requires
+%low-level programming. As such, Pig Latin \cite{pig} and FlumeJava \cite{flumejava}
+%are built on MapReduce to reduce programming complexity.
+However, MapReduce is inefficient
+for matrix operations because its I/O streaming primitives do not match matrix
+data access patterns. Spark \cite{spark} provides more primitives for efficient
+computation and are used for distributed machine learning (MLlib \cite{mllib}).
 SystemML \cite{systemml, systemml2} develops an R-like scripting language for
-machine learning on top of MapReduce and Spark. It deploys many optimizations,
+machine learning on top of MapReduce and Spark. It deploys optimizations,
 such as data compression \cite{Elgohary16} and hybrid parallelization
 \cite{Boehm14}. These optimizations are orthogonal with the ones in FlashR
 and can be adopted.
+
+Distributed machine learning frameworks have been developed to train machine
+learning models on large datasets. For example, GraphLab \cite{graphlab}
+formulates machine learning algorithms as graph computation; Petuum \cite{petuum}
+is designed for machine learning algorithms with certain properties such as
+error tolerance; TensorFlow \cite{tensorflow} trains deep neural networks
+with stochastic gradient descent and its variants.
 
 There is a large literature for deploying lazy evaluation and operation fusion
 in a programming framework to improvement performance. There are a few attempts
 in the APL literature for deferred operations. For example, Guibas et al.
 \cite{Guibas78} defers operations for streaming data among operations and
-reordering operations, while Ching et al. \cite{Ching12} compiles APL code
-to fuse multiple operations together for better parallelization.
-Riposte \cite{riposte} uses
+reordering operations; Ching et al. \cite{Ching12} compiles APL code
+to fuse operations for better parallelization. Riposte \cite{riposte} uses
 \textit{tracing} to collect operations for vectorization and vector fusion
-with JIT to speed up the operations on vectors in R.
+with JIT to speed up operations on vectors in R.
 Delite \cite{delite} is a system designed to parallelize domain-specific languages
 (DSL), such as OptiML \cite{optiml} for machine learning, in a heterogeneous
 computation environment in a single machine. This system
 defers operation execution to allow both data and task parallelism.
-DESOLA \cite{desola} is a linear algebra library that delays matrix operations
+DESOLA \cite{desola} is a linear algebra library that defers matrix operations
 and deploys runtime code generation to fuse operations and arry constraction.
 All of the works above rely on compilation to achieve optimizations such as
 operation fusion or operation reordering.
@@ -57,27 +56,16 @@ It is difficult to compile a dynamic programming language such as APL and R.
 The compilation is inefficent or requires some constrants in the language,
 while runtime compilation has large overhead.
 FlashR adopts and enhances these techniques with a focus on large-scale
-data analysis. Unlike most of the previous works, FlashR applies lazy evaluation
+data analysis. Unlike most of these works, FlashR applies lazy evaluation
 and operation fusion at runtime without compilation and focuses on reducing
 data movement in the memory hierarchy.
 
 Sequoia \cite{sequoia} is a programming language designed to facilitate
-memory hierarchy aware parallel programming on large array operations.
+memory hierarchy aware parallel programming on large arrays.
 It exposes memory hierarchy to the programming model and performs static
 analysis at compile time. In contrast, FlashR enhances an existing popular
-programming language and chooses to hide memory
-hierarchy from R users completely and optimize data movement at runtime.
-
-Distributed machine learning frameworks have been developed to train machine
-learning models on large datasets. For example, GraphLab \cite{graphlab}
-formulates machine learning algorithms as graph computation; Petuum \cite{petuum}
-is designed for machine learning algorithms with certain properties such as
-error tolerance; TensorFlow \cite{tensorflow} trains machine learning models,
-especially deep neural networks, with optimization algorithms such as
-stochastic gradient descent.
-%In contrast,
-%FlashR aims at providing a simple programming interface for a wide variety
-%of machine learning algorithms.
+programming language and hides memory
+hierarchy from R users and optimize data movement at runtime.
 
 Efforts to parallelize array programming include Revolution R \cite{rro} and
 Matlab's parallel computing toolbox, which offer multicore parallelism and
