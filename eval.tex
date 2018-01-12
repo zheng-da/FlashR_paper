@@ -2,29 +2,28 @@
 We evaluate the efficiency of FlashR on statistics and machine learning
 algorithms both in memory and on SSDs. We compare the R implementations of
 these algorithms with the ones in two optimized parallel machine learning
-libraries H$_2$O \cite{h2o} and Spark MLlib \cite{mllib}. We further use FlashR
+libraries H$_2$O \cite{h2o} and Spark MLlib \cite{mllib}. We use FlashR
 to accelerate existing R functions in the MASS package and compare with
 Revolution R Open \cite{rro}.
 
 We conduct experiments on our local server and Amazon cloud. The local server
-is a large NUMA machine with four Intel Xeon E7-4860 2.6 GHz processors,
-each of which has 12 cores, and 1TB of DDR3-1600 memory. The machine is equipped
+is has four Intel Xeon E7-4860 2.6 GHz processors,
+each of which has 12 cores, and 1TB of DDR3-1600 memory. It is equipped
 with 24 OCZ Intrepid 3000 SSDs, which together are capable of 12 GB/s for read
-and 10 GB/s for write. We also run FlashR on an EC2 i3.16xlarge instance,
-which has 64 virtual CPUs, 488GB of RAM and 8 NVMe SSDs. The NVMe SSDs together
-provide 15.2TB of space and up to 16GB/s of sequential I/O throughput.
+and 10 GB/s for write. We run FlashR on an EC2 i3.16xlarge instance
+with 64 virtual CPUs, 488GB of RAM and 8 NVMe SSDs. The NVMe SSDs together
+provide 15.2TB of space and 16GB/s of sequential I/O throughput.
 We run Ubuntu 16.04 and use ATLAS 3.10.2 as the default BLAS library on both
 machines.
 
 \subsection{Benchmark algorithms}\label{benchalg}
 We benchmark FlashR with some commonly used machine learning algorithms.
 These algorithms have various ratios of computation and I/O complexity
-(Table \ref{tbl:algs}) to thoroughly evaluate performance of FlashR on SSDs.
+(Table \ref{tbl:algs}) to thoroughly evaluate performance of FlashR.
 Like the algorithms
 shown in Section \ref{sec:apps}, we implement these algorithms completely with
 the R code and rely on FlashR to execute them in parallel and out-of-core.
-We implement these machine learning algorithms in FlashR identically to our
-competitors (SparkML and H2O). 
+We implement these algorithms identically to our competitors (SparkML and H2O). 
 
 \noindent \textbf{Correlation} computes pair-wise Pearson's correlation
 \cite{cor} and is commonly used in statistics.
@@ -38,9 +37,9 @@ matrix $A^T A$ of the input matrix $A$.
 with the ``naive'' assumption of independence between every pair of features.
 Our implementation assumes data follows the normal distribution.
 
-\noindent \textbf{Logistic regression} is a linear regression model with
-categorical dependent variables. We use the LBFGS algorithm \cite{lbfgs}
-to optimize logistic regression. In the experiments, it converges when
+\noindent \textbf{Logistic regression} is a linear regression model for
+classification. We use the LBFGS algorithm \cite{lbfgs} for optimization.
+In the experiments, it converges when
 $logloss_{i-1}-logloss_i < 1e-6$, where $logloss_i$ is the logarithmic loss
 at iteration $i$.
 
@@ -58,7 +57,7 @@ it converges when $loglike_{i-1} - loglike_i < 1e-2$, where $loglike_i$
 is the mean of log likelihood over all data points at iteration $i$.
 
 \noindent \textbf{Multivariate Normal Distribution (mvrnorm)} generates
-samples from the specified multivariate normal distribution. We use
+samples from a multivariate normal distribution. We use
 the implementation in the MASS package.
 
 \noindent \textbf{Linear discriminant analysis (LDA)} is a linear classifier
@@ -106,13 +105,13 @@ LDA & $O(n \times p^2)$ & $O(n \times p)$ \\
 
 \subsection{Datasets}\label{sec:data}
 We use two real-world datasets with billions of data points (Table \ref{tbl:data})
-to benchmark the algorithms above. The Criteo dataset has over four billion data
+to benchmark the algorithms. The Criteo dataset has over four billion data
 points with binary labels (click vs. no-click), used for advertisement click
 prediction \cite{criteo}. PageGraph-32ev are 32 singular vectors that we computed
 on the largest connected component of a Page graph, which has 3.5 billion vertices and
 129 billion edges \cite{webgraph}. Because Spark MLlib and H$_2$O cannot process
-the entire datasets in a single machine, we take part of the Criteo and
-PageGraph-32ev datasets to create smaller datasets.
+the entire datasets in a single machine, we take part of these two datasets
+to create smaller ones.
 PageGraph-32ev-sub is the first 336 million data points
 of the PageGraph-32ev dataset. Criteo-sub contains the data points collected
 on the first two days, which is about one tenth of the whole dataset.
@@ -147,11 +146,10 @@ Criteo-sub \cite{criteo} & 325M & 40 \\
 We evaluate FlashR against H$_2$O \cite{h2o} and Spark MLlib \cite{mllib} as well
 as Revolution R Open \cite{rro} in our local server and in the Amazon cloud.
 Before running the algorithms in H$_2$O and MLlib, we ensure that all data are
-loaded and cached in memory. When running in the 48 CPU core local server,
-all frameworks use 48 threads. When running in the cloud, we compare FlashR
-running in one of the largest I/O-optimized instance (i3.16xlarge) with MLlib
-and H$_2$O in a cluster with four of the largest general-purpose instances
-(m4.16xlarge), which in total has 256 CPU cores, 1TB RAM and 20Gbps network.
+loaded and cached in memory. All frameworks use 48 threads in the local server.
+In the cloud, we run FlashR in one i3.16xlarge instance
+and MLlib and H$_2$O in a cluster with four m4.16xlarge instances,
+which in total has 256 CPU cores, 1TB RAM and 20Gbps network.
 All iterative algorithms take the same number of iterations and generate
 similar accuracy\footnote{The only exception is the logistic regression in Spark
 because we cannot control its number of iterations}.
@@ -193,31 +191,28 @@ a new algorithm in H$_2$O requires writing it from scratch, which is
 a non-trivial task. H$_2$O does not provide implementations for correlation
 and GMM, so we do not provide results for these two algorithms.}
 and Spark MLlib significantly on all algorithms
-(Figure \ref{perf:para}) in the large parallel machine with 48 CPU cores.
-When all frameworks run on the same hardware, FlashR-IM achieves 4 to 10 times
-performance gain when compared
-with MLlib, and 3 to 20 times performance gain when compared with H$_2$O.
-All implementations rely on BLAS for matrix multiplication, and H$_2$O
-and MLlib implement non-BLAS operations with Java and Scala, respectively.
+(Figure \ref{perf:para}) in the 48 CPU core local server.
+In the same hardware, FlashR-IM achieves 4 to 10 times
+performance gain compared
+with MLlib, and 3 to 20 times performance gain compared with H$_2$O.
+All implementations rely on BLAS for matrix multiplication, but H$_2$O
+and MLlib implement non-BLAS operations with Java and Scala.
 Spark materializes operations such as aggregation separately. In contrast,
 FlashR fuses matrix operations and performs two-level partitioning to
-minimize data movement in the memory hierarchy and keeps data in CPU cache
-to achieve high memory bandwidth.
+minimize data movement in the memory hierarchy.
 
-
-We further evaluate the performance of FlashR on Amazon EC2 cloud and compare it
+We evaluate the performance of FlashR on Amazon EC2 cloud and compare it
 with Spark MLlib and H$_2$O on an EC2 cluster (Figure \ref{perf:cloud}). H$_2$O
 recommends
 allocating a total of four times the memory of the input data. As such, we use
 4 m4.16xlarge instances that provide sufficient memory and computation power for
-Spark MLlib and H$_2$O to process the datasets (PageGraph-32ev-sub and Criteo-sub).
+Spark MLlib and H$_2$O to process the datasets.
 Even though Spark MLlib and H$_2$O have four times as much computation power as FlashR,
 FlashR still outperforms both distributed machine learning libraries in most algorithms.
 Because the NVMes in i3.16xlarge provide higher I/O throughput than the SSDs
-in our local server, the performance gap between FlashR-IM and FlashR-EM gets
-smaller.
+in our local server, the performance gap between FlashR-IM and FlashR-EM decreases.
 
-\begin{figure}[b]
+\begin{figure}
   \vspace{-10pt}
 	\begin{center}
 		\footnotesize
@@ -290,18 +285,17 @@ Even though we process the billion-scale datasets in a single machine, none of
 the algorithms are prohibitively expensive. Simple algorithms, such as
 Naive Bayes and PCA, require one or two passes over the datasets and take
 only one or two minutes to complete. Iterative algorithms in this experiment
-take about $10-20$ iterations to converge and finish computation quickly.
-Even though GMM is a computation-intensive algorithm, it does not take
+take $10-20$ iterations to converge.
+Even GMM, a computation-intensive algorithm, does not take
 a prohibitively long time to complete.
 
 FlashR scales to datasets with billions of data points easily when running
 out-of-core. All of the algorithms have negligible memory consumption.
 The scalability of FlashR is mainly bound by the capacity of SSDs.
 Two factors contributes to the small memory consumption: \textit{(i)}
-due to lazy evaluation, FlashR only needs to materialize the small matrices
-to effectively reduce memory consumption; \textit{(ii)} FlashR uses
-direct I/O to access data from SSDs and does not use internal buffers
-to cache data.
+due to lazy evaluation, FlashR only materializes the small matrices;
+\textit{(ii)} FlashR uses direct I/O to access data from SSDs and
+does not cache data internally.
 %Owing to lazy evaluation, FlashR does not store majority of matrices in
 % the computation physically. As such, its in-memory
 %out-of-core execution barely increases memory consumption from
@@ -314,11 +308,13 @@ We further compare the performance of FlashR in memory and in external memory
 for algorithms with different computation and I/O complexities.
 We pick three algorithms from Table \ref{tbl:algs}: \textit{(i)} Naive Bayes,
 whose computation and I/O complexity are the same, \textit{(ii)}
-correlation, whose computation complexity grows quadratically with $p$ while
+correlation, whose computation complexity grows quadratically with the number
+of dimensions $p$ while
 its I/O complexity grows linearly with $p$, \textit{(iii)} k-means, whose computation
-complexity grows linearly with $k$ while its I/O complexity is independent
+complexity grows linearly with the number of clusters $k$ while its I/O
+complexity is independent
 from $k$. We run the first two algorithms on datasets with $n=100M$ and $p$
-varying from 8 to 512. We run k-means on a dataset with $p=100M$ and $p=32$
+varying from 8 to 512. We run k-means on a dataset with $n=100M$ and $p=32$
 and vary the number of clusters from 2 to 64.
 
 \begin{figure}[t]
@@ -335,12 +331,12 @@ and vary the number of clusters from 2 to 64.
   \vspace{-15pt}
 \end{figure}
 
-As the number of features or clusters increases, the performance gap between
+As $p$ or $k$ increases, the performance gap between
 in-memory and external-memory execution narrows and the external-memory
 performance approaches in-memory performance for correlation and k-means
 but not Naive Bayes (Figure \ref{perf:stat}). This observation conforms with
 the computation and I/O complexity of the algorithms in Table \ref{tbl:algs}.
-For correlation and k-means, the number of clusters or features causes computation
+For correlation and k-means, increasing $p$ or $k$ causes computation
 to grow more quickly than I/O, driving performance toward a computation bound.
 % When the number of features
 %gets larger, the computation of matrix multiplication in
@@ -372,22 +368,21 @@ achieve the same performance as in memory on datasets with a higher dimension si
 %\end{figure}
 
 \subsection{Effectiveness of optimizations}
-We illustrate the effectiveness of our memory optimizations in FlashR for
-DAG materialization.
-We focus on two main optimizations: matrix operation fusion in main memory
-to reduce data movement between SSDs and main memory (mem-fuse), and matrix
-operation fusion in CPU cache to reduce data movement between main memory and
+We illustrate the effectiveness of memory hierarchy aware execution in FlashR.
+We focus on two main optimizations: operation fusion in memory
+to reduce data movement between SSDs and memory (mem-fuse), and
+operation fusion in CPU cache to reduce data movement between memory and
 CPU cache (cache-fuse). Due to the limit of space, we only illustrate their
 effectiveness when FlashR runs on SSDs.
 
 Both optimizations have significant performance improvement on all algorithms
-(Figure \ref{perf:em_opts}). Operation fusion in main memory (mem-fuse) achieves
+(Figure \ref{perf:em_opts}). Mem-fuse achieves
 substantial performance improvement in most algorithms, even in GMM,
 which has the highest asymptotic computation complexity.
 This indicates that materializing every matrix operation
 separately causes SSDs to be the main bottleneck in the system and
 fusing matrix operations in memory significantly reduces I/O.
-Operation fusion in the CPU cache (cache-fuse) has significant impact
+Cache-fuse has significant impact
 on the algorithms that are more complex and less bottlenecked by I/O.
 This demonstrates that memory bandwidth is a limiting performance factor
 once I/O is optimized.
