@@ -28,9 +28,9 @@ We implement these algorithms identically to our competitors (SparkML and H2O).
 \noindent \textbf{Correlation} computes pair-wise Pearson's correlation
 \cite{cor} and is commonly used in statistics.
 
-\noindent \textbf{Principal Component Analysis (PCA)} computes uncorrelated
-variables from a large dataset. PCA is commonly used for dimension reduction
-in many data analysis tasks. We compute PCA by computing eigenvalues on the Gramian
+\noindent \textbf{Principal Component Analysis (PCA)} is commonly used for
+dimension reduction
+in many data analysis tasks. We implement PCA by computing eigenvalues on the Gramian
 matrix $A^T A$ of the input matrix $A$.
 
 \noindent \textbf{Naive Bayes} is a classifier that applies Bayes' theorem
@@ -44,10 +44,9 @@ $logloss_{i-1}-logloss_i < 1e-6$, where $logloss_i$ is the logarithmic loss
 at iteration $i$.
 
 \noindent \textbf{K-means} is an iterative clustering algorithm that
-partitions data points into $k$ clusters. Its R implementation is illustrated
-in Figure \ref{fig:kmeans}. In the experiments, we run k-means to split
-a dataset into 10 clusters by default. It converges when no data points
-move.
+partitions data points into $k$ clusters. In the experiments, we run
+k-means to split a dataset into 10 clusters by default. It converges
+when no data points move.
 
 \noindent \textbf{Gaussian mixture models (GMM)} assumes data follows
 a mixture of Gaussian distribution and learns parameters of Gaussian mixture
@@ -69,7 +68,7 @@ in the MASS package with some trivial modifications.
 \begin{center}
 \caption{Computation and I/O complexity of the benchmark algorithms. For
 	iterative algorithms, the complexity is per iteration. $n$ is the number
-	of data points, $p$ is the number of the features in a point, and $k$ is
+	of data points, $p$ is the number of the dimensions in a point, and $k$ is
 	the number of clusters. We assume $n > p$.
 }
 \vspace{-10pt}
@@ -118,7 +117,7 @@ on the first two days, which is about one tenth of the whole dataset.
 
 \begin{table}
 \begin{center}
-\caption{Datasets. All datasets are stored as dense matrices.}
+\caption{Benchmark datasets.}
 \vspace{-10pt}
 \footnotesize
 \begin{tabular}{|c|c|c|c|c|}
@@ -324,7 +323,7 @@ and vary the number of clusters from 2 to 64.
 		\includegraphics{FlashMatrix_figs/IM-vs-EM-clust.eps}
 		\vspace{-10pt}
 		\caption{The relative runtime of FlashR in memory versus on SSDs
-		on a dataset with $n=100M$ while varying $p$ (the number of features)
+		on a dataset with $n=100M$ while varying $p$ (the number of dimensions)
 		on the left and varying $k$ (the number of clusters) on the right.}
 		\label{perf:stat}
 	\end{center}
@@ -347,7 +346,7 @@ to grow more quickly than I/O, driving performance toward a computation bound.
 %increases, the computation of k-means and GMM increases rapidly and
 %these algorithms are dominated by their CPU computation as the number
 %of clusters gets larger.
-The computation bound is realized on few features or clusters for an I/O throughput
+The computation bound is realized on few dimensions or clusters for an I/O throughput
 of 10GB/s. Because most of the machine learning algorithms in Table \ref{tbl:algs} have
 computation complexities that grow quadratically with $p$, we expect FlashR on SSDs to
 achieve the same performance as in memory on datasets with a higher dimension size.
