@@ -217,10 +217,9 @@ in our local server, the performance gap between FlashR-IM and FlashR-EM decreas
 		\footnotesize
 		\includegraphics{FlashMatrix_figs/FlashR-vs-RRO.eps}
 		\vspace{-10pt}
-		\caption{In-memory (FlashR-IM) and out-of-fore (FlashR-EM) FlashR
+		\caption{The normalized runtime of FlashR-IM and FlashR-EM
 		compared with Revolution R Open on a data matrix with one million rows
-		and one thousand columns when running on the parallel machine with
-		48 CPU cores.}
+		and one thousand columns on the 48 CPU core server.}
 		\label{fig:fmR}
 	\end{center}
   \vspace{-15pt}
@@ -391,11 +390,10 @@ once I/O is optimized.
 		\footnotesize
 		\includegraphics{FlashMatrix_figs/opts-EM.eps}
 		\vspace{-10pt}
-		\caption{The speedup by the optimizations in FlashR over the base
-		implementation for different machine learning algorithms running on SSDs.
-		The speedup is relative to the base implementation, which does not have
-		optimizations to fuse matrix operations. The optimizations are applied
-		to FlashR incrementally.}
+		\caption{The relative speedup by applying the optimizations in FlashR
+                incrementally over the base implementation running on SSDs.
+		The base implementation does not have optimizations to fuse
+                matrix operations.}
 		\label{perf:em_opts}
 	\end{center}
   \vspace{-15pt}
