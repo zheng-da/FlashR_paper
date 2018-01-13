@@ -7,14 +7,13 @@ to accelerate existing R functions in the MASS package and compare with
 Revolution R Open \cite{rro}.
 
 We conduct experiments on our local server and Amazon cloud. The local server
-is has four Intel Xeon E7-4860 2.6 GHz processors,
+has four Intel Xeon E7-4860 2.6 GHz processors,
 each of which has 12 cores, and 1TB of DDR3-1600 memory. It is equipped
 with 24 OCZ Intrepid 3000 SSDs, which together are capable of 12 GB/s for read
 and 10 GB/s for write. We run FlashR on an EC2 i3.16xlarge instance
 with 64 virtual CPUs, 488GB of RAM and 8 NVMe SSDs. The NVMe SSDs together
 provide 15.2TB of space and 16GB/s of sequential I/O throughput.
-We run Ubuntu 16.04 and use ATLAS 3.10.2 as the default BLAS library on both
-machines.
+We run Ubuntu 16.04 and use ATLAS 3.10.2 as the default BLAS library.
 
 \subsection{Benchmark algorithms}\label{benchalg}
 We benchmark FlashR with some commonly used machine learning algorithms.
@@ -142,8 +141,8 @@ Criteo-sub \cite{criteo} & 325M & 40 \\
 %\vspace{-8pt}
 \subsection{Comparative performance}
 %\vspace{-4pt}
-We evaluate FlashR against H$_2$O \cite{h2o} and Spark MLlib \cite{mllib} as well
-as Revolution R Open \cite{rro} in our local server and in the Amazon cloud.
+We evaluate FlashR against H$_2$O \cite{h2o}, Spark MLlib \cite{mllib} and
+Revolution R Open \cite{rro} in our local server and in the Amazon cloud.
 Before running the algorithms in H$_2$O and MLlib, we ensure that all data are
 loaded and cached in memory. All frameworks use 48 threads in the local server.
 In the cloud, we run FlashR in one i3.16xlarge instance
@@ -157,7 +156,6 @@ in the R MASS package and compare their performance with Revolution R Open. We u
 Spark v2.0.1, H$_2$O v3.14.2 and Revolution R Open v3.3.2.
 
 \begin{figure}
-  \vspace{-5pt}
 	\centering
 	\footnotesize
 	\begin{subfigure}{.5\textwidth}
@@ -183,14 +181,14 @@ Spark v2.0.1, H$_2$O v3.14.2 and Revolution R Open v3.3.2.
   \vspace{-10pt}
 \end{figure}
 
-FlashR running on SSDs (FlashR-EM) achieves at least half the performance of
+FlashR on SSDs (FlashR-EM) achieves at least half the performance of
 running in memory (FlashR-IM), while outperforming H$_2$O\footnote{
 H$_2$O develops machine learning algorithms individually and adding
 a new algorithm in H$_2$O requires writing it from scratch, which is
 a non-trivial task. H$_2$O does not provide implementations for correlation
 and GMM, so we do not provide results for these two algorithms.}
 and Spark MLlib significantly on all algorithms
-(Figure \ref{perf:para}) in the 48 CPU core local server.
+(Figure \ref{perf:para}) in the 48 CPU core server.
 In the same hardware, FlashR-IM achieves 4 to 10 times
 performance gain compared
 with MLlib, and 3 to 20 times performance gain compared with H$_2$O.
@@ -200,19 +198,18 @@ Spark materializes operations such as aggregation separately. In contrast,
 FlashR fuses matrix operations and performs two-level partitioning to
 minimize data movement in the memory hierarchy.
 
-We evaluate the performance of FlashR on Amazon EC2 cloud and compare it
+We evaluate the performance of FlashR on Amazon EC2 and compare it
 with Spark MLlib and H$_2$O on an EC2 cluster (Figure \ref{perf:cloud}). H$_2$O
 recommends
 allocating a total of four times the memory of the input data. As such, we use
 4 m4.16xlarge instances that provide sufficient memory and computation power for
-Spark MLlib and H$_2$O to process the datasets.
+Spark MLlib and H$_2$O.
 Even though Spark MLlib and H$_2$O have four times as much computation power as FlashR,
 FlashR still outperforms both distributed machine learning libraries in most algorithms.
 Because the NVMes in i3.16xlarge provide higher I/O throughput than the SSDs
 in our local server, the performance gap between FlashR-IM and FlashR-EM decreases.
 
 \begin{figure}
-  \vspace{-10pt}
 	\begin{center}
 		\footnotesize
 		\includegraphics{FlashMatrix_figs/FlashR-vs-RRO.eps}
@@ -222,10 +219,9 @@ in our local server, the performance gap between FlashR-IM and FlashR-EM decreas
 		and one thousand columns on the 48 CPU core server.}
 		\label{fig:fmR}
 	\end{center}
-  \vspace{-15pt}
 \end{figure}
 
-FlashR running both in memory and on SSDs outperforms Revolution R Open by more
+FlashR both in memory and on SSDs outperforms Revolution R Open by more
 than an order of magnitude even on a small dataset ($n=1,000,000$ and $p=1000$)
 (Figure \ref{fig:fmR}).
 Revolution R Open uses Intel MKL to parallelize matrix multiplication. As such,
@@ -237,13 +233,6 @@ For more complex computations, the performance gap between FlashR and
 Revolution R increases. Even though matrix multiplication
 is the most computation-intensive operation in an algorithm, it is insufficient
 to only parallelize matrix multiplication to achieve high efficiency.
-
-\subsection{Scalability}
-
-We show the scalability of FlashR on the billion-scale datasets in Table
-\ref{tbl:data}. In these experiments, we run the iterative algorithms on
-the datasets until they converge (see their convergence condition in Section
-\ref{benchalg}).
 
 \begin{table}
 \begin{center}
@@ -279,6 +268,13 @@ GMM & $350.6$ & $18$ \\
 \vspace{-10pt}
 \end{table}
 
+\subsection{Scalability}
+
+We show the scalability of FlashR on the billion-scale datasets in Table
+\ref{tbl:data}. In these experiments, we run the iterative algorithms on
+the datasets until they converge (see their convergence condition in Section
+\ref{benchalg}).
+
 Even though we process the billion-scale datasets in a single machine, none of
 the algorithms are prohibitively expensive. Simple algorithms, such as
 Naive Bayes and PCA, require one or two passes over the datasets and take
@@ -290,10 +286,9 @@ a prohibitively long time to complete.
 FlashR scales to datasets with billions of data points easily when running
 out-of-core. All of the algorithms have negligible memory consumption.
 The scalability of FlashR is mainly bound by the capacity of SSDs.
-Two factors contributes to the small memory consumption: \textit{(i)}
-due to lazy evaluation, FlashR only materializes the small matrices;
-\textit{(ii)} FlashR uses direct I/O to access data from SSDs and
-does not cache data internally.
+Two factors contributes to the small memory consumption: due to lazy evaluation,
+FlashR only materializes the small matrices; FlashR uses direct I/O to access
+data from SSDs and does not cache data internally.
 %Owing to lazy evaluation, FlashR does not store majority of matrices in
 % the computation physically. As such, its in-memory
 %out-of-core execution barely increases memory consumption from
@@ -329,7 +324,7 @@ and vary the number of clusters from 2 to 64.
   \vspace{-15pt}
 \end{figure}
 
-As $p$ or $k$ increases, the performance gap between
+As the number of dimensions or the number of clusters increases, the performance gap between
 in-memory and external-memory execution narrows and the external-memory
 performance approaches in-memory performance for correlation and k-means
 but not Naive Bayes (Figure \ref{perf:stat}). This observation conforms with

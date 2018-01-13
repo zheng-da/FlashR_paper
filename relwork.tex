@@ -24,7 +24,7 @@ for matrix operations because its I/O streaming primitives do not match matrix
 data access patterns. Spark \cite{spark} provides more primitives for efficient
 computation and are used for distributed machine learning (MLlib \cite{mllib}).
 SystemML \cite{systemml, systemml2} develops an R-like scripting language for
-machine learning on top of MapReduce and Spark. It deploys optimizations,
+machine learning on MapReduce and Spark, and deploys optimizations,
 such as data compression \cite{Elgohary16} and hybrid parallelization
 \cite{Boehm14}. These optimizations are orthogonal with the ones in FlashR
 and can be adopted.
@@ -60,6 +60,14 @@ data analysis. Unlike most of these works, FlashR applies lazy evaluation
 and operation fusion at runtime without compilation and focuses on reducing
 data movement in the memory hierarchy.
 
+%Efforts to parallelize array programming include Revolution R \cite{rro} and
+%Matlab's parallel computing toolbox, which offer multicore parallelism and
+%explicit distributed parallelism using MPI and MapReduce. Other works focus
+%on implicit parallelization. Presto \cite{presto} extends R to sparse matrix
+%operations in distributed memory for graph analysis. Accelerator
+%\cite{accelerator} compiles
+%data-parallel operations on the fly to execute programs on a GPU.
+
 Sequoia \cite{sequoia} is a programming language designed to facilitate
 memory hierarchy aware parallel programming on large arrays.
 It exposes memory hierarchy to the programming model and performs static
@@ -67,10 +75,7 @@ analysis at compile time. In contrast, FlashR enhances an existing popular
 programming language and hides memory
 hierarchy from R users and optimize data movement at runtime.
 
-Efforts to parallelize array programming include Revolution R \cite{rro} and
-Matlab's parallel computing toolbox, which offer multicore parallelism and
-explicit distributed parallelism using MPI and MapReduce. Other works focus
-on implicit parallelization. Presto \cite{presto} extends R to sparse matrix
-operations in distributed memory for graph analysis. Accelerator
-\cite{accelerator} compiles
-data-parallel operations on the fly to execute programs on a GPU.
+TileDB's \cite{Papadopoulos16} designs an efficient strategy to support
+array modification.
+It manages data moficiation as ``fragments''. This strategy can be adopted by
+FlashR for large modifications on matrices.
