@@ -29,11 +29,21 @@
 %% Conference information
 %% Supplied to authors by publisher for camera-ready submission;
 %% use defaults for review submission.
-\acmConference[PPoPP'18]{ACM SIGPLAN Symposium on Principles \& Practice of Parallel Programming}{Feb 24--28, 2018}{Vienna, Austria}
-\acmYear{2018}
-\acmISBN{978-x-xxxx-xxxx-x/YY/MM}
-\acmDOI{10.1145/nnnnnnn.nnnnnnn}
 \startPage{1}
+
+
+\copyrightyear{2018}
+\acmYear{2018}
+\setcopyright{acmcopyright}
+\acmConference[PPoPP '18]{PPoPP '18: 23nd ACM SIGPLAN Symposium on
+Principles and Practice of Parallel Programming}{February 24--28,
+2018}{Vienna, Austria}
+%\acmBooktitle{PPoPP '18: PPoPP '18: 23nd ACM SIGPLAN Symposium on
+%  Principles and Practice of Parallel Programming, February 24--28, 2018,
+%Vienna, Austria}
+\acmPrice{15.00}
+\acmDOI{10.1145/3178487.3178501}
+\acmISBN{978-1-4503-4982-6/18/02}
 
 
 %% Copyright information
@@ -142,8 +152,8 @@ implement it in C or FORTRAN and provide an R wrapper. FlashR accelerates
 and scales existing R code by parallelizing
 a large number of matrix functions in the R \textit{base} package and
 scaling them beyond memory capacity with solid-state drives (SSDs).
-FlashR performs memory hierarchy aware execution to further speed up
-parallelized R code by
+FlashR performs memory hierarchy aware execution to speed up parallelized
+R code by
 	\textit{(i)} evaluating matrix operations lazily,
 	\textit{(ii)} performing all operations in a DAG in a single execution
 	and with only one pass over data to increase the ratio of computation to I/O,
@@ -153,8 +163,7 @@ We evaluate FlashR on various machine learning and statistics algorithms
 on inputs of up to four billion data points. Despite the huge performance
 gap between SSDs and RAM, FlashR on SSDs closely tracks the performance
 of FlashR in memory for many algorithms. The R implementations
-in FlashR outperforms the in-memory execution of H$_2$O and Spark
-MLlib by a factor of $3-20$.
+in FlashR outperforms H$_2$O and Spark MLlib by a factor of $3-20$.
 \end{abstract}
 
 
@@ -183,7 +192,6 @@ MLlib by a factor of $3-20$.
 %% Keywords
 %% comma separated list
 \keywords{R, parallel, machine learning, solid-state drives}  %% \keywords is optional
-
 
 %% \maketitle
 %% Note: \maketitle command must come after title commands, author
