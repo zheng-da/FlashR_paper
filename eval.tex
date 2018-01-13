@@ -286,8 +286,8 @@ a prohibitively long time to complete.
 FlashR scales to datasets with billions of data points easily when running
 out-of-core. All of the algorithms have negligible memory consumption.
 The scalability of FlashR is mainly bound by the capacity of SSDs.
-Two factors contributes to the small memory consumption: due to lazy evaluation,
-FlashR only materializes the small matrices; FlashR uses direct I/O to access
+Two factors contributes to the small memory consumption: FlashR only saves
+materialized results of sink matrices; FlashR uses direct I/O to access
 data from SSDs and does not cache data internally.
 %Owing to lazy evaluation, FlashR does not store majority of matrices in
 % the computation physically. As such, its in-memory

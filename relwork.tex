@@ -37,7 +37,7 @@ error tolerance; TensorFlow \cite{tensorflow} trains deep neural networks
 with stochastic gradient descent and its variants.
 
 There is a large literature for deploying lazy evaluation and operation fusion
-in a programming framework to improvement performance. There are a few attempts
+in a programming framework to improve performance. There are a few attempts
 in the APL literature for deferred operations. For example, Guibas et al.
 \cite{Guibas78} defers operations for streaming data among operations and
 reordering operations; Ching et al. \cite{Ching12} compiles APL code
@@ -53,7 +53,7 @@ and deploys runtime code generation to fuse operations and arry constraction.
 All of the works above rely on compilation to achieve optimizations such as
 operation fusion or operation reordering.
 It is difficult to compile a dynamic programming language such as APL and R.
-The compilation is inefficent or requires some constrants in the language,
+The compilation is inefficent or requires some constraints in the language,
 while runtime compilation has large overhead.
 FlashR adopts and enhances these techniques with a focus on large-scale
 data analysis. Unlike most of these works, FlashR applies lazy evaluation

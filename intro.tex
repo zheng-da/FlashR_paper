@@ -80,11 +80,9 @@ data placement and movement in the memory hierarchy without users' awareness.
 To achieve this, FlashR evaluates expressions lazily and fuses operations
 aggressively in a single parallel execution job. FlashR
 builds a directed acyclic graph (DAG) to represent a sequence of matrix
-operations. To increase the ratio of computation to I/O, materialization
-of any matrix operation in a DAG triggers materialization of all operations
-in the DAG. FlashR requires only one pass over the input matrices of
-the DAG to perform all operations. It assigns the same partitions from
-different matrices to the same NUMA node
+operations. To increase the ratio of computation to I/O, FlashR requires
+only one pass over the input matrices to perform all operations in a DAG.
+It assigns the same partitions from different matrices to the same NUMA node
 to reduce remote memory access, performs two levels of matrix partitioning
 and reorders computation on matrix partitions to reduce data movement
 in the memory hierarchy. FlashR by default keeps only the output

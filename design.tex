@@ -261,9 +261,8 @@ Figure \ref{fig:kmeans} implements k-means, a popular clustering algorithm
 compute the Euclidean distance between data points and cluster centers
 and outputs a matrix whose rows represent the distances to centers.  
 It uses \textit{agg.row} to find the closest cluster for each data point.
-The output matrix 
-assigns data points to clusters. It then uses \textit{groupby.row} to count
-the number of data points in each cluster and compute the mean of each cluster.
+It then uses \textit{groupby.row} to count
+the number of data points in each cluster and compute cluster centers.
 
 \subsection{Dense matrices}
 FlashR optimizes for dense matrices that are rectangular---with
@@ -346,9 +345,9 @@ Coupled with the I/O partitioning on TAS matrices, this strategy enables
 
 \subsection{Parallelize matrix operations}
 
-When parallelizing matrix operations, FlashR aims at achieving
+When executing matrix operations in parallel, FlashR aims at achieving
 good I/O performance and load balancing as well as reducing remote memory access
-in the memory hierarchy. FlashR evaluates a matrix operation with
+in a NUMA machine. FlashR evaluates a matrix operation with
 a single pass over input data.
 
 For good load balancing and I/O performance, FlashR uses a global task scheduler
@@ -396,7 +395,7 @@ and matrix shape because matrix operations have various data dependencies
 
 \noindent \textbf{Operations (g, h, i)}: the output matrix contains the aggregation
 		over all partitions of the input matrices. To parallelize these operations,
-		Each thread maintains a local buffer for partial aggregation results.
+		each thread maintains a local buffer for partial aggregation results.
 		FlashR combines all partial results at the end of
 		the computation.
                 %The local buffers may grow large in
@@ -449,10 +448,10 @@ With lazily evaluation, matrix operations
 output \textit{virtual matrices} that represent the computation result,
 instead of storing data physically. In the current implementation,
 the only operations that are not lazily evaluated are the ones that
-load data from external sources, such as \textit{load.dense} and
-\textit{load.sparse}, and the ones that output matrices
+load data from external sources, such as \textit{load.dense}, and the ones
+that output matrices
 with the size depending on data of the input matrices, such as \textit{unique}
-and \textit{table}. A matrix operation on a \textit{block matrix} may output
+and \textit{table}. An operation on a \textit{block matrix} may output
 a block \textit{virtual matrix}.
 
 %\dz{There are two types of virtual matrices. Most of the virtual matrices
@@ -510,7 +509,7 @@ set a flag on any virtual matrix with \textit{set.cache} to
 cache data in memory or on SSDs during computation, similar to caching
 a resilient distributed dataset (RDD) in Spark \cite{spark}.
 Figure \ref{fig:kmeans} shows an example that we cache $I$, a vector of
-assigned partition Ids, for the next iteration.
+partition Ids assigned to each data point, for the next iteration.
 
 \subsubsection{Reduce data movement}
 FlashR performs memory hierarchy aware execution, when evaluating operations
@@ -531,8 +530,8 @@ between SSDs and RAM, between NUMA nodes as well as between RAM and CPU cache.
   \vspace{-8pt}
 \end{figure}
 
-FlashR partitions matrices in a DAG and materializes partitions separately in
-most cases. This is possible because all matrices in a DAG except sink matrices
+FlashR materializes matrix partitions separately in a DAG in most cases.
+This is possible because all matrices in a DAG except sink matrices
 share the same \textit{partition dimension} and the same I/O partition size.
 As illustrated in Figure \ref{fig:dag} (b), a partition $i$ of a virtual
 matrix requires data only from partitions
